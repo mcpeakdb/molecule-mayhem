@@ -1,91 +1,128 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, ELEMENT_COLORS, ELEMENT_NAMES, type ElementType } from '../constants';
+import { ELEMENT_COLORS, ELEMENT_NAMES, type ElementType, GAME_HEIGHT, GAME_WIDTH } from '../constants';
 
 const CHOICE_DESCRIPTIONS: Partial<Record<ElementType, string[]>> = {
-  hydrogen: ['Proton Punch  → fast melee', 'Plasma Arc  → energy bolt',    'Fusion Burst  → area explosion'],
-  oxygen:   ['Oxidize  → corrosive slash', 'Reactive Cloud  → slow + dmg', 'Oxidation Nova  → massive AOE'],
-  water:    ['Water Jet  → knockback bolt', 'Hydro Wave  → forward surge', 'Tidal Force  → screen wipe'],
+  hydrogen: ['Proton Punch  → fast melee', 'Plasma Arc  → energy bolt', 'Fusion Burst  → area explosion'],
+  oxygen: ['Oxidize  → corrosive slash', 'Reactive Cloud  → slow + dmg', 'Oxidation Nova  → massive AOE'],
+  water: ['Water Jet  → knockback bolt', 'Hydro Wave  → forward surge', 'Tidal Force  → screen wipe'],
 };
 
 interface Card {
-  bg:         Phaser.GameObjects.Rectangle;
-  border:     Phaser.GameObjects.Rectangle;
-  element:    ElementType;
+  bg: Phaser.GameObjects.Rectangle;
+  border: Phaser.GameObjects.Rectangle;
+  element: ElementType;
 }
 
 interface ChoiceData {
-  choices:  ElementType[];
+  choices: ElementType[];
   callback: (chosen: ElementType) => void;
 }
 
 export default class ElementChoiceScene extends Phaser.Scene {
-  private choices!:  ElementType[];
+  private choices!: ElementType[];
   private callback!: (chosen: ElementType) => void;
-  private selected   = 0;
-  private cards!:    Card[];
+  private selected = 0;
+  private cards!: Card[];
 
-  constructor() { super('ElementChoiceScene'); }
+  constructor() {
+    super('ElementChoiceScene');
+  }
 
   init(data: ChoiceData): void {
-    this.choices  = data.choices;
+    this.choices = data.choices;
     this.callback = data.callback;
     this.selected = 0;
   }
 
   create(): void {
-    const w = GAME_WIDTH, h = GAME_HEIGHT;
+    const w = GAME_WIDTH,
+      h = GAME_HEIGHT;
 
     this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.72).setDepth(0);
-    this.add.text(w / 2, 80, '⚛  MYSTERY ATOM  ⚛', {
-      fontSize: '28px', color: '#cc88ff', fontStyle: 'bold',
-      stroke: '#440066', strokeThickness: 5,
-    }).setOrigin(0.5).setDepth(2);
-    this.add.text(w / 2, 120, 'Choose your element path:', {
-      fontSize: '15px', color: '#aaaacc',
-    }).setOrigin(0.5).setDepth(2);
+    this.add
+      .text(w / 2, 80, '⚛  MYSTERY ATOM  ⚛', {
+        fontSize: '28px',
+        color: '#cc88ff',
+        fontStyle: 'bold',
+        stroke: '#440066',
+        strokeThickness: 5,
+      })
+      .setOrigin(0.5)
+      .setDepth(2);
+    this.add
+      .text(w / 2, 120, 'Choose your element path:', {
+        fontSize: '15px',
+        color: '#aaaacc',
+      })
+      .setOrigin(0.5)
+      .setDepth(2);
 
     this.cards = this.choices.map((el, i) => this._buildCard(el, i));
 
-    this.add.text(w / 2, h - 50, '← → to choose   Z to confirm', {
-      fontSize: '14px', color: '#888899',
-    }).setOrigin(0.5).setDepth(2);
+    this.add
+      .text(w / 2, h - 50, '← → to choose   Z to confirm', {
+        fontSize: '14px',
+        color: '#888899',
+      })
+      .setOrigin(0.5)
+      .setDepth(2);
 
     this._highlight(0);
 
-    this.input.keyboard!.on('keydown-LEFT',  () => this._move(-1));
-    this.input.keyboard!.on('keydown-RIGHT', () => this._move(1));
-    this.input.keyboard!.on('keydown-A',     () => this._move(-1));
-    this.input.keyboard!.on('keydown-D',     () => this._move(1));
-    this.input.keyboard!.on('keydown-Z',     () => this._confirm());
-    this.input.keyboard!.on('keydown-ENTER', () => this._confirm());
+    this.input.keyboard?.on('keydown-LEFT', () => this._move(-1));
+    this.input.keyboard?.on('keydown-RIGHT', () => this._move(1));
+    this.input.keyboard?.on('keydown-A', () => this._move(-1));
+    this.input.keyboard?.on('keydown-D', () => this._move(1));
+    this.input.keyboard?.on('keydown-Z', () => this._confirm());
+    this.input.keyboard?.on('keydown-ENTER', () => this._confirm());
   }
 
   private _buildCard(element: ElementType, index: number): Card {
-    const col   = ELEMENT_COLORS[element];
-    const hex   = '#' + col.toString(16).padStart(6, '0');
-    const cardW = 220, cardH = 260;
+    const col = ELEMENT_COLORS[element];
+    const hex = `#${col.toString(16).padStart(6, '0')}`;
+    const cardW = 220,
+      cardH = 260;
     const totalW = this.choices.length * (cardW + 30) - 30;
     const startX = (GAME_WIDTH - totalW) / 2 + index * (cardW + 30) + cardW / 2;
-    const cardY  = GAME_HEIGHT / 2 + 20;
+    const cardY = GAME_HEIGHT / 2 + 20;
 
-    const bg = this.add.rectangle(startX, cardY, cardW, cardH,
-      Phaser.Display.Color.IntegerToColor(col).darken(65).color, 0.95).setDepth(1);
-    const border = this.add.rectangle(startX, cardY, cardW, cardH)
-      .setStrokeStyle(3, col).setDepth(2).setFillStyle(0x000000, 0);
+    const bg = this.add
+      .rectangle(startX, cardY, cardW, cardH, Phaser.Display.Color.IntegerToColor(col).darken(65).color, 0.95)
+      .setDepth(1);
+    const border = this.add
+      .rectangle(startX, cardY, cardW, cardH)
+      .setStrokeStyle(3, col)
+      .setDepth(2)
+      .setFillStyle(0x000000, 0);
 
-    this.add.text(startX, cardY - 90, ELEMENT_NAMES[element], {
-      fontSize: '20px', color: hex, fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(3);
+    this.add
+      .text(startX, cardY - 90, ELEMENT_NAMES[element], {
+        fontSize: '20px',
+        color: hex,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(3);
 
-    this.add.text(startX, cardY - 50,
-      element === 'hydrogen' ? 'H' : element === 'oxygen' ? 'O' : '~', {
-        fontSize: '44px', color: hex, fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(3).setAlpha(0.6);
+    this.add
+      .text(startX, cardY - 50, element === 'hydrogen' ? 'H' : element === 'oxygen' ? 'O' : '~', {
+        fontSize: '44px',
+        color: hex,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(3)
+      .setAlpha(0.6);
 
     (CHOICE_DESCRIPTIONS[element] ?? []).forEach((d, li) => {
-      this.add.text(startX, cardY + 20 + li * 28, `Lv.${li + 1}  ${d}`, {
-        fontSize: '10px', color: '#bbbbcc', wordWrap: { width: cardW - 20 },
-      }).setOrigin(0.5).setDepth(3);
+      this.add
+        .text(startX, cardY + 20 + li * 28, `Lv.${li + 1}  ${d}`, {
+          fontSize: '10px',
+          color: '#bbbbcc',
+          wordWrap: { width: cardW - 20 },
+        })
+        .setOrigin(0.5)
+        .setDepth(3);
     });
 
     return { bg, border, element };
@@ -100,7 +137,8 @@ export default class ElementChoiceScene extends Phaser.Scene {
         targets: card.bg,
         scaleX: active ? 1.04 : 1.0,
         scaleY: active ? 1.04 : 1.0,
-        duration: 120, ease: 'Power2',
+        duration: 120,
+        ease: 'Power2',
       });
     });
   }
@@ -112,11 +150,14 @@ export default class ElementChoiceScene extends Phaser.Scene {
 
   private _confirm(): void {
     const chosen = this.choices[this.selected];
-    const card   = this.cards[this.selected];
+    const card = this.cards[this.selected];
     this.tweens.add({
       targets: card.bg,
-      alpha: 0, scaleX: 2, scaleY: 2,
-      duration: 350, ease: 'Power3',
+      alpha: 0,
+      scaleX: 2,
+      scaleY: 2,
+      duration: 350,
+      ease: 'Power3',
       onComplete: () => this.callback(chosen),
     });
   }

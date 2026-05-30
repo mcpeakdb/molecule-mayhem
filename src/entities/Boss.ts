@@ -1,30 +1,34 @@
 import Phaser from 'phaser';
-import { FLOOR_MIN_Y, FLOOR_MAX_Y } from '../constants';
-import type { EnemySprite } from '../types';
+import { FLOOR_MAX_Y, FLOOR_MIN_Y } from '../constants';
 import type GameScene from '../scenes/GameScene';
+import SoundSystem from '../systems/SoundSystem';
+import type { EnemySprite } from '../types';
 
 const PHASES = {
-  IDLE: 'idle', CHARGE: 'charge', HURT: 'hurt', DEAD: 'dead',
+  IDLE: 'idle',
+  CHARGE: 'charge',
+  HURT: 'hurt',
+  DEAD: 'dead',
 } as const;
-type BossPhase = typeof PHASES[keyof typeof PHASES];
+type BossPhase = (typeof PHASES)[keyof typeof PHASES];
 
 export default class Boss {
-  scene:       GameScene;
-  maxHp        = 500;
-  hp           = 500;
-  damage       = 22;
-  speed        = 140;
-  alive        = true;
-  isBoss       = true;
+  scene: GameScene;
+  maxHp = 500;
+  hp = 500;
+  damage = 22;
+  speed = 140;
+  alive = true;
+  isBoss = true;
 
-  sprite:      EnemySprite;
-  phase:       BossPhase = PHASES.IDLE;
-  hurtTimer    = 0;
-  actionTimer  = 0;
-  activated    = false;
+  sprite: EnemySprite;
+  phase: BossPhase = PHASES.IDLE;
+  hurtTimer = 0;
+  actionTimer = 0;
+  activated = false;
 
   private hpBarBg: Phaser.GameObjects.Rectangle;
-  private hpBar:   Phaser.GameObjects.Rectangle;
+  private hpBar: Phaser.GameObjects.Rectangle;
   private hpLabel: Phaser.GameObjects.Text;
 
   constructor(scene: GameScene, x: number, y: number) {
@@ -40,10 +44,16 @@ export default class Boss {
     this.sprite.enemyRef = this;
 
     this.hpBarBg = scene.add.rectangle(0, 0, 300, 18, 0x330000).setDepth(200).setVisible(false);
-    this.hpBar   = scene.add.rectangle(0, 0, 300, 18, 0xff2222).setDepth(201).setVisible(false);
-    this.hpLabel = scene.add.text(0, 0, 'SUPER BACTERIUM', {
-      fontSize: '12px', color: '#ffaaaa', fontStyle: 'bold',
-    }).setDepth(202).setScrollFactor(0).setVisible(false);
+    this.hpBar = scene.add.rectangle(0, 0, 300, 18, 0xff2222).setDepth(201).setVisible(false);
+    this.hpLabel = scene.add
+      .text(0, 0, 'SUPER BACTERIUM', {
+        fontSize: '12px',
+        color: '#ffaaaa',
+        fontStyle: 'bold',
+      })
+      .setDepth(202)
+      .setScrollFactor(0)
+      .setVisible(false);
   }
 
   activate(): void {
@@ -51,6 +61,7 @@ export default class Boss {
     this.hpBarBg.setVisible(true);
     this.hpBar.setVisible(true);
     this.hpLabel.setVisible(true);
+    SoundSystem.play(this.scene.audioCtx, 'boss_roar');
     this.scene.cameras.main.shake(600, 0.018);
     this.sprite.setTint(0xff0000);
     this.scene.time.delayedCall(500, () => this.sprite.clearTint());
@@ -61,14 +72,12 @@ export default class Boss {
     if (!this.alive || !this.sprite.active) return;
 
     if (!this.activated) {
-      const dist = Phaser.Math.Distance.Between(
-        playerSprite.x, playerSprite.y, this.sprite.x, this.sprite.y,
-      );
+      const dist = Phaser.Math.Distance.Between(playerSprite.x, playerSprite.y, this.sprite.x, this.sprite.y);
       if (dist < 500) this.activate();
       return;
     }
 
-    this.hurtTimer   = Math.max(0, this.hurtTimer   - delta);
+    this.hurtTimer = Math.max(0, this.hurtTimer - delta);
     this.actionTimer = Math.max(0, this.actionTimer - delta);
 
     if (this.phase === PHASES.HURT) {
@@ -81,8 +90,8 @@ export default class Boss {
 
     if (this.actionTimer <= 0) this._chooseNextAction();
 
-    const dx   = playerSprite.x - this.sprite.x;
-    const dy   = playerSprite.y - this.sprite.y;
+    const dx = playerSprite.x - this.sprite.x;
+    const dy = playerSprite.y - this.sprite.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
     if (this.phase === PHASES.IDLE) {
@@ -108,21 +117,32 @@ export default class Boss {
   private _chooseNextAction(): void {
     const hpPct = this.hp / this.maxHp;
     if (hpPct > 0.6) {
-      this.phase = PHASES.CHARGE; this.actionTimer = 2200;
+      this.phase = PHASES.CHARGE;
+      this.actionTimer = 2200;
     } else if (hpPct > 0.3) {
-      if (Math.random() < 0.5) { this.phase = PHASES.CHARGE; this.actionTimer = 1800; }
-      else                      { this._fireFlagella(); this.phase = PHASES.IDLE; this.actionTimer = 1000; }
+      if (Math.random() < 0.5) {
+        this.phase = PHASES.CHARGE;
+        this.actionTimer = 1800;
+      } else {
+        this._fireFlagella();
+        this.phase = PHASES.IDLE;
+        this.actionTimer = 1000;
+      }
     } else {
-      if (Math.random() < 0.4) { this._fireFlagella(); this.phase = PHASES.IDLE; this.actionTimer = 700; }
-      else                     { this.phase = PHASES.CHARGE; this.actionTimer = 1200; }
+      if (Math.random() < 0.4) {
+        this._fireFlagella();
+        this.phase = PHASES.IDLE;
+        this.actionTimer = 700;
+      } else {
+        this.phase = PHASES.CHARGE;
+        this.actionTimer = 1200;
+      }
     }
   }
 
   private _fireFlagella(): void {
     const player = this.scene.player.sprite;
-    const baseAngle = Phaser.Math.Angle.Between(
-      this.sprite.x, this.sprite.y, player.x, player.y,
-    );
+    const baseAngle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, player.x, player.y);
     for (let i = -1; i <= 1; i++) {
       this.scene.spawnEnemyProjectile(this.sprite.x, this.sprite.y, baseAngle + i * 0.3, this.damage * 0.6);
     }
@@ -132,7 +152,7 @@ export default class Boss {
 
   private _updateHPBar(): void {
     const pct = Math.max(0, this.hp / this.maxHp);
-    const cx  = (this.scene.game.config.width as number) / 2;
+    const cx = (this.scene.game.config.width as number) / 2;
     this.hpBarBg.setScrollFactor(0).setPosition(cx, 50);
     this.hpBar.setScrollFactor(0).setPosition(cx - 150 + 150 * pct, 50);
     this.hpBar.width = 300 * pct;
@@ -143,9 +163,24 @@ export default class Boss {
     if (!this.alive || this.phase === PHASES.DEAD) return;
     this.hp -= amount;
 
+    this.sprite.body.setVelocity(0, 0);
+    this.scene.time.delayedCall(80, () => {
+      if (this.sprite.active) this.sprite.body.setVelocity(knockbackDir * 80, 0);
+    });
+
+    this.scene.tweens.killTweensOf(this.sprite);
+    this.scene.tweens.add({
+      targets: this.sprite,
+      scaleX: 2.1, scaleY: 0.975,
+      duration: 80, ease: 'Power2',
+      yoyo: true,
+      onComplete: () => { if (this.sprite.active) this.sprite.setScale(1.5); },
+    });
+
     this.sprite.setTint(0xffffff);
-    this.scene.time.delayedCall(120, () => { if (this.sprite.active) this.sprite.clearTint(); });
-    this.sprite.body.setVelocity(knockbackDir * 80, 0);
+    this.scene.time.delayedCall(120, () => {
+      if (this.sprite.active) this.sprite.clearTint();
+    });
     this.phase = PHASES.HURT;
     this.hurtTimer = 200;
 
@@ -171,9 +206,14 @@ export default class Boss {
 
     this.scene.tweens.add({
       targets: this.sprite,
-      alpha: 0, scaleX: 3, scaleY: 3,
+      alpha: 0,
+      scaleX: 3,
+      scaleY: 3,
       duration: 1400,
-      onComplete: () => { this.sprite.destroy(); this.scene.onBossDefeated(); },
+      onComplete: () => {
+        this.sprite.destroy();
+        this.scene.onBossDefeated();
+      },
     });
   }
 }

@@ -1,31 +1,30 @@
 # Molecule Mayhem — Development Plan
 
-## Current State (v0.1)
+## Current State (v0.2 — Phase 1 Complete)
 
 - Stage 1: Petri Dish Sector — bacterium, virus, dustbunny, pollen enemies
 - Elements: Hydrogen, Oxygen, Water (H₂O combo)
 - Boss: Super Bacterium (3-phase, flagella projectiles)
 - All graphics procedural (no external assets)
+- **Phaser 4.1.0**
 
----
+### Added in Phase 1
 
-## Phase 1 — Polish & Feel
-
-Goal: make what exists feel great before expanding
-
-- [ ] **Sound effects** — punch impact, atom collect chime, element upgrade fanfare, boss roar, death sound
-- [ ] **Screen-space particle bursts** on atom collection (Phaser ParticleEmitter)
-- [ ] **Walk animation** — cycle player sprite between 2–3 frames using Phaser anims (can stay procedural)
-- [ ] **Enemy hit stagger** — brief velocity stop + scale squish on `takeDamage`
-- [ ] **Combo counter** — track consecutive hits without being hit; display multiplier on HUD
-- [ ] **Stage intro** — brief letterbox + stage title card before play begins
-- [ ] **Death screen** — "YOU DIED" overlay with score + retry instead of instant restart
+- Procedural sound effects (Web Audio API) — punch, collect, upgrade fanfare, boss roar, death
+- Particle bursts on atom collection (element-colored)
+- Player walk animation (3-frame procedural cycle)
+- Enemy & boss hit stagger (freeze + scale squish + delayed knockback)
+- Combo counter with damage multiplier (every 5 hits = +×0.5, shown in HUD)
+- Stage intro letterbox sequence
+- Death screen with score display and retry
+- Score tracker (per-enemy kill values, live HUD display)
+- **Player jumping** (Space — arc with ground shadow, natural invulnerability while airborne)
 
 ---
 
 ## Phase 2 — More Elements
 
-Extend the atom system with two new base elements and their combos
+Extend the atom system with two new base elements and their combos.
 
 ### Carbon (C)
 
@@ -115,15 +114,15 @@ Extend the atom system with two new base elements and their combos
 
 **Adding a new enemy type:**
 
-1. Add config entry in `Enemy.js` `CONFIGS` object
+1. Add config entry in `Enemy.ts` `CONFIGS` object
 2. Add texture generation in `BootScene._makeEnemyTextures()` (or new method)
 3. Add to `GameScene._spawnStage()` `enemyDefs` array
 
 **Adding a new element:**
 
-1. Add to `ELEMENTS` and `ELEMENT_COLORS` / `ELEMENT_NAMES` in `constants.js`
+1. Add to `ELEMENTS` and `ELEMENT_COLORS` / `ELEMENT_NAMES` in `constants.ts`
 2. Extend `ElementSystem._resolve()` combo table
-3. Add `_specialXxx()` methods in `Player.js`
+3. Add `_specialXxx()` methods in `Player.ts`
 4. Add atom texture in `BootScene._makeAtoms()`
 5. Add power descriptions to `ElementChoiceScene` `CHOICE_DESCRIPTIONS`
 

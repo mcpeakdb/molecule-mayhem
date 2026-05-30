@@ -8,26 +8,26 @@ export const FLOOR_MAX_Y = 460;
 export const FLOOR_CENTER_Y = 400;
 
 export const ELEMENTS = {
-  NONE:     'none',
+  NONE: 'none',
   HYDROGEN: 'hydrogen',
-  OXYGEN:   'oxygen',
-  WATER:    'water',
+  OXYGEN: 'oxygen',
+  WATER: 'water',
 } as const;
 
-export type ElementType = typeof ELEMENTS[keyof typeof ELEMENTS];
+export type ElementType = (typeof ELEMENTS)[keyof typeof ELEMENTS];
 
 export const ELEMENT_COLORS: Record<ElementType, number> = {
-  [ELEMENTS.NONE]:     0x888888,
+  [ELEMENTS.NONE]: 0x888888,
   [ELEMENTS.HYDROGEN]: 0x4499ff,
-  [ELEMENTS.OXYGEN]:   0xff5533,
-  [ELEMENTS.WATER]:    0x22ccff,
+  [ELEMENTS.OXYGEN]: 0xff5533,
+  [ELEMENTS.WATER]: 0x22ccff,
 };
 
 export const ELEMENT_NAMES: Record<ElementType, string> = {
-  [ELEMENTS.NONE]:     'None',
+  [ELEMENTS.NONE]: 'None',
   [ELEMENTS.HYDROGEN]: 'Hydrogen',
-  [ELEMENTS.OXYGEN]:   'Oxygen',
-  [ELEMENTS.WATER]:    'Water (H₂O)',
+  [ELEMENTS.OXYGEN]: 'Oxygen',
+  [ELEMENTS.WATER]: 'Water (H₂O)',
 };
 
 export const PLAYER_MAX_HP = 100;

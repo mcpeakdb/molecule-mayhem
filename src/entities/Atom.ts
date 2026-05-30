@@ -1,19 +1,19 @@
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import type { ElementType } from '../constants';
 import type { AtomSprite } from '../types';
 
 export type AtomType = ElementType | 'mystery';
 
 export default class Atom {
-  scene:     Phaser.Scene;
-  type:      AtomType;
-  choices:   ElementType[] | null;
+  scene: Phaser.Scene;
+  type: AtomType;
+  choices: ElementType[] | null;
   collected: boolean = false;
-  sprite:    AtomSprite;
+  sprite: AtomSprite;
 
   constructor(scene: Phaser.Scene, x: number, y: number, type: AtomType, choices: ElementType[] | null = null) {
-    this.scene   = scene;
-    this.type    = type;
+    this.scene = scene;
+    this.type = type;
     this.choices = choices;
 
     const base = scene.physics.add.sprite(x, y, `atom_${type}`);

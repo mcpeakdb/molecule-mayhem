@@ -1,0 +1,2 @@
+npx biome check src/ --fix
+npx tsc --noEmit
