@@ -1,0 +1,19 @@
+{
+  "name": "molecule-mayhem",
+  "version": "0.1.0",
+  "description": "A molecular-scale beat 'em up — mad scientist vs. the microscopic world",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "phaser": "^3.60.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.16",
+    "husky": "^9.1.7",
+    "typescript": "^6.0.3",
+    "vite": "^5.0.0"
+  }
+}
