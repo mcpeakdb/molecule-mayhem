@@ -5,11 +5,21 @@ export default class SoundSystem {
     if (ctx.state === 'suspended') ctx.resume();
     const now = ctx.currentTime;
     switch (key) {
-      case 'punch':           SoundSystem._punch(ctx, now); break;
-      case 'atom_collect':    SoundSystem._atomCollect(ctx, now); break;
-      case 'element_upgrade': SoundSystem._elementUpgrade(ctx, now); break;
-      case 'boss_roar':       SoundSystem._bossRoar(ctx, now); break;
-      case 'player_death':    SoundSystem._playerDeath(ctx, now); break;
+      case 'punch':
+        SoundSystem._punch(ctx, now);
+        break;
+      case 'atom_collect':
+        SoundSystem._atomCollect(ctx, now);
+        break;
+      case 'element_upgrade':
+        SoundSystem._elementUpgrade(ctx, now);
+        break;
+      case 'boss_roar':
+        SoundSystem._bossRoar(ctx, now);
+        break;
+      case 'player_death':
+        SoundSystem._playerDeath(ctx, now);
+        break;
     }
   }
 

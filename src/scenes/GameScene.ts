@@ -5,8 +5,8 @@ import Atom, { type AtomType } from '../entities/Atom';
 import Boss from '../entities/Boss';
 import Enemy, { type EnemyType } from '../entities/Enemy';
 import Player from '../entities/Player';
-import type { AtomSprite, EnemySprite, WasdKeys } from '../types';
 import SoundSystem from '../systems/SoundSystem';
+import type { AtomSprite, EnemySprite, WasdKeys } from '../types';
 
 type ProjectileSprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody & { damage: number; knockback: number };
 
@@ -84,38 +84,64 @@ export default class GameScene extends Phaser.Scene {
     const w = GAME_WIDTH;
     const h = GAME_HEIGHT;
 
-    const topBar = this.add.rectangle(0, -30, w, 60, 0x000000)
-      .setOrigin(0, 0.5).setScrollFactor(0).setDepth(400);
-    const botBar = this.add.rectangle(0, h + 30, w, 60, 0x000000)
-      .setOrigin(0, 0.5).setScrollFactor(0).setDepth(400);
+    const topBar = this.add.rectangle(0, -30, w, 60, 0x000000).setOrigin(0, 0.5).setScrollFactor(0).setDepth(400);
+    const botBar = this.add
+      .rectangle(0, h + 30, w, 60, 0x000000)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(400);
 
-    const subText = this.add.text(w / 2, h / 2 - 35, 'Stage 1', {
-      fontSize: '18px', color: '#aaaacc',
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(401).setAlpha(0);
+    const subText = this.add
+      .text(w / 2, h / 2 - 35, 'Stage 1', {
+        fontSize: '18px',
+        color: '#aaaacc',
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(401)
+      .setAlpha(0);
 
-    const titleText = this.add.text(w / 2, h / 2 + 5, 'PETRI DISH SECTOR 1', {
-      fontSize: '36px', color: '#ffffff', fontStyle: 'bold',
-      stroke: '#000000', strokeThickness: 5,
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(401).setAlpha(0);
+    const titleText = this.add
+      .text(w / 2, h / 2 + 5, 'PETRI DISH SECTOR 1', {
+        fontSize: '36px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 5,
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(401)
+      .setAlpha(0);
 
     // Slide bars in
     this.tweens.add({ targets: topBar, y: 30, duration: 300, ease: 'Power2' });
     this.tweens.add({
-      targets: botBar, y: h - 30, duration: 300, ease: 'Power2',
+      targets: botBar,
+      y: h - 30,
+      duration: 300,
+      ease: 'Power2',
       onComplete: () => {
         // Fade title in
         this.tweens.add({
-          targets: [subText, titleText], alpha: 1, duration: 300,
+          targets: [subText, titleText],
+          alpha: 1,
+          duration: 300,
           onComplete: () => {
             // Hold, then retract
             this.time.delayedCall(1200, () => {
               this.tweens.add({ targets: [subText, titleText], alpha: 0, duration: 300 });
               this.tweens.add({ targets: topBar, y: -30, duration: 300, ease: 'Power2' });
               this.tweens.add({
-                targets: botBar, y: h + 30, duration: 300, ease: 'Power2',
+                targets: botBar,
+                y: h + 30,
+                duration: 300,
+                ease: 'Power2',
                 onComplete: () => {
-                  topBar.destroy(); botBar.destroy();
-                  subText.destroy(); titleText.destroy();
+                  topBar.destroy();
+                  botBar.destroy();
+                  subText.destroy();
+                  titleText.destroy();
                   onComplete();
                 },
               });
@@ -204,9 +230,9 @@ export default class GameScene extends Phaser.Scene {
   private _setupInput(): void {
     // biome-ignore lint/style/noNonNullAssertion: Phaser always initialises keyboard when InputPlugin is active
     const kb = this.input.keyboard!;
-    this.cursors    = kb.createCursorKeys();
-    this.wasd       = kb.addKeys('W,A,S,D') as WasdKeys;
-    this.attackKey  = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
+    this.cursors = kb.createCursorKeys();
+    this.wasd = kb.addKeys('W,A,S,D') as WasdKeys;
+    this.attackKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
     this.specialKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.X);
   }
 
@@ -374,7 +400,10 @@ export default class GameScene extends Phaser.Scene {
 
   onEnemyDeath(enemy: Enemy | Boss): void {
     const SCORES: Partial<Record<string, number>> = {
-      bacterium: 100, virus: 80, dustbunny: 150, pollen: 60,
+      bacterium: 100,
+      virus: 80,
+      dustbunny: 150,
+      pollen: 60,
     };
     this.score += enemy.isBoss ? 1000 : (SCORES[(enemy as Enemy).type] ?? 100);
     this.events.emit('score-update', this.score);
@@ -392,31 +421,57 @@ export default class GameScene extends Phaser.Scene {
 
   private _showDeathScreen(): void {
     this.isPaused = true;
-    const w = GAME_WIDTH, h = GAME_HEIGHT;
+    const w = GAME_WIDTH,
+      h = GAME_HEIGHT;
 
-    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
-      .setScrollFactor(0).setDepth(500).setAlpha(0);
+    const overlay = this.add
+      .rectangle(w / 2, h / 2, w, h, 0x000000)
+      .setScrollFactor(0)
+      .setDepth(500)
+      .setAlpha(0);
     this.tweens.add({ targets: overlay, alpha: 0.8, duration: 400 });
 
-    const diedText = this.add.text(w / 2, h / 2 - 60, 'YOU DIED', {
-      fontSize: '72px', color: '#cc1111', fontStyle: 'bold',
-      stroke: '#330000', strokeThickness: 8,
-    }).setScrollFactor(0).setOrigin(0.5).setDepth(501).setScale(2.5);
+    const diedText = this.add
+      .text(w / 2, h / 2 - 60, 'YOU DIED', {
+        fontSize: '72px',
+        color: '#cc1111',
+        fontStyle: 'bold',
+        stroke: '#330000',
+        strokeThickness: 8,
+      })
+      .setScrollFactor(0)
+      .setOrigin(0.5)
+      .setDepth(501)
+      .setScale(2.5);
     this.tweens.add({ targets: diedText, scale: 1, duration: 400, ease: 'Back.Out' });
 
-    this.add.text(w / 2, h / 2 + 20, `Score: ${this.score}`, {
-      fontSize: '28px', color: '#ffffff',
-    }).setScrollFactor(0).setOrigin(0.5).setDepth(501);
+    this.add
+      .text(w / 2, h / 2 + 20, `Score: ${this.score}`, {
+        fontSize: '28px',
+        color: '#ffffff',
+      })
+      .setScrollFactor(0)
+      .setOrigin(0.5)
+      .setDepth(501);
 
-    const retryText = this.add.text(w / 2, h / 2 + 80, 'Press Z to retry', {
-      fontSize: '20px', color: '#ffeeaa',
-    }).setScrollFactor(0).setOrigin(0.5).setDepth(501);
+    const retryText = this.add
+      .text(w / 2, h / 2 + 80, 'Press Z to retry', {
+        fontSize: '20px',
+        color: '#ffeeaa',
+      })
+      .setScrollFactor(0)
+      .setOrigin(0.5)
+      .setDepth(501);
     this.tweens.add({
-      targets: retryText, alpha: 0.3, duration: 600,
-      ease: 'Sine.InOut', yoyo: true, repeat: -1,
+      targets: retryText,
+      alpha: 0.3,
+      duration: 600,
+      ease: 'Sine.InOut',
+      yoyo: true,
+      repeat: -1,
     });
 
-    this.input.keyboard!.once('keydown-Z', () => {
+    this.input.keyboard?.once('keydown-Z', () => {
       this.scene.stop('HUDScene');
       this.scene.restart();
     });

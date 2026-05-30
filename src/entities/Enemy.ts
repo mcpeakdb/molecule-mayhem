@@ -151,10 +151,14 @@ export default class Enemy {
     this.scene.tweens.killTweensOf(this.sprite);
     this.scene.tweens.add({
       targets: this.sprite,
-      scaleX: 1.4, scaleY: 0.65,
-      duration: 60, ease: 'Power2',
+      scaleX: 1.4,
+      scaleY: 0.65,
+      duration: 60,
+      ease: 'Power2',
       yoyo: true,
-      onComplete: () => { if (this.sprite.active) this.sprite.setScale(1); },
+      onComplete: () => {
+        if (this.sprite.active) this.sprite.setScale(1);
+      },
     });
 
     this.sprite.setTint(0xffffff);

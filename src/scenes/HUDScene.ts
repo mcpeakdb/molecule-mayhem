@@ -70,7 +70,9 @@ export default class HUDScene extends Phaser.Scene {
 
     this.scoreText = this.add
       .text(GAME_WIDTH - PAD, PAD, '0', {
-        fontSize: '14px', color: '#ffee88', fontStyle: 'bold',
+        fontSize: '14px',
+        color: '#ffee88',
+        fontStyle: 'bold',
       })
       .setScrollFactor(0)
       .setDepth(202)
@@ -78,7 +80,9 @@ export default class HUDScene extends Phaser.Scene {
 
     this.comboText = this.add
       .text(GAME_WIDTH - PAD, PAD + 24, '', {
-        fontSize: '26px', color: '#ffffff', fontStyle: 'bold',
+        fontSize: '26px',
+        color: '#ffffff',
+        fontStyle: 'bold',
       })
       .setScrollFactor(0)
       .setDepth(202)
@@ -87,7 +91,8 @@ export default class HUDScene extends Phaser.Scene {
 
     this.comboSub = this.add
       .text(GAME_WIDTH - PAD, PAD + 54, '', {
-        fontSize: '11px', color: '#ffee44',
+        fontSize: '11px',
+        color: '#ffee44',
       })
       .setScrollFactor(0)
       .setDepth(202)
@@ -110,24 +115,34 @@ export default class HUDScene extends Phaser.Scene {
 
     const gameScene = this.scene.get('GameScene');
     gameScene.events.on('hud-update', this._onUpdate, this);
-    gameScene.events.on('score-update', (score: number) => {
-      this.scoreText.setText(score.toLocaleString());
-    }, this);
-    gameScene.events.on('combo-update', (count: number, mult: number) => {
-      if (count < 2) {
-        this.tweens.add({ targets: [this.comboText, this.comboSub], alpha: 0, duration: 200 });
-      } else {
-        this.comboText.setText(`${count} HITS`).setAlpha(1);
-        this.comboSub.setText(mult > 1 ? `×${mult.toFixed(1)} COMBO` : 'COMBO').setAlpha(1);
-        this.tweens.killTweensOf(this.comboText);
-        this.tweens.add({
-          targets: this.comboText,
-          scaleX: 1.3, scaleY: 1.3,
-          duration: 80, ease: 'Power2',
-          yoyo: true,
-        });
-      }
-    }, this);
+    gameScene.events.on(
+      'score-update',
+      (score: number) => {
+        this.scoreText.setText(score.toLocaleString());
+      },
+      this,
+    );
+    gameScene.events.on(
+      'combo-update',
+      (count: number, mult: number) => {
+        if (count < 2) {
+          this.tweens.add({ targets: [this.comboText, this.comboSub], alpha: 0, duration: 200 });
+        } else {
+          this.comboText.setText(`${count} HITS`).setAlpha(1);
+          this.comboSub.setText(mult > 1 ? `×${mult.toFixed(1)} COMBO` : 'COMBO').setAlpha(1);
+          this.tweens.killTweensOf(this.comboText);
+          this.tweens.add({
+            targets: this.comboText,
+            scaleX: 1.3,
+            scaleY: 1.3,
+            duration: 80,
+            ease: 'Power2',
+            yoyo: true,
+          });
+        }
+      },
+      this,
+    );
     gameScene.events.on(
       'boss-activated',
       () => {

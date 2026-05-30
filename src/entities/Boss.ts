@@ -171,10 +171,14 @@ export default class Boss {
     this.scene.tweens.killTweensOf(this.sprite);
     this.scene.tweens.add({
       targets: this.sprite,
-      scaleX: 2.1, scaleY: 0.975,
-      duration: 80, ease: 'Power2',
+      scaleX: 2.1,
+      scaleY: 0.975,
+      duration: 80,
+      ease: 'Power2',
       yoyo: true,
-      onComplete: () => { if (this.sprite.active) this.sprite.setScale(1.5); },
+      onComplete: () => {
+        if (this.sprite.active) this.sprite.setScale(1.5);
+      },
     });
 
     this.sprite.setTint(0xffffff);

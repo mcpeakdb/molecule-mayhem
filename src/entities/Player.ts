@@ -47,7 +47,7 @@ export default class Player {
     this.sprite.body.setCollideWorldBounds(true);
     this.sprite.play('player_idle');
     this._jumpShadow = scene.add.graphics().setDepth(y);
-    this._jumpKey = scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this._jumpKey = scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE) as Phaser.Input.Keyboard.Key;
   }
 
   update(time: number, delta: number, keys: InputKeys): void {
@@ -149,7 +149,8 @@ export default class Player {
     this.scene.enemyGroup.getChildren().forEach((go) => {
       const s = go as EnemySprite;
       if (!s.active || !s.enemyRef) return;
-      const dx = s.x - cx, dy = s.y - cy;
+      const dx = s.x - cx,
+        dy = s.y - cy;
       if (Math.abs(dx) < PLAYER_MELEE_RANGE && Math.abs(dy) < 55) {
         s.enemyRef.takeDamage(Math.round(PLAYER_MELEE_DAMAGE * this.comboMultiplier), dir);
         hitSomething = true;
@@ -176,7 +177,8 @@ export default class Player {
   }
 
   private _specialHydrogen(level: number, dir: number): void {
-    const x = this.sprite.x, y = this.sprite.y;
+    const x = this.sprite.x,
+      y = this.sprite.y;
     if (level === 1) {
       this.scene.spawnHitFlash(x + dir * 80, y, 0xff8800, 50);
       this.scene.cameras.main.shake(120, 0.005);
@@ -191,7 +193,8 @@ export default class Player {
   }
 
   private _specialOxygen(level: number, dir: number): void {
-    const x = this.sprite.x, y = this.sprite.y;
+    const x = this.sprite.x,
+      y = this.sprite.y;
     if (level === 1) {
       this.scene.spawnHitFlash(x + dir * 60, y, 0x44ff88, 45);
       if (this._damageArc(x + dir * 40, y, 110, 65, PLAYER_MELEE_DAMAGE * 1.5, dir, true)) this._registerHit();
@@ -206,7 +209,8 @@ export default class Player {
   }
 
   private _specialWater(level: number, dir: number): void {
-    const x = this.sprite.x, y = this.sprite.y;
+    const x = this.sprite.x,
+      y = this.sprite.y;
     if (level === 1) {
       this.scene.spawnProjectile(x, y, dir, 0x22ccff, PLAYER_MELEE_DAMAGE * 2, 700, 3);
     } else if (level === 2) {
@@ -233,7 +237,8 @@ export default class Player {
     this.scene.enemyGroup.getChildren().forEach((go) => {
       const s = go as EnemySprite;
       if (!s.active || !s.enemyRef) return;
-      const dx = s.x - cx, dy = s.y - cy;
+      const dx = s.x - cx,
+        dy = s.y - cy;
       if (Math.abs(dx) < rangeX && Math.abs(dy) < rangeY) {
         s.enemyRef.takeDamage(dmg, dir * knockback, slow);
         hit = true;
