@@ -8,7 +8,7 @@ import Player from '../entities/Player';
 import SoundSystem from '../systems/SoundSystem';
 import type { AtomSprite, EnemySprite, WasdKeys } from '../types';
 
-type ProjectileSprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody & { damage: number; knockback: number };
+type ProjectileSprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody & { damage: number; knockback: number; piercing: boolean };
 
 export default class GameScene extends Phaser.Scene {
   // Declared here so entities can reference them via `import type GameScene`
@@ -66,7 +66,7 @@ export default class GameScene extends Phaser.Scene {
       if (!p.active || !s.active || !s.enemyRef) return;
       const dir = (p.body?.velocity.x ?? 0) > 0 ? 1 : -1;
       s.enemyRef.takeDamage(p.damage || 20, dir * (p.knockback || 2));
-      p.destroy();
+      if (!p.piercing) p.destroy();
     });
 
     this._setupInput();
@@ -186,9 +186,9 @@ export default class GameScene extends Phaser.Scene {
   private _spawnStage(): void {
     const atomDefs: { x: number; type: AtomType; choices?: ElementType[] }[] = [
       { x: 380, type: 'hydrogen' },
-      { x: 820, type: 'mystery', choices: ['hydrogen', 'oxygen'] },
+      { x: 820, type: 'mystery', choices: ['hydrogen', 'carbon'] },
       { x: 1350, type: 'oxygen' },
-      { x: 1900, type: 'mystery', choices: ['hydrogen', 'oxygen'] },
+      { x: 1900, type: 'mystery', choices: ['nitrogen', 'oxygen'] },
       { x: 2500, type: 'hydrogen' },
       { x: 3200, type: 'mystery', choices: ['hydrogen', 'oxygen'] },
       { x: 3900, type: 'oxygen' },
@@ -306,6 +306,17 @@ export default class GameScene extends Phaser.Scene {
     p.setTint(color).setDepth(80);
     p.damage = damage;
     p.knockback = knockback;
+    p.piercing = false;
+    p.body.setAllowGravity(false);
+    p.body.setVelocity(dir * speed, 0);
+  }
+
+  spawnPiercingProjectile(x: number, y: number, dir: number, color: number, damage: number, speed = 650): void {
+    const p = this.projectileGroup.create(x, y, 'projectile') as ProjectileSprite;
+    p.setTint(color).setDepth(80).setScale(1.4);
+    p.damage = damage;
+    p.knockback = 1;
+    p.piercing = true;
     p.body.setAllowGravity(false);
     p.body.setVelocity(dir * speed, 0);
   }

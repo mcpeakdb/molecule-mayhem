@@ -2,9 +2,23 @@ import Phaser from 'phaser';
 import { ELEMENT_COLORS, ELEMENT_NAMES, type ElementType, GAME_HEIGHT, GAME_WIDTH } from '../constants';
 
 const CHOICE_DESCRIPTIONS: Partial<Record<ElementType, string[]>> = {
-  hydrogen: ['Proton Punch  → fast melee', 'Plasma Arc  → energy bolt', 'Fusion Burst  → area explosion'],
-  oxygen: ['Oxidize  → corrosive slash', 'Reactive Cloud  → slow + dmg', 'Oxidation Nova  → massive AOE'],
-  water: ['Water Jet  → knockback bolt', 'Hydro Wave  → forward surge', 'Tidal Force  → screen wipe'],
+  hydrogen:       ['Proton Punch  → fast melee',     'Plasma Arc  → energy bolt',        'Fusion Burst  → area explosion'],
+  oxygen:         ['Oxidize  → corrosive slash',      'Reactive Cloud  → slow + dmg',     'Oxidation Nova  → massive AOE'],
+  water:          ['Water Jet  → knockback bolt',     'Hydro Wave  → forward surge',      'Tidal Force  → screen wipe'],
+  carbon:         ['Carbon Claw  → bleed DOT',        'Diamond Shard  → piercing shot',   'Shockwave  → ground AOE'],
+  nitrogen:       ['N. Frost  → freeze melee',        'Cryo Burst  → freeze + shatter',   'Absolute Zero  → freeze all'],
+  ammonia:        ['Caustic Spray  → nearby DOT',     'Acid Cloud  → DOT + slow',         'Toxic Deluge  → full-screen DOT'],
+  carbon_dioxide: ['Smog Pulse  → fog burst',         'Suffocation  → vision + dmg',      'Blackout  → screen-wide'],
+  methane:        ['Gas Ignite  → contact blast',     'Chain Blast  → chain explosion',   'Fireball  → massive AOE'],
+  nitric_oxide:   ['Radical Rush  → speed + aura',   'Reactive Aura  → extended buff',   'Overclock  → 2× speed+dmg'],
+  carbonic_acid:  ['Acid Drop  → multi-hit drops',   'Corrosive Spray  → cone drops',    'Acid Rain  → all on screen'],
+};
+
+const ELEMENT_SYMBOLS: Partial<Record<ElementType, string>> = {
+  hydrogen: 'H', oxygen: 'O', water: 'H₂O',
+  carbon: 'C', nitrogen: 'N',
+  ammonia: 'NH₃', carbon_dioxide: 'CO₂',
+  methane: 'CH₄', nitric_oxide: 'NO', carbonic_acid: 'H₂CO₃',
 };
 
 interface Card {
@@ -105,7 +119,7 @@ export default class ElementChoiceScene extends Phaser.Scene {
       .setDepth(3);
 
     this.add
-      .text(startX, cardY - 50, element === 'hydrogen' ? 'H' : element === 'oxygen' ? 'O' : '~', {
+      .text(startX, cardY - 50, ELEMENT_SYMBOLS[element] ?? '?', {
         fontSize: '44px',
         color: hex,
         fontStyle: 'bold',

@@ -301,6 +301,31 @@ export default class BootScene extends Phaser.Scene {
       g.fillCircle(17, 17, 2);
       g._done('atom_mystery', 40, 40);
     }
+    // Carbon (C)
+    {
+      const g = this._g();
+      g.fillStyle(0x333333, 0.2); g.fillCircle(20, 20, 20);
+      g.lineStyle(1.5, 0x888888, 0.6); g.strokeEllipse(20, 20, 36, 14);
+      g.lineStyle(1.5, 0x888888, 0.4); g.strokeEllipse(20, 20, 14, 36);
+      g.fillStyle(0xaaaaaa); g.fillCircle(38, 20, 3);
+      g.fillStyle(0x555555); g.fillCircle(20, 20, 9);
+      g.fillStyle(0x999999); g.fillCircle(18, 18, 4);
+      g.fillStyle(0xffffff, 0.6); g.fillCircle(17, 17, 2);
+      g._done('atom_carbon', 40, 40);
+    }
+    // Nitrogen (N)
+    {
+      const g = this._g();
+      g.fillStyle(0x44ddcc, 0.15); g.fillCircle(20, 20, 20);
+      g.lineStyle(1.5, 0x66eedd, 0.7); g.strokeEllipse(20, 20, 36, 14);
+      g.lineStyle(1.5, 0x66eedd, 0.5); g.strokeEllipse(20, 20, 14, 36);
+      g.lineStyle(1.5, 0x66eedd, 0.3); g.strokeEllipse(20, 20, 32, 32);
+      g.fillStyle(0x77eedd); g.fillCircle(38, 20, 3); g.fillCircle(2, 20, 3);
+      g.fillStyle(0x33bbaa); g.fillCircle(20, 20, 9);
+      g.fillStyle(0x77eedd); g.fillCircle(18, 18, 4);
+      g.fillStyle(0xffffff, 0.6); g.fillCircle(17, 17, 2);
+      g._done('atom_nitrogen', 40, 40);
+    }
   }
 
   private _makeEffects(): void {

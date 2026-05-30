@@ -1,9 +1,9 @@
 # Molecule Mayhem — Development Plan
 
-## Current State (v0.2 — Phase 1 Complete)
+## Current State (v0.3 — Phase 2 Complete)
 
 - Stage 1: Petri Dish Sector — bacterium, virus, dustbunny, pollen enemies
-- Elements: Hydrogen, Oxygen, Water (H₂O combo)
+- **Elements: 10 total** — H, O, Water, C, N + 5 combos (Ammonia, CO₂, Methane, Nitric Oxide, Carbonic Acid)
 - Boss: Super Bacterium (3-phase, flagella projectiles)
 - All graphics procedural (no external assets)
 - **Phaser 4.1.0**
@@ -20,39 +20,21 @@
 - Score tracker (per-enemy kill values, live HUD display)
 - **Player jumping** (Space — arc with ground shadow, natural invulnerability while airborne)
 
----
+### Added in Phase 2
 
-## Phase 2 — More Elements
-
-Extend the atom system with two new base elements and their combos.
-
-### Carbon (C)
-
-- Lv1: Carbon Claw — melee with bleed DOT
-- Lv2: Diamond Shard — piercing projectile that hits all enemies in a line
-- Lv3: Graphene Shockwave — ground-crack AOE, massive knockback
-
-### Nitrogen (N)
-
-- Lv1: Nitrogen Frost — melee that freezes enemies briefly
-- Lv2: Cryo Burst — area freeze + shatter damage
-- Lv3: Absolute Zero — freeze + massive damage all on screen
-
-### New Combos
-
-| Combo | Formula | Power Theme |
-|---|---|---|
-| Ammonia | N + H (× 3) | Corrosive gas cloud |
-| Carbon Dioxide | C + O₂ | Suffocating fog, vision obscure |
-| Methane | C + H₄ | Explosive, fire-chain attacks |
-| Nitric Oxide | N + O | Reactive radical — buffs player speed |
-| Carbonic Acid | CO₂ + H₂O | Multi-hit acid splash |
-
-**ElementSystem changes needed:**
-
-- Track counts per element (already done for H/O — extend to C, N)
-- Add combo resolution table in `ElementSystem._resolve()` keyed by sorted element pair
-- Add mystery atom `choices` that include C and N options
+- **Carbon (C)** — Carbon Claw (bleed DOT), Diamond Shard (piercing bolt), Graphene Shockwave (ground crack AOE)
+- **Nitrogen (N)** — Nitrogen Frost (freeze melee), Cryo Burst (freeze AOE), Absolute Zero (freeze all on screen)
+- **Ammonia (NH₃)** combo — Caustic Spray / Acid Cloud / Toxic Deluge (DOT + slow chains)
+- **Carbon Dioxide (CO₂)** combo — Smog Pulse / Suffocation Field / Blackout (camera fog + AOE)
+- **Methane (CH₄)** combo — Gas Ignite / Chain Blast / Fireball (detonating projectile, chain explosions at lv2)
+- **Nitric Oxide (NO)** combo — Radical Rush / Reactive Aura / Overclock (speed boost ×1.5–2.0, pulsing aura damage)
+- **Carbonic Acid (H₂CO₃)** combo — Acid Drop / Corrosive Spray / Acid Rain (targeted falling drops + bleed)
+- Bleed DOT system on Enemy (`applyBleed()`, ticks every 400 ms, red flash)
+- Piercing projectile (`piercing` flag on `ProjectileSprite`, `spawnPiercingProjectile()`)
+- Carbon and Nitrogen atom textures (procedural, added to `_makeAtoms()`)
+- Mystery atom choices updated to offer C and N in Stage 1
+- `ElementChoiceScene` updated with descriptions + `ELEMENT_SYMBOLS` lookup for all 10 elements
+- HP always rounded to whole numbers across all entities
 
 ---
 

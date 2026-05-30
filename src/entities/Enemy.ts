@@ -50,6 +50,9 @@ export default class Enemy {
   attackTimer = 0;
   hurtTimer = 0;
   slowTimer = 0;
+  bleedTimer = 0;
+  bleedDamage = 0;
+  private bleedTickTimer = 0;
 
   constructor(scene: GameScene, x: number, y: number, type: EnemyType = 'bacterium') {
     this.scene = scene;
@@ -78,6 +81,18 @@ export default class Enemy {
     this.attackTimer = Math.max(0, this.attackTimer - delta);
     this.slowTimer = Math.max(0, this.slowTimer - delta);
     this.patrolTimer = Math.max(0, this.patrolTimer - delta);
+
+    if (this.bleedTimer > 0) {
+      this.bleedTimer -= delta;
+      this.bleedTickTimer -= delta;
+      if (this.bleedTickTimer <= 0) {
+        this.bleedTickTimer = 400;
+        this.hp = Math.round(this.hp - this.bleedDamage);
+        this.sprite.setTint(0xff4444);
+        this.scene.time.delayedCall(100, () => { if (this.sprite.active) this.sprite.clearTint(); });
+        if (this.hp <= 0) this._die();
+      }
+    }
 
     const speed = this.slowTimer > 0 ? this.speed * 0.3 : this.speed;
 
@@ -138,9 +153,15 @@ export default class Enemy {
     }
   }
 
+  applyBleed(damage: number, duration: number): void {
+    this.bleedDamage = damage;
+    this.bleedTimer = Math.max(this.bleedTimer, duration);
+    this.bleedTickTimer = 0;
+  }
+
   takeDamage(amount: number, knockbackDir = 1, slow = false): void {
     if (this.state === STATES.DEAD) return;
-    this.hp -= amount;
+    this.hp = Math.round(this.hp - amount);
 
     // Freeze, squish, then launch after a brief stagger window
     this.sprite.body.setVelocity(0, 0);
