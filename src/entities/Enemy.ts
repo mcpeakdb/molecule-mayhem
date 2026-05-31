@@ -79,7 +79,7 @@ export default class Enemy {
     if (type === 'virus') this.hoverTime = Math.random() * Math.PI * 2;
   }
 
-  update(_time: number, delta: number, playerSprite: Phaser.Physics.Arcade.Sprite): void {
+  update(time: number, delta: number, playerSprite: Phaser.Physics.Arcade.Sprite): void {
     if (!this.sprite.active || this.state === STATES.DEAD) return;
 
     this.hurtTimer = Math.max(0, this.hurtTimer - delta);
@@ -129,6 +129,7 @@ export default class Enemy {
 
     if (this.type === 'dustbunny') this._applyHop(delta);
     if (this.type === 'virus') this._applyHover(delta);
+    this._applyIdleAnim(time, delta);
 
     if (this.state === STATES.CHASE && dist < ATTACK_RANGE) this.state = STATES.ATTACK;
     if (this.state === STATES.ATTACK && dist > ATTACK_RANGE * 1.4) this.state = STATES.CHASE;
@@ -202,6 +203,30 @@ export default class Enemy {
     this.hurtTimer = 300;
 
     if (this.hp <= 0) this._die();
+  }
+
+  private _applyIdleAnim(time: number, delta: number): void {
+    switch (this.type) {
+      case 'bacterium':
+        // Cytoplasm pulse — vertical elongation driven by a per-instance phase offset
+        this.sprite.setScale(1, 1 + Math.sin(time * 0.002 + this.sprite.x * 0.005) * 0.07);
+        break;
+      case 'virus':
+        // Slow continuous spin — protein coat rotating
+        this.sprite.rotation += delta * 0.001;
+        break;
+      case 'pollen':
+        // Gentle tumble
+        this.sprite.rotation += delta * 0.0006;
+        break;
+      case 'dustbunny':
+        // Squash/stretch breathing between hops
+        if (this.hopPhase === 'idle') {
+          const s = Math.sin(time * 0.003) * 0.04;
+          this.sprite.setScale(1 + s, 1 - s);
+        }
+        break;
+    }
   }
 
   private _applyHover(delta: number): void {

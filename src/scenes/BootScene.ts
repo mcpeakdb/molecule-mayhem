@@ -16,7 +16,7 @@ export default class BootScene extends Phaser.Scene {
     this._makeEffects();
     this._makeParticle();
     this._makeBackground();
-    this.scene.start('GameScene');
+    this.scene.start('DifficultyScene');
   }
 
   // Phaser's Graphics doesn't expose bezierCurveTo — we attach _done as a helper
@@ -198,9 +198,6 @@ export default class BootScene extends Phaser.Scene {
 
   private _makeVirus(): void {
     const g = this._g();
-    // Shadow
-    g.fillStyle(0x000000, 0.18);
-    g.fillEllipse(22, 50, 26, 7);
     // Spikes — 12, thin and sharp, fluorescent teal
     g.fillStyle(0x00ddcc);
     for (let i = 0; i < 12; i++) {
@@ -260,10 +257,14 @@ export default class BootScene extends Phaser.Scene {
       [29, 40, 7],
     ];
     g.fillStyle(0x8899a8, 0.72);
-    blobs.forEach(([x, y, r]) => { g.fillCircle(x, y, r) });
+    blobs.forEach(([x, y, r]) => {
+      g.fillCircle(x, y, r);
+    });
     // Secondary lighter layer
     g.fillStyle(0xaabbcc, 0.28);
-    blobs.slice(0, 5).forEach(([x, y, r]) => { g.fillCircle(x, y, r * 0.65) });
+    blobs.slice(0, 5).forEach(([x, y, r]) => {
+      g.fillCircle(x, y, r * 0.65);
+    });
     // Membrane-like boundary
     g.lineStyle(1, 0xbbc9d8, 0.28);
     g.strokeEllipse(24, 30, 38, 34);
@@ -282,9 +283,6 @@ export default class BootScene extends Phaser.Scene {
 
   private _makePollen(): void {
     const g = this._g();
-    // Shadow
-    g.fillStyle(0x000000, 0.18);
-    g.fillEllipse(22, 52, 28, 7);
     // Outer exine wall
     g.fillStyle(0xbb8822);
     g.fillCircle(22, 26, 16);

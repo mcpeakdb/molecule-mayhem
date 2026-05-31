@@ -47,7 +47,7 @@ export default class Boss {
     this.hpBar = scene.add.rectangle(0, 0, 300, 18, 0xff2222).setDepth(201).setVisible(false);
     this.hpLabel = scene.add
       .text(0, 0, 'SUPER BACTERIUM', {
-        fontSize: '12px',
+        fontSize: '15px',
         color: '#ffaaaa',
         fontStyle: 'bold',
       })
@@ -68,7 +68,7 @@ export default class Boss {
     this.scene.events.emit('boss-activated');
   }
 
-  update(_time: number, delta: number, playerSprite: Phaser.Physics.Arcade.Sprite): void {
+  update(time: number, delta: number, playerSprite: Phaser.Physics.Arcade.Sprite): void {
     if (!this.alive || !this.sprite.active) return;
 
     if (!this.activated) {
@@ -107,6 +107,9 @@ export default class Boss {
         this.sprite.body.setVelocity(-(dx / dist) * 150, 0);
       }
     }
+
+    // Slow breathing pulse centred on base scale 1.5
+    this.sprite.setScale(1.5 + Math.sin(time * 0.0007) * 0.05);
 
     this.sprite.setFlipX(dx < 0);
     this.sprite.setDepth(this.sprite.y + 10);

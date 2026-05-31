@@ -1,3 +1,10 @@
+export type Difficulty = 'easy' | 'normal' | 'hard';
+export const DIFFICULTY_SCALE: Record<Difficulty, { enemyHp: number; enemySpeed: number; invincMs: number }> = {
+  easy:   { enemyHp: 0.70, enemySpeed: 0.75, invincMs: 1400 },
+  normal: { enemyHp: 1.00, enemySpeed: 1.00, invincMs: 800  },
+  hard:   { enemyHp: 1.40, enemySpeed: 1.25, invincMs: 500  },
+};
+
 export const GAME_WIDTH = 960;
 export const GAME_HEIGHT = 540;
 export const WORLD_WIDTH = 5500;

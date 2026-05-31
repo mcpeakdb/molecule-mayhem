@@ -30,9 +30,12 @@ export default class Player {
   comboCount = 0;
   comboMultiplier = 1;
 
+  invincibilityMs = PLAYER_INVINCIBILITY_MS;
+
   private attackCooldown = 0;
   private specialCooldown = 0;
   private invincibleTimer = 0;
+  private _hitFlash = false;
   private jumpOffset = 0;
   private isJumping = false;
   private _groundY = 0;
@@ -132,7 +135,9 @@ export default class Player {
       this._jumpShadow.clear();
     }
 
-    if (this.elementSystem.type !== ELEMENTS.NONE) {
+    if (this._hitFlash) {
+      this.sprite.setTint(0xdd2222);
+    } else if (this.elementSystem.type !== ELEMENTS.NONE) {
       const col = ELEMENT_COLORS[this.elementSystem.type];
       this.sprite.setTint(Phaser.Display.Color.IntegerToColor(col).lighten(40).color);
     } else {
@@ -615,8 +620,9 @@ export default class Player {
     this.comboMultiplier = 1;
     this.scene.events.emit('combo-update', 0, 1);
     this.hp = Math.max(0, Math.round(this.hp - amount));
-    this.invincibleTimer = PLAYER_INVINCIBILITY_MS;
-    this.scene.cameras.main.flash(200, 255, 50, 50);
+    this.invincibleTimer = this.invincibilityMs;
+    this._hitFlash = true;
+    this.scene.time.delayedCall(160, () => { this._hitFlash = false; });
     if (this.hp === 0) this._die();
   }
 

@@ -60,8 +60,8 @@ export default class ElementChoiceScene extends Phaser.Scene {
 
     this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.72).setDepth(0);
     this.add
-      .text(w / 2, 80, '⚛  MYSTERY ATOM  ⚛', {
-        fontSize: '28px',
+      .text(w / 2, 78, '⚛  MYSTERY ATOM  ⚛', {
+        fontSize: '32px',
         color: '#cc88ff',
         fontStyle: 'bold',
         stroke: '#440066',
@@ -70,8 +70,8 @@ export default class ElementChoiceScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(2);
     this.add
-      .text(w / 2, 120, 'Choose your element path:', {
-        fontSize: '15px',
+      .text(w / 2, 122, 'Choose your element path:', {
+        fontSize: '18px',
         color: '#aaaacc',
       })
       .setOrigin(0.5)
@@ -80,9 +80,9 @@ export default class ElementChoiceScene extends Phaser.Scene {
     this.cards = this.choices.map((el, i) => this._buildCard(el, i));
 
     this.add
-      .text(w / 2, h - 50, '← → to choose   Z to confirm', {
-        fontSize: '14px',
-        color: '#888899',
+      .text(w / 2, h - 48, '← → to choose   Z to confirm', {
+        fontSize: '17px',
+        color: '#9999aa',
       })
       .setOrigin(0.5)
       .setDepth(2);
@@ -117,7 +117,7 @@ export default class ElementChoiceScene extends Phaser.Scene {
 
     this.add
       .text(startX, cardY - 90, ELEMENT_NAMES[element], {
-        fontSize: '20px',
+        fontSize: '23px',
         color: hex,
         fontStyle: 'bold',
       })
@@ -136,9 +136,9 @@ export default class ElementChoiceScene extends Phaser.Scene {
 
     (CHOICE_DESCRIPTIONS[element] ?? []).forEach((d, li) => {
       this.add
-        .text(startX, cardY + 20 + li * 28, `Lv.${li + 1}  ${d}`, {
-          fontSize: '10px',
-          color: '#bbbbcc',
+        .text(startX, cardY + 20 + li * 32, `Lv.${li + 1}  ${d}`, {
+          fontSize: '13px',
+          color: '#ccccdd',
           wordWrap: { width: cardW - 20 },
         })
         .setOrigin(0.5)

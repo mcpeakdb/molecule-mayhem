@@ -1,10 +1,52 @@
 # Patch Notes
 
+## v0.4.0 — 2026-05-31
+
+### Phase 5 — Content & QOL (begun)
+
+**Pause Menu**
+
+- Press ESC or Enter during gameplay to pause
+- New `PauseScene`: RESUME / RESTART SECTOR / QUIT TO SECTOR 1, clinical monospace styling
+- Arrow keys navigate, Z or Enter confirms, ESC resumes
+- Quit returns to the difficulty selector
+
+**Difficulty Modes**
+
+- New `DifficultyScene` shown before Stage 1 — EASY / NORMAL / HARD cards with stat breakdowns
+- Scales enemy HP, enemy speed, and player invincibility window per difficulty
+  - Easy ×0.70 HP / ×0.75 speed / 1.4s i-frames
+  - Normal ×1.00 / ×1.00 / 0.8s
+  - Hard ×1.40 / ×1.25 / 0.5s
+- Choice persists across sectors and retries via the scene registry
+- Boot flow now `BootScene → DifficultyScene → GameScene`; completing Sector 3 returns to difficulty select
+
+### Enemy Animation
+
+- Bacterium: cytoplasm pulse (vertical scale, per-instance phase offset)
+- Virus: continuous spin
+- Pollen: slow tumble
+- Dust bunny: squash/stretch breathing while resting between hops
+- Boss: slow inhale/exhale breathing pulse
+- Virus & pollen shadows removed from textures (were rotating with the sprite)
+
+### UI Readability
+
+- Bumped font sizes across every scene (HUD, pause, difficulty, element choice, intro, death/clear screens, boss label)
+- Brightened hard-to-read text colors throughout
+- Controls hint given a black stroke so it reads over the game world
+- Element panel enlarged to fit larger labels
+
+### Combat Feel
+
+- Hit feedback changed from a full-screen red flash to a brief red tint on the player sprite
+
 ## v0.3.0 — 2026-05-31
 
 ### Art Direction — Clinical/Microscope Overhaul
 
 **Enemies**
+
 - Bacterium redrawn as Gram-stain positive: deep violet body (`0x5533aa`), translucent capsule halo, dark nucleoid oval, ribosome granules, two wispy flagella, wet-glass specular
 - Virus redrawn as fluorescent antibody stain: teal-cyan (`0x00ccbb`), 12 thin sharp spikes (was 8 fat), no cartoon eyes, protein coat dots between spikes, dark inner core
 - Dust bunny redrawn as unstained cellular debris: blue-gray aggregate (`0x8899a8`), semi-transparent blobs, trapped organelle blobs replacing cute eyes, faint membrane boundary
@@ -12,6 +54,7 @@
 - Boss redrawn as pathogenic strain: dark purple (`0x3a2266`), three distinct nucleoid ovals, double membrane/capsule ring, five flagella of varying weight
 
 **Player**
+
 - White lab coat replacing navy uniform, with lapel folds and collar V
 - Wide clinical goggles covering the eye area — pale teal lenses neutral for element tinting
 - Dark clinical trousers and white lab shoes
@@ -20,6 +63,7 @@
 - Melee punch spawns an extending sleeve+gloved fist graphic; the punching arm disappears during the animation; no hit flash on melee
 
 **HUD**
+
 - HP bar redesigned as graduated pipette: dark track with tick marks at 25/50/75%, fill shifts green → yellow → red, label centered inside bar
 - All text in monospace — lab readout aesthetic
 - Element panel: `ELEMENT  {name}` / `SPECIAL  {name}` format, thin clinical-green border
@@ -28,6 +72,7 @@
 - Boss warning: `! PATHOGEN DETECTED !` fades out after 2s instead of persisting
 
 **Background & Environment**
+
 - Ground tiles darkened and desaturated across all sectors; wet-glass sheen (two-layer lighter band at top edge)
 - Background tiles near-black with faint `strokeCircle` cell membrane debris rings replacing block texture
 - World background particles: 1 in 3 are now hollow cell-debris rings, rest are smaller granules
@@ -57,7 +102,6 @@
 - Background tiles include faint petri dish grid lines
 - Sector-themed floor line, shadow band, and floating particle colors
 - Measurement tick marks along the agar surface boundary
-
 
 ### Fixed
 

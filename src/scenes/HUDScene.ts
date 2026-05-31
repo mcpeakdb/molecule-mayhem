@@ -39,33 +39,35 @@ export default class HUDScene extends Phaser.Scene {
     // Tick marks at 25 / 50 / 75 %
     const hpTicks = this.add.graphics().setScrollFactor(0).setDepth(203);
     hpTicks.lineStyle(1, 0xffffff, 0.18);
-    [51, 102, 153].forEach((x) => { hpTicks.lineBetween(PAD + 1 + x, PAD + 5, PAD + 1 + x, PAD + 19) });
+    [51, 102, 153].forEach((x) => {
+      hpTicks.lineBetween(PAD + 1 + x, PAD + 5, PAD + 1 + x, PAD + 19);
+    });
 
     // HP label — centered inside the bar
     this.hpText = this.add
-      .text(PAD + 4, PAD + 12, 'HP  100', { fontSize: '10px', color: '#ccffcc', fontFamily: MONO })
+      .text(PAD + 4, PAD + 12, 'HP  100', { fontSize: '13px', color: '#ccffcc', fontFamily: MONO })
       .setScrollFactor(0)
       .setDepth(204)
       .setOrigin(0, 0.5);
 
     // ── ELEMENT PANEL ────────────────────────────────────────────────────────
     this.elementBg = this.add
-      .rectangle(PAD + 103, PAD + 47, 206, 38, 0x050e05)
+      .rectangle(PAD + 103, PAD + 52, 206, 48, 0x050e05)
       .setScrollFactor(0)
       .setDepth(200)
       .setOrigin(0.5, 0.5);
 
     const panelBorder = this.add.graphics().setScrollFactor(0).setDepth(201);
     panelBorder.lineStyle(1, 0x1a3a1a, 0.7);
-    panelBorder.strokeRect(PAD, PAD + 28, 206, 38);
+    panelBorder.strokeRect(PAD, PAD + 28, 206, 48);
 
     this.elementLabel = this.add
-      .text(PAD + 4, PAD + 30, 'ELEMENT  none', { fontSize: '11px', color: '#446644', fontFamily: MONO })
+      .text(PAD + 4, PAD + 32, 'ELEMENT  none', { fontSize: '14px', color: '#88bb88', fontFamily: MONO })
       .setScrollFactor(0)
       .setDepth(202);
 
     this.specialLabel = this.add
-      .text(PAD + 4, PAD + 45, 'SPECIAL  —', { fontSize: '10px', color: '#2a4a2a', fontFamily: MONO })
+      .text(PAD + 4, PAD + 54, 'SPECIAL  —', { fontSize: '12px', color: '#77aa77', fontFamily: MONO })
       .setScrollFactor(0)
       .setDepth(202);
 
@@ -73,7 +75,7 @@ export default class HUDScene extends Phaser.Scene {
     this.atomPips = [];
     for (let i = 0; i < MAX_ELEMENT_LEVEL; i++) {
       const pip = this.add
-        .circle(PAD + 168 + i * 14, PAD + 47, 5, 0x0d1a0d)
+        .circle(PAD + 170 + i * 16, PAD + 38, 5, 0x0d1a0d)
         .setScrollFactor(0)
         .setDepth(202);
       this.atomPips.push(pip);
@@ -81,21 +83,21 @@ export default class HUDScene extends Phaser.Scene {
 
     // ── SCORE ────────────────────────────────────────────────────────────────
     this.add
-      .text(GAME_WIDTH - PAD, PAD, 'SCORE', { fontSize: '9px', color: '#2a4a2a', fontFamily: MONO })
+      .text(GAME_WIDTH - PAD, PAD, 'SCORE', { fontSize: '12px', color: '#4a7a4a', fontFamily: MONO })
       .setScrollFactor(0)
       .setDepth(202)
       .setOrigin(1, 0);
 
     this.scoreText = this.add
-      .text(GAME_WIDTH - PAD, PAD + 12, '0', { fontSize: '16px', color: '#77bb77', fontFamily: MONO })
+      .text(GAME_WIDTH - PAD, PAD + 16, '0', { fontSize: '20px', color: '#99dd99', fontFamily: MONO })
       .setScrollFactor(0)
       .setDepth(202)
       .setOrigin(1, 0);
 
     // ── COMBO ────────────────────────────────────────────────────────────────
     this.comboText = this.add
-      .text(GAME_WIDTH - PAD, PAD + 34, '', {
-        fontSize: '22px',
+      .text(GAME_WIDTH - PAD, PAD + 44, '', {
+        fontSize: '28px',
         color: '#aaddaa',
         fontFamily: MONO,
         fontStyle: 'bold',
@@ -106,7 +108,7 @@ export default class HUDScene extends Phaser.Scene {
       .setAlpha(0);
 
     this.comboSub = this.add
-      .text(GAME_WIDTH - PAD, PAD + 60, '', { fontSize: '10px', color: '#558855', fontFamily: MONO })
+      .text(GAME_WIDTH - PAD, PAD + 76, '', { fontSize: '13px', color: '#88bb88', fontFamily: MONO })
       .setScrollFactor(0)
       .setDepth(202)
       .setOrigin(1, 0)
@@ -118,7 +120,7 @@ export default class HUDScene extends Phaser.Scene {
         GAME_WIDTH / 2,
         (this.game.config.height as number) - 14,
         'WASD/Arrows: Move   Space: Jump   Z: Punch   X: Special',
-        { fontSize: '9px', color: '#1a2e1a', fontFamily: MONO },
+        { fontSize: '12px', color: '#88aa88', fontFamily: MONO, stroke: '#000000', strokeThickness: 2 },
       )
       .setScrollFactor(0)
       .setDepth(200)
@@ -160,7 +162,7 @@ export default class HUDScene extends Phaser.Scene {
       () => {
         const warn = this.add
           .text(GAME_WIDTH / 2, 96, '! PATHOGEN DETECTED !', {
-            fontSize: '20px',
+            fontSize: '26px',
             color: '#cc3322',
             fontFamily: MONO,
             fontStyle: 'bold',

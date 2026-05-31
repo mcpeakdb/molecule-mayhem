@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import type { ElementType } from '../constants';
-import { BOSS_X, FLOOR_CENTER_Y, FLOOR_MAX_Y, FLOOR_MIN_Y, GAME_HEIGHT, GAME_WIDTH, WORLD_WIDTH } from '../constants';
+import type { Difficulty, ElementType } from '../constants';
+import { BOSS_X, DIFFICULTY_SCALE, FLOOR_CENTER_Y, FLOOR_MAX_Y, FLOOR_MIN_Y, GAME_HEIGHT, GAME_WIDTH, WORLD_WIDTH } from '../constants';
 import Atom, { type AtomType } from '../entities/Atom';
 import Boss from '../entities/Boss';
 import Enemy, { type EnemyType } from '../entities/Enemy';
@@ -75,11 +75,14 @@ export default class GameScene extends Phaser.Scene {
   enemyProjectileGroup!: Phaser.Physics.Arcade.Group;
 
   currentStage = 1;
+  difficulty: Difficulty = 'normal';
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: WasdKeys;
   private attackKey!: Phaser.Input.Keyboard.Key;
   private specialKey!: Phaser.Input.Keyboard.Key;
+  private pauseKey!: Phaser.Input.Keyboard.Key;
+  private pauseKeyAlt!: Phaser.Input.Keyboard.Key;
   private isPaused = false;
   private stageCleared = false;
 
@@ -87,9 +90,12 @@ export default class GameScene extends Phaser.Scene {
     super('GameScene');
   }
 
-  init(data?: { stage?: number }): void {
+  init(data?: { stage?: number; difficulty?: Difficulty }): void {
     this.currentStage = data?.stage ?? 1;
     this.score = 0;
+    this.difficulty = data?.difficulty
+      ?? (this.registry.get('difficulty') as Difficulty | undefined)
+      ?? 'normal';
   }
 
   create(): void {
@@ -107,6 +113,7 @@ export default class GameScene extends Phaser.Scene {
     this._spawnStage();
 
     this.player = new Player(this, 120, FLOOR_CENTER_Y);
+    this.player.invincibilityMs = DIFFICULTY_SCALE[this.difficulty].invincMs;
     this.cameras.main.startFollow(this.player.sprite, true, 0.08, 0.08);
 
     this.physics.add.overlap(this.player.sprite, this.atomGroup, (_p, atomSprite) =>
@@ -130,6 +137,10 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this._setupInput();
+    this.events.on('pause-resume', () => {
+      this.isPaused = false;
+      this.physics.resume();
+    });
     this.scene.launch('HUDScene');
     this.isPaused = true;
     this.physics.pause();
@@ -159,8 +170,8 @@ export default class GameScene extends Phaser.Scene {
       .setDepth(400);
 
     const subText = this.add
-      .text(w / 2, h / 2 - 35, `Stage ${this.currentStage}`, {
-        fontSize: '18px',
+      .text(w / 2, h / 2 - 38, `Stage ${this.currentStage}`, {
+        fontSize: '22px',
         color: '#aaaacc',
       })
       .setOrigin(0.5)
@@ -170,7 +181,7 @@ export default class GameScene extends Phaser.Scene {
 
     const titleText = this.add
       .text(w / 2, h / 2 + 5, `PETRI DISH SECTOR ${this.currentStage}`, {
-        fontSize: '36px',
+        fontSize: '42px',
         color: '#ffffff',
         fontStyle: 'bold',
         stroke: '#000000',
@@ -261,7 +272,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.add
       .text(300, FLOOR_MIN_Y - 50, `— PETRI DISH SECTOR ${this.currentStage} —`, {
-        fontSize: '14px',
+        fontSize: '18px',
         color: theme.label,
         fontStyle: 'italic',
       })
@@ -385,8 +396,13 @@ export default class GameScene extends Phaser.Scene {
               { x: 4360, y: rY(), type: 'virus' },
             ];
 
+    const scale = DIFFICULTY_SCALE[this.difficulty];
+
     enemyDefs.forEach((def) => {
       const e = new Enemy(this, def.x, def.y, def.type);
+      e.hp    = Math.round(e.hp    * scale.enemyHp);
+      e.maxHp = Math.round(e.maxHp * scale.enemyHp);
+      e.speed *= scale.enemySpeed;
       this.enemyGroup.add(e.sprite);
     });
 
@@ -401,6 +417,9 @@ export default class GameScene extends Phaser.Scene {
       this.boss.speed = 180;
       this.boss.damage = 30;
     }
+    this.boss.hp    = Math.round(this.boss.hp    * scale.enemyHp);
+    this.boss.maxHp = Math.round(this.boss.maxHp * scale.enemyHp);
+    this.boss.speed *= scale.enemySpeed;
     this.enemyGroup.add(this.boss.sprite);
   }
 
@@ -409,11 +428,24 @@ export default class GameScene extends Phaser.Scene {
     const kb = this.input.keyboard!;
     this.cursors = kb.createCursorKeys();
     this.wasd = kb.addKeys('W,A,S,D') as WasdKeys;
-    this.attackKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
-    this.specialKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.X);
+    this.attackKey   = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
+    this.specialKey  = kb.addKey(Phaser.Input.Keyboard.KeyCodes.X);
+    this.pauseKey    = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this.pauseKeyAlt = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
   }
 
   update(_time: number, delta: number): void {
+    if (
+      (Phaser.Input.Keyboard.JustDown(this.pauseKey) || Phaser.Input.Keyboard.JustDown(this.pauseKeyAlt)) &&
+      !this.stageCleared
+    ) {
+      if (!this.isPaused) {
+        this.isPaused = true;
+        this.physics.pause();
+        this.scene.launch('PauseScene', { stage: this.currentStage });
+      }
+    }
+
     if (this.isPaused || this.stageCleared) return;
 
     this.player.update(_time, delta, {
@@ -629,7 +661,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.add
       .text(w / 2, h / 2 + 20, `Score: ${this.score}`, {
-        fontSize: '28px',
+        fontSize: '32px',
         color: '#ffffff',
       })
       .setScrollFactor(0)
@@ -638,7 +670,7 @@ export default class GameScene extends Phaser.Scene {
 
     const retryText = this.add
       .text(w / 2, h / 2 + 80, 'Press Z to retry', {
-        fontSize: '20px',
+        fontSize: '26px',
         color: '#ffeeaa',
       })
       .setScrollFactor(0)
@@ -687,7 +719,7 @@ export default class GameScene extends Phaser.Scene {
       if (isLast) {
         this.add
           .text(w / 2, h / 2 + 10, `Final Score: ${this.score.toLocaleString()}`, {
-            fontSize: '22px',
+            fontSize: '26px',
             color: '#ffffff',
           })
           .setScrollFactor(0)
@@ -701,7 +733,7 @@ export default class GameScene extends Phaser.Scene {
           h / 2 + (isLast ? 55 : 30),
           isLast ? 'Press Z to play again' : `Press Z to enter Sector ${this.currentStage + 1}`,
           {
-            fontSize: '20px',
+            fontSize: '26px',
             color: '#ffeeaa',
           },
         )
@@ -712,7 +744,11 @@ export default class GameScene extends Phaser.Scene {
 
       this.input.keyboard?.once('keydown-Z', () => {
         this.scene.stop('HUDScene');
-        this.scene.start('GameScene', { stage: isLast ? 1 : this.currentStage + 1 });
+        if (isLast) {
+          this.scene.start('DifficultyScene');
+        } else {
+          this.scene.start('GameScene', { stage: this.currentStage + 1 });
+        }
       });
     });
   }
