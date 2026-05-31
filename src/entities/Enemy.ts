@@ -218,8 +218,15 @@ export default class Enemy {
       this.hopPhase = 'up';
       this.hopTimer = 260;
       this.scene.tweens.add({
-        targets: this.sprite, scaleX: 0.78, scaleY: 1.3, duration: 70, ease: 'Power2',
-        yoyo: true, onComplete: () => { if (this.sprite.active) this.sprite.setScale(1); },
+        targets: this.sprite,
+        scaleX: 0.78,
+        scaleY: 1.3,
+        duration: 70,
+        ease: 'Power2',
+        yoyo: true,
+        onComplete: () => {
+          if (this.sprite.active) this.sprite.setScale(1);
+        },
       });
     } else if (this.hopPhase === 'up' && this.hopTimer <= 0) {
       this.hopPhase = 'down';
@@ -229,8 +236,15 @@ export default class Enemy {
       this.hopTimer = Phaser.Math.Between(500, 1100);
       this.scene.tweens.killTweensOf(this.sprite);
       this.scene.tweens.add({
-        targets: this.sprite, scaleX: 1.35, scaleY: 0.68, duration: 70, ease: 'Power2',
-        yoyo: true, onComplete: () => { if (this.sprite.active) this.sprite.setScale(1); },
+        targets: this.sprite,
+        scaleX: 1.35,
+        scaleY: 0.68,
+        duration: 70,
+        ease: 'Power2',
+        yoyo: true,
+        onComplete: () => {
+          if (this.sprite.active) this.sprite.setScale(1);
+        },
       });
     }
 

@@ -314,7 +314,7 @@ export default class Player {
     }
   }
 
-  private _specialAmmonia(level: number, dir: number): void {
+  private _specialAmmonia(level: number, _dir: number): void {
     const x = this.sprite.x,
       y = this.sprite.y;
     const radii = [90, 150, 0];
@@ -343,7 +343,7 @@ export default class Player {
     }
   }
 
-  private _specialCarbonDioxide(level: number, dir: number): void {
+  private _specialCarbonDioxide(level: number, _dir: number): void {
     const x = this.sprite.x,
       y = this.sprite.y;
     const radii = [100, 180, 0];
@@ -411,7 +411,7 @@ export default class Player {
     this.scene.physics.add.overlap(proj, this.scene.enemyGroup, () => detonate());
   }
 
-  private _specialNitricOxide(level: number, dir: number): void {
+  private _specialNitricOxide(level: number, _dir: number): void {
     const boosts = [1.5, 1.8, 2.0];
     const durations = [3000, 5000, 8000];
     this._speedBoost = boosts[level - 1];

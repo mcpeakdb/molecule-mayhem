@@ -14,16 +14,53 @@ type ProjectileSprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody & {
   piercing: boolean;
 };
 
-const SECTOR_THEMES: Record<number, {
-  floorLine: number; shadow: number; label: string; tick: number; particles: number[];
-  flashR: number; flashG: number; flashB: number; clearColor: string;
-}> = {
-  1: { floorLine: 0x7a9040, shadow: 0x081408, label: '#88bb60', tick: 0x6a8030,
-       particles: [0xc8a040, 0x4aaa60, 0x80c8a0, 0xb8c870], flashR: 255, flashG: 230, flashB: 100, clearColor: '#ffee44' },
-  2: { floorLine: 0xa04030, shadow: 0x180808, label: '#dd7744', tick: 0x803020,
-       particles: [0xcc5030, 0xee7050, 0xff8860, 0xbb3820], flashR: 255, flashG: 110, flashB: 80,  clearColor: '#ff9944' },
-  3: { floorLine: 0x5050c0, shadow: 0x080812, label: '#7788ee', tick: 0x4040a0,
-       particles: [0x7070cc, 0x5060cc, 0x9090ff, 0x5048cc], flashR: 120, flashG: 150, flashB: 255, clearColor: '#aaccff' },
+const SECTOR_THEMES: Record<
+  number,
+  {
+    floorLine: number;
+    shadow: number;
+    label: string;
+    tick: number;
+    particles: number[];
+    flashR: number;
+    flashG: number;
+    flashB: number;
+    clearColor: string;
+  }
+> = {
+  1: {
+    floorLine: 0x7a9040,
+    shadow: 0x081408,
+    label: '#88bb60',
+    tick: 0x6a8030,
+    particles: [0xc8a040, 0x4aaa60, 0x80c8a0, 0xb8c870],
+    flashR: 255,
+    flashG: 230,
+    flashB: 100,
+    clearColor: '#ffee44',
+  },
+  2: {
+    floorLine: 0xa04030,
+    shadow: 0x180808,
+    label: '#dd7744',
+    tick: 0x803020,
+    particles: [0xcc5030, 0xee7050, 0xff8860, 0xbb3820],
+    flashR: 255,
+    flashG: 110,
+    flashB: 80,
+    clearColor: '#ff9944',
+  },
+  3: {
+    floorLine: 0x5050c0,
+    shadow: 0x080812,
+    label: '#7788ee',
+    tick: 0x4040a0,
+    particles: [0x7070cc, 0x5060cc, 0x9090ff, 0x5048cc],
+    flashR: 120,
+    flashG: 150,
+    flashB: 255,
+    clearColor: '#aaccff',
+  },
 };
 
 export default class GameScene extends Phaser.Scene {
@@ -186,8 +223,15 @@ export default class GameScene extends Phaser.Scene {
   private _buildWorld(): void {
     const theme = SECTOR_THEMES[this.currentStage];
 
-    this.add.tileSprite(0, 0, WORLD_WIDTH, GAME_HEIGHT, `bg_tile_${this.currentStage}`).setOrigin(0, 0).setScrollFactor(0.3).setDepth(-10);
-    this.add.tileSprite(0, FLOOR_MIN_Y, WORLD_WIDTH, GAME_HEIGHT - FLOOR_MIN_Y, `ground_tile_${this.currentStage}`).setOrigin(0, 0).setDepth(-5);
+    this.add
+      .tileSprite(0, 0, WORLD_WIDTH, GAME_HEIGHT, `bg_tile_${this.currentStage}`)
+      .setOrigin(0, 0)
+      .setScrollFactor(0.3)
+      .setDepth(-10);
+    this.add
+      .tileSprite(0, FLOOR_MIN_Y, WORLD_WIDTH, GAME_HEIGHT - FLOOR_MIN_Y, `ground_tile_${this.currentStage}`)
+      .setOrigin(0, 0)
+      .setDepth(-5);
 
     const gLine = this.add.graphics().setDepth(-4);
     gLine.lineStyle(3, theme.floorLine, 0.65);
@@ -211,7 +255,9 @@ export default class GameScene extends Phaser.Scene {
 
     this.add
       .text(300, FLOOR_MIN_Y - 50, `— PETRI DISH SECTOR ${this.currentStage} —`, {
-        fontSize: '14px', color: theme.label, fontStyle: 'italic',
+        fontSize: '14px',
+        color: theme.label,
+        fontStyle: 'italic',
       })
       .setDepth(5)
       .setAlpha(0.65);
@@ -220,116 +266,118 @@ export default class GameScene extends Phaser.Scene {
   private _spawnStage(): void {
     const rY = () => Phaser.Math.Between(FLOOR_MIN_Y + 40, FLOOR_MAX_Y - 15);
 
-    const atomDefs: { x: number; type: AtomType; choices?: ElementType[] }[] = this.currentStage === 1
-      ? [
-          { x: 380,  type: 'hydrogen' },
-          { x: 1350, type: 'mystery', choices: ['hydrogen', 'carbon'] },
-          { x: 2500, type: 'oxygen' },
-          { x: 3600, type: 'mystery', choices: ['nitrogen', 'oxygen'] },
-        ]
-      : this.currentStage === 2
-      ? [
-          { x: 450,  type: 'oxygen' },
-          { x: 1400, type: 'mystery', choices: ['carbon', 'nitrogen'] },
-          { x: 2600, type: 'hydrogen' },
-          { x: 3700, type: 'mystery', choices: ['oxygen', 'carbon'] },
-        ]
-      : [
-          { x: 700,  type: 'mystery', choices: ['nitrogen', 'carbon'] },
-          { x: 2200, type: 'mystery', choices: ['hydrogen', 'oxygen'] },
-          { x: 3800, type: 'mystery', choices: ['carbon', 'nitrogen'] },
-        ];
+    const atomDefs: { x: number; type: AtomType; choices?: ElementType[] }[] =
+      this.currentStage === 1
+        ? [
+            { x: 380, type: 'hydrogen' },
+            { x: 1350, type: 'mystery', choices: ['hydrogen', 'carbon'] },
+            { x: 2500, type: 'oxygen' },
+            { x: 3600, type: 'mystery', choices: ['nitrogen', 'oxygen'] },
+          ]
+        : this.currentStage === 2
+          ? [
+              { x: 450, type: 'oxygen' },
+              { x: 1400, type: 'mystery', choices: ['carbon', 'nitrogen'] },
+              { x: 2600, type: 'hydrogen' },
+              { x: 3700, type: 'mystery', choices: ['oxygen', 'carbon'] },
+            ]
+          : [
+              { x: 700, type: 'mystery', choices: ['nitrogen', 'carbon'] },
+              { x: 2200, type: 'mystery', choices: ['hydrogen', 'oxygen'] },
+              { x: 3800, type: 'mystery', choices: ['carbon', 'nitrogen'] },
+            ];
 
     atomDefs.forEach((def) => {
       const atom = new Atom(this, def.x, FLOOR_CENTER_Y - 80, def.type, def.choices ?? null);
       this.atomGroup.add(atom.sprite);
     });
 
-    const enemyDefs: { x: number; y: number; type: EnemyType }[] = this.currentStage === 1
-      ? [
-          { x: 600,  y: rY(), type: 'bacterium' },
-          { x: 720,  y: rY(), type: 'virus' },
-          { x: 1100, y: rY(), type: 'bacterium' },
-          { x: 1180, y: rY(), type: 'bacterium' },
-          { x: 1600, y: rY(), type: 'virus' },
-          { x: 1680, y: rY(), type: 'dustbunny' },
-          { x: 2100, y: rY(), type: 'bacterium' },
-          { x: 2200, y: rY(), type: 'pollen' },
-          { x: 2300, y: rY(), type: 'virus' },
-          { x: 2700, y: rY(), type: 'dustbunny' },
-          { x: 2800, y: rY(), type: 'pollen' },
-          { x: 2900, y: rY(), type: 'virus' },
-          { x: 3300, y: rY(), type: 'bacterium' },
-          { x: 3400, y: rY(), type: 'virus' },
-          { x: 3500, y: rY(), type: 'bacterium' },
-          { x: 4200, y: rY(), type: 'virus' },
-          { x: 4280, y: rY(), type: 'pollen' },
-          { x: 4350, y: rY(), type: 'dustbunny' },
-        ]
-      : this.currentStage === 2
-      ? [
-          { x: 500,  y: rY(), type: 'virus' },
-          { x: 620,  y: rY(), type: 'bacterium' },
-          { x: 740,  y: rY(), type: 'virus' },
-          { x: 1000, y: rY(), type: 'dustbunny' },
-          { x: 1120, y: rY(), type: 'pollen' },
-          { x: 1260, y: rY(), type: 'virus' },
-          { x: 1380, y: rY(), type: 'bacterium' },
-          { x: 1600, y: rY(), type: 'virus' },
-          { x: 1720, y: rY(), type: 'dustbunny' },
-          { x: 1840, y: rY(), type: 'pollen' },
-          { x: 2100, y: rY(), type: 'bacterium' },
-          { x: 2220, y: rY(), type: 'virus' },
-          { x: 2340, y: rY(), type: 'virus' },
-          { x: 2480, y: rY(), type: 'pollen' },
-          { x: 2700, y: rY(), type: 'dustbunny' },
-          { x: 2820, y: rY(), type: 'virus' },
-          { x: 2940, y: rY(), type: 'bacterium' },
-          { x: 3080, y: rY(), type: 'virus' },
-          { x: 3300, y: rY(), type: 'pollen' },
-          { x: 3420, y: rY(), type: 'dustbunny' },
-          { x: 3540, y: rY(), type: 'virus' },
-          { x: 3660, y: rY(), type: 'bacterium' },
-          { x: 3900, y: rY(), type: 'virus' },
-          { x: 4020, y: rY(), type: 'dustbunny' },
-          { x: 4140, y: rY(), type: 'pollen' },
-          { x: 4280, y: rY(), type: 'virus' },
-        ]
-      : [
-          { x: 420,  y: rY(), type: 'virus' },
-          { x: 530,  y: rY(), type: 'bacterium' },
-          { x: 640,  y: rY(), type: 'virus' },
-          { x: 760,  y: rY(), type: 'pollen' },
-          { x: 880,  y: rY(), type: 'dustbunny' },
-          { x: 1000, y: rY(), type: 'virus' },
-          { x: 1120, y: rY(), type: 'bacterium' },
-          { x: 1240, y: rY(), type: 'virus' },
-          { x: 1360, y: rY(), type: 'dustbunny' },
-          { x: 1480, y: rY(), type: 'pollen' },
-          { x: 1600, y: rY(), type: 'virus' },
-          { x: 1720, y: rY(), type: 'bacterium' },
-          { x: 1840, y: rY(), type: 'virus' },
-          { x: 1960, y: rY(), type: 'pollen' },
-          { x: 2080, y: rY(), type: 'dustbunny' },
-          { x: 2200, y: rY(), type: 'bacterium' },
-          { x: 2320, y: rY(), type: 'virus' },
-          { x: 2440, y: rY(), type: 'virus' },
-          { x: 2560, y: rY(), type: 'dustbunny' },
-          { x: 2680, y: rY(), type: 'pollen' },
-          { x: 2800, y: rY(), type: 'bacterium' },
-          { x: 2920, y: rY(), type: 'virus' },
-          { x: 3050, y: rY(), type: 'virus' },
-          { x: 3170, y: rY(), type: 'pollen' },
-          { x: 3290, y: rY(), type: 'dustbunny' },
-          { x: 3410, y: rY(), type: 'bacterium' },
-          { x: 3530, y: rY(), type: 'virus' },
-          { x: 3660, y: rY(), type: 'virus' },
-          { x: 3780, y: rY(), type: 'pollen' },
-          { x: 3900, y: rY(), type: 'dustbunny' },
-          { x: 4080, y: rY(), type: 'bacterium' },
-          { x: 4220, y: rY(), type: 'virus' },
-          { x: 4360, y: rY(), type: 'virus' },
-        ];
+    const enemyDefs: { x: number; y: number; type: EnemyType }[] =
+      this.currentStage === 1
+        ? [
+            { x: 600, y: rY(), type: 'bacterium' },
+            { x: 720, y: rY(), type: 'virus' },
+            { x: 1100, y: rY(), type: 'bacterium' },
+            { x: 1180, y: rY(), type: 'bacterium' },
+            { x: 1600, y: rY(), type: 'virus' },
+            { x: 1680, y: rY(), type: 'dustbunny' },
+            { x: 2100, y: rY(), type: 'bacterium' },
+            { x: 2200, y: rY(), type: 'pollen' },
+            { x: 2300, y: rY(), type: 'virus' },
+            { x: 2700, y: rY(), type: 'dustbunny' },
+            { x: 2800, y: rY(), type: 'pollen' },
+            { x: 2900, y: rY(), type: 'virus' },
+            { x: 3300, y: rY(), type: 'bacterium' },
+            { x: 3400, y: rY(), type: 'virus' },
+            { x: 3500, y: rY(), type: 'bacterium' },
+            { x: 4200, y: rY(), type: 'virus' },
+            { x: 4280, y: rY(), type: 'pollen' },
+            { x: 4350, y: rY(), type: 'dustbunny' },
+          ]
+        : this.currentStage === 2
+          ? [
+              { x: 500, y: rY(), type: 'virus' },
+              { x: 620, y: rY(), type: 'bacterium' },
+              { x: 740, y: rY(), type: 'virus' },
+              { x: 1000, y: rY(), type: 'dustbunny' },
+              { x: 1120, y: rY(), type: 'pollen' },
+              { x: 1260, y: rY(), type: 'virus' },
+              { x: 1380, y: rY(), type: 'bacterium' },
+              { x: 1600, y: rY(), type: 'virus' },
+              { x: 1720, y: rY(), type: 'dustbunny' },
+              { x: 1840, y: rY(), type: 'pollen' },
+              { x: 2100, y: rY(), type: 'bacterium' },
+              { x: 2220, y: rY(), type: 'virus' },
+              { x: 2340, y: rY(), type: 'virus' },
+              { x: 2480, y: rY(), type: 'pollen' },
+              { x: 2700, y: rY(), type: 'dustbunny' },
+              { x: 2820, y: rY(), type: 'virus' },
+              { x: 2940, y: rY(), type: 'bacterium' },
+              { x: 3080, y: rY(), type: 'virus' },
+              { x: 3300, y: rY(), type: 'pollen' },
+              { x: 3420, y: rY(), type: 'dustbunny' },
+              { x: 3540, y: rY(), type: 'virus' },
+              { x: 3660, y: rY(), type: 'bacterium' },
+              { x: 3900, y: rY(), type: 'virus' },
+              { x: 4020, y: rY(), type: 'dustbunny' },
+              { x: 4140, y: rY(), type: 'pollen' },
+              { x: 4280, y: rY(), type: 'virus' },
+            ]
+          : [
+              { x: 420, y: rY(), type: 'virus' },
+              { x: 530, y: rY(), type: 'bacterium' },
+              { x: 640, y: rY(), type: 'virus' },
+              { x: 760, y: rY(), type: 'pollen' },
+              { x: 880, y: rY(), type: 'dustbunny' },
+              { x: 1000, y: rY(), type: 'virus' },
+              { x: 1120, y: rY(), type: 'bacterium' },
+              { x: 1240, y: rY(), type: 'virus' },
+              { x: 1360, y: rY(), type: 'dustbunny' },
+              { x: 1480, y: rY(), type: 'pollen' },
+              { x: 1600, y: rY(), type: 'virus' },
+              { x: 1720, y: rY(), type: 'bacterium' },
+              { x: 1840, y: rY(), type: 'virus' },
+              { x: 1960, y: rY(), type: 'pollen' },
+              { x: 2080, y: rY(), type: 'dustbunny' },
+              { x: 2200, y: rY(), type: 'bacterium' },
+              { x: 2320, y: rY(), type: 'virus' },
+              { x: 2440, y: rY(), type: 'virus' },
+              { x: 2560, y: rY(), type: 'dustbunny' },
+              { x: 2680, y: rY(), type: 'pollen' },
+              { x: 2800, y: rY(), type: 'bacterium' },
+              { x: 2920, y: rY(), type: 'virus' },
+              { x: 3050, y: rY(), type: 'virus' },
+              { x: 3170, y: rY(), type: 'pollen' },
+              { x: 3290, y: rY(), type: 'dustbunny' },
+              { x: 3410, y: rY(), type: 'bacterium' },
+              { x: 3530, y: rY(), type: 'virus' },
+              { x: 3660, y: rY(), type: 'virus' },
+              { x: 3780, y: rY(), type: 'pollen' },
+              { x: 3900, y: rY(), type: 'dustbunny' },
+              { x: 4080, y: rY(), type: 'bacterium' },
+              { x: 4220, y: rY(), type: 'virus' },
+              { x: 4360, y: rY(), type: 'virus' },
+            ];
 
     enemyDefs.forEach((def) => {
       const e = new Enemy(this, def.x, def.y, def.type);
@@ -338,9 +386,14 @@ export default class GameScene extends Phaser.Scene {
 
     this.boss = new Boss(this, BOSS_X, FLOOR_CENTER_Y);
     if (this.currentStage === 2) {
-      this.boss.maxHp = 750; this.boss.hp = 750; this.boss.speed = 160;
+      this.boss.maxHp = 750;
+      this.boss.hp = 750;
+      this.boss.speed = 160;
     } else if (this.currentStage === 3) {
-      this.boss.maxHp = 1100; this.boss.hp = 1100; this.boss.speed = 180; this.boss.damage = 30;
+      this.boss.maxHp = 1100;
+      this.boss.hp = 1100;
+      this.boss.speed = 180;
+      this.boss.damage = 30;
     }
     this.enemyGroup.add(this.boss.sprite);
   }
@@ -536,7 +589,6 @@ export default class GameScene extends Phaser.Scene {
     };
     this.score += enemy.isBoss ? 1000 : (SCORES[(enemy as Enemy).type] ?? 100);
     this.events.emit('score-update', this.score);
-
   }
 
   onPlayerDeath(): void {
@@ -606,8 +658,12 @@ export default class GameScene extends Phaser.Scene {
     const theme = SECTOR_THEMES[this.currentStage];
     this.cameras.main.flash(600, theme.flashR, theme.flashG, theme.flashB);
     this.time.delayedCall(700, () => {
-      const w = GAME_WIDTH, h = GAME_HEIGHT;
-      this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.55).setScrollFactor(0).setDepth(300);
+      const w = GAME_WIDTH,
+        h = GAME_HEIGHT;
+      this.add
+        .rectangle(w / 2, h / 2, w, h, 0x000000, 0.55)
+        .setScrollFactor(0)
+        .setDepth(300);
 
       const isLast = this.currentStage >= 3;
       this.add
@@ -618,21 +674,34 @@ export default class GameScene extends Phaser.Scene {
           stroke: '#000000',
           strokeThickness: 6,
         })
-        .setScrollFactor(0).setOrigin(0.5).setDepth(301);
+        .setScrollFactor(0)
+        .setOrigin(0.5)
+        .setDepth(301);
 
       if (isLast) {
         this.add
           .text(w / 2, h / 2 + 10, `Final Score: ${this.score.toLocaleString()}`, {
-            fontSize: '22px', color: '#ffffff',
+            fontSize: '22px',
+            color: '#ffffff',
           })
-          .setScrollFactor(0).setOrigin(0.5).setDepth(301);
+          .setScrollFactor(0)
+          .setOrigin(0.5)
+          .setDepth(301);
       }
 
       const prompt = this.add
-        .text(w / 2, h / 2 + (isLast ? 55 : 30), isLast ? 'Press Z to play again' : `Press Z to enter Sector ${this.currentStage + 1}`, {
-          fontSize: '20px', color: '#ffeeaa',
-        })
-        .setScrollFactor(0).setOrigin(0.5).setDepth(301);
+        .text(
+          w / 2,
+          h / 2 + (isLast ? 55 : 30),
+          isLast ? 'Press Z to play again' : `Press Z to enter Sector ${this.currentStage + 1}`,
+          {
+            fontSize: '20px',
+            color: '#ffeeaa',
+          },
+        )
+        .setScrollFactor(0)
+        .setOrigin(0.5)
+        .setDepth(301);
       this.tweens.add({ targets: prompt, alpha: 0.3, duration: 600, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
 
       this.input.keyboard?.once('keydown-Z', () => {
