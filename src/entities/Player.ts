@@ -41,6 +41,10 @@ export default class Player {
   private _speedBoost = 1.0;
   private _speedBoostTimer = 0;
   private _speedBoostAura: Phaser.GameObjects.Graphics | null = null;
+  private _armsGraphic!: Phaser.GameObjects.Graphics;
+  private _isPunching = false;
+  private _punchArmGraphic: Phaser.GameObjects.Graphics | null = null;
+  private _punchArmDir = 1;
 
   constructor(scene: GameScene, x: number, y: number) {
     this.scene = scene;
@@ -52,7 +56,9 @@ export default class Player {
     this.sprite.body.setCollideWorldBounds(true);
     this.sprite.play('player_idle');
     this._jumpShadow = scene.add.graphics().setDepth(y);
+    this._armsGraphic = scene.add.graphics();
     this._jumpKey = scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE) as Phaser.Input.Keyboard.Key;
+    scene.events.on('postupdate', this._updateArms, this);
   }
 
   update(time: number, delta: number, keys: InputKeys): void {
@@ -62,7 +68,9 @@ export default class Player {
     this.specialCooldown = Math.max(0, this.specialCooldown - delta);
     this.invincibleTimer = Math.max(0, this.invincibleTimer - delta);
 
-    this.sprite.setAlpha(this.invincibleTimer > 0 && Math.floor(time / 80) % 2 === 0 ? 0.3 : 1);
+    const flickerAlpha = this.invincibleTimer > 0 && Math.floor(time / 80) % 2 === 0 ? 0.3 : 1;
+    this.sprite.setAlpha(flickerAlpha);
+    this._armsGraphic.setAlpha(flickerAlpha);
 
     const { cursors, wasd, attackKey, specialKey } = keys;
     const left = cursors.left.isDown || wasd.A.isDown;
@@ -163,7 +171,7 @@ export default class Player {
     const cx = this.sprite.x + dir * 50;
     const cy = this.sprite.y;
 
-    this.scene.spawnHitFlash(cx, cy, 0xffff44);
+    this._spawnPunchArm(dir);
     this.scene.cameras.main.shake(80, 0.003);
 
     let hitSomething = false;
@@ -185,6 +193,62 @@ export default class Player {
     this.comboCount++;
     this.comboMultiplier = 1 + Math.floor(this.comboCount / 5) * 0.5;
     this.scene.events.emit('combo-update', this.comboCount, this.comboMultiplier);
+  }
+
+  private _updateArms(): void {
+    if (!this.alive) return;
+    if (this._punchArmGraphic) {
+      this._punchArmGraphic
+        .setPosition(this.sprite.x + this._punchArmDir * 11, this.sprite.y - 7)
+        .setDepth(this.sprite.depth + 1);
+    }
+    this._armsGraphic
+      .setPosition(this.sprite.x, this.sprite.y)
+      .setDepth(this.sprite.depth + 1)
+      .clear();
+    const punchDir = this._isPunching ? (this.facingRight ? 1 : -1) : 0;
+    // Left arm (world-left side of character, local x = -16 to -11)
+    if (punchDir !== -1) {
+      this._armsGraphic.fillStyle(0xe8e8f2);
+      this._armsGraphic.fillRect(-16, -7, 5, 15);
+      this._armsGraphic.fillStyle(0x88ccdd);
+      this._armsGraphic.fillRect(-16, 6, 5, 5);
+    }
+    // Right arm (world-right side, local x = +11 to +16)
+    if (punchDir !== 1) {
+      this._armsGraphic.fillStyle(0xe8e8f2);
+      this._armsGraphic.fillRect(11, -7, 5, 15);
+      this._armsGraphic.fillStyle(0x88ccdd);
+      this._armsGraphic.fillRect(11, 6, 5, 5);
+    }
+  }
+
+  private _spawnPunchArm(dir: number): void {
+    this._isPunching = true;
+    this._punchArmDir = dir;
+    const arm = this.scene.add.graphics();
+    arm.fillStyle(0xf0f0f5);
+    if (dir > 0) {
+      arm.fillRect(0, -4, 44, 9);
+      arm.fillStyle(0x88ccdd);
+      arm.fillCircle(50, 0, 8);
+    } else {
+      arm.fillRect(-44, -4, 44, 9);
+      arm.fillStyle(0x88ccdd);
+      arm.fillCircle(-50, 0, 8);
+    }
+    this._punchArmGraphic = arm;
+    this.scene.tweens.add({
+      targets: arm,
+      alpha: 0,
+      duration: 180,
+      delay: 50,
+      onComplete: () => {
+        arm.destroy();
+        this._punchArmGraphic = null;
+        this._isPunching = false;
+      },
+    });
   }
 
   private _doSpecialAttack(): void {
@@ -559,6 +623,7 @@ export default class Player {
   private _die(): void {
     this.alive = false;
     this._jumpShadow.clear();
+    this._armsGraphic.clear();
     SoundSystem.play(this.scene.audioCtx, 'player_death');
     this.sprite.setTint(0x888888);
     this.sprite.body.setVelocity(0, 0);

@@ -245,12 +245,18 @@ export default class GameScene extends Phaser.Scene {
 
     for (let i = 0; i < 80; i++) {
       const g = this.add.graphics().setDepth(-3);
-      g.fillStyle(theme.particles[i % theme.particles.length], Phaser.Math.FloatBetween(0.06, 0.28));
-      g.fillCircle(
-        Phaser.Math.Between(0, WORLD_WIDTH),
-        Phaser.Math.Between(50, FLOOR_MIN_Y - 20),
-        Phaser.Math.FloatBetween(1.5, 4),
-      );
+      const color = theme.particles[i % theme.particles.length];
+      const x = Phaser.Math.Between(0, WORLD_WIDTH);
+      const y = Phaser.Math.Between(50, FLOOR_MIN_Y - 20);
+      if (i % 3 === 0) {
+        // Cell debris ring
+        g.lineStyle(0.8, color, Phaser.Math.FloatBetween(0.08, 0.2));
+        g.strokeCircle(x, y, Phaser.Math.FloatBetween(3, 7));
+      } else {
+        // Granule
+        g.fillStyle(color, Phaser.Math.FloatBetween(0.06, 0.2));
+        g.fillCircle(x, y, Phaser.Math.FloatBetween(1, 2.5));
+      }
     }
 
     this.add

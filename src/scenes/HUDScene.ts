@@ -3,6 +3,7 @@ import { ELEMENT_COLORS, ELEMENT_NAMES, GAME_WIDTH, MAX_ELEMENT_LEVEL, PLAYER_MA
 import type ElementSystem from '../systems/ElementSystem';
 
 const PAD = 14;
+const MONO = 'monospace';
 
 export default class HUDScene extends Phaser.Scene {
   private hpBarFill!: Phaser.GameObjects.Rectangle;
@@ -20,68 +21,83 @@ export default class HUDScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.add
-      .rectangle(PAD + 102, PAD + 10, 206, 22, 0x220000)
+    // ── HP BAR ──────────────────────────────────────────────────────────────
+    // Track
+    const hpTrack = this.add.graphics().setScrollFactor(0).setDepth(200);
+    hpTrack.fillStyle(0x061008);
+    hpTrack.fillRect(PAD, PAD + 4, 206, 16);
+    hpTrack.lineStyle(1, 0x1a3a1a, 0.8);
+    hpTrack.strokeRect(PAD, PAD + 4, 206, 16);
+
+    // Fill bar
+    this.hpBarFill = this.add
+      .rectangle(PAD + 1, PAD + 5, 204, 14, 0x44cc66)
+      .setScrollFactor(0)
+      .setDepth(201)
+      .setOrigin(0, 0);
+
+    // Tick marks at 25 / 50 / 75 %
+    const hpTicks = this.add.graphics().setScrollFactor(0).setDepth(203);
+    hpTicks.lineStyle(1, 0xffffff, 0.18);
+    [51, 102, 153].forEach((x) => { hpTicks.lineBetween(PAD + 1 + x, PAD + 5, PAD + 1 + x, PAD + 19) });
+
+    // HP label — centered inside the bar
+    this.hpText = this.add
+      .text(PAD + 4, PAD + 12, 'HP  100', { fontSize: '10px', color: '#ccffcc', fontFamily: MONO })
+      .setScrollFactor(0)
+      .setDepth(204)
+      .setOrigin(0, 0.5);
+
+    // ── ELEMENT PANEL ────────────────────────────────────────────────────────
+    this.elementBg = this.add
+      .rectangle(PAD + 103, PAD + 47, 206, 38, 0x050e05)
       .setScrollFactor(0)
       .setDepth(200)
       .setOrigin(0.5, 0.5);
-    this.hpBarFill = this.add
-      .rectangle(PAD + 1, PAD + 10, 200, 16, 0xff2233)
-      .setScrollFactor(0)
-      .setDepth(201)
-      .setOrigin(0, 0.5);
-    this.hpText = this.add
-      .text(PAD + 4, PAD + 2, 'HP', {
-        fontSize: '11px',
-        color: '#ffaaaa',
-        fontStyle: 'bold',
-      })
+
+    const panelBorder = this.add.graphics().setScrollFactor(0).setDepth(201);
+    panelBorder.lineStyle(1, 0x1a3a1a, 0.7);
+    panelBorder.strokeRect(PAD, PAD + 28, 206, 38);
+
+    this.elementLabel = this.add
+      .text(PAD + 4, PAD + 30, 'ELEMENT  none', { fontSize: '11px', color: '#446644', fontFamily: MONO })
       .setScrollFactor(0)
       .setDepth(202);
 
-    this.elementBg = this.add
-      .rectangle(PAD + 102, PAD + 44, 206, 32, 0x111133)
-      .setScrollFactor(0)
-      .setDepth(200)
-      .setOrigin(0.5, 0.5);
-    this.elementLabel = this.add
-      .text(PAD + 4, PAD + 32, 'Element: None', {
-        fontSize: '12px',
-        color: '#aaaacc',
-      })
-      .setScrollFactor(0)
-      .setDepth(201);
     this.specialLabel = this.add
-      .text(PAD + 4, PAD + 48, 'X: —', {
-        fontSize: '10px',
-        color: '#8888aa',
-      })
+      .text(PAD + 4, PAD + 45, 'SPECIAL  —', { fontSize: '10px', color: '#2a4a2a', fontFamily: MONO })
       .setScrollFactor(0)
-      .setDepth(201);
+      .setDepth(202);
 
+    // Level pips
     this.atomPips = [];
     for (let i = 0; i < MAX_ELEMENT_LEVEL; i++) {
       const pip = this.add
-        .circle(PAD + 172 + i * 18, PAD + 44, 6, 0x333355)
+        .circle(PAD + 168 + i * 14, PAD + 47, 5, 0x0d1a0d)
         .setScrollFactor(0)
         .setDepth(202);
       this.atomPips.push(pip);
     }
 
-    this.scoreText = this.add
-      .text(GAME_WIDTH - PAD, PAD, '0', {
-        fontSize: '14px',
-        color: '#ffee88',
-        fontStyle: 'bold',
-      })
+    // ── SCORE ────────────────────────────────────────────────────────────────
+    this.add
+      .text(GAME_WIDTH - PAD, PAD, 'SCORE', { fontSize: '9px', color: '#2a4a2a', fontFamily: MONO })
       .setScrollFactor(0)
       .setDepth(202)
       .setOrigin(1, 0);
 
+    this.scoreText = this.add
+      .text(GAME_WIDTH - PAD, PAD + 12, '0', { fontSize: '16px', color: '#77bb77', fontFamily: MONO })
+      .setScrollFactor(0)
+      .setDepth(202)
+      .setOrigin(1, 0);
+
+    // ── COMBO ────────────────────────────────────────────────────────────────
     this.comboText = this.add
-      .text(GAME_WIDTH - PAD, PAD + 24, '', {
-        fontSize: '26px',
-        color: '#ffffff',
+      .text(GAME_WIDTH - PAD, PAD + 34, '', {
+        fontSize: '22px',
+        color: '#aaddaa',
+        fontFamily: MONO,
         fontStyle: 'bold',
       })
       .setScrollFactor(0)
@@ -90,29 +106,25 @@ export default class HUDScene extends Phaser.Scene {
       .setAlpha(0);
 
     this.comboSub = this.add
-      .text(GAME_WIDTH - PAD, PAD + 54, '', {
-        fontSize: '11px',
-        color: '#ffee44',
-      })
+      .text(GAME_WIDTH - PAD, PAD + 60, '', { fontSize: '10px', color: '#558855', fontFamily: MONO })
       .setScrollFactor(0)
       .setDepth(202)
       .setOrigin(1, 0)
       .setAlpha(0);
 
+    // ── CONTROLS HINT ────────────────────────────────────────────────────────
     this.add
       .text(
         GAME_WIDTH / 2,
-        (this.game.config.height as number) - 16,
-        'WASD/Arrows: Move   Space: Jump   Z: Punch   X: Special Power',
-        {
-          fontSize: '10px',
-          color: '#666688',
-        },
+        (this.game.config.height as number) - 14,
+        'WASD/Arrows: Move   Space: Jump   Z: Punch   X: Special',
+        { fontSize: '9px', color: '#1a2e1a', fontFamily: MONO },
       )
       .setScrollFactor(0)
       .setDepth(200)
       .setOrigin(0.5, 1);
 
+    // ── EVENTS ───────────────────────────────────────────────────────────────
     const gameScene = this.scene.get('GameScene');
     gameScene.events.on('hud-update', this._onUpdate, this);
     gameScene.events.on(
@@ -133,8 +145,8 @@ export default class HUDScene extends Phaser.Scene {
           this.tweens.killTweensOf(this.comboText);
           this.tweens.add({
             targets: this.comboText,
-            scaleX: 1.3,
-            scaleY: 1.3,
+            scaleX: 1.2,
+            scaleY: 1.2,
             duration: 80,
             ease: 'Power2',
             yoyo: true,
@@ -146,17 +158,19 @@ export default class HUDScene extends Phaser.Scene {
     gameScene.events.on(
       'boss-activated',
       () => {
-        this.add
-          .text(GAME_WIDTH / 2, 100, '⚠ BOSS APPEARED ⚠', {
-            fontSize: '26px',
-            color: '#ff3333',
+        const warn = this.add
+          .text(GAME_WIDTH / 2, 96, '! PATHOGEN DETECTED !', {
+            fontSize: '20px',
+            color: '#cc3322',
+            fontFamily: MONO,
             fontStyle: 'bold',
-            stroke: '#440000',
-            strokeThickness: 4,
+            stroke: '#110000',
+            strokeThickness: 3,
           })
           .setScrollFactor(0)
           .setDepth(250)
           .setOrigin(0.5);
+        this.tweens.add({ targets: warn, alpha: 0, duration: 2000, delay: 2000, onComplete: () => warn.destroy() });
       },
       this,
     );
@@ -164,23 +178,22 @@ export default class HUDScene extends Phaser.Scene {
 
   private _onUpdate({ hp, element }: { hp: number; element: ElementSystem }): void {
     const pct = hp / PLAYER_MAX_HP;
-    this.hpBarFill.width = Math.max(0, 200 * pct);
-    this.hpBarFill.fillColor = pct > 0.5 ? 0xff2233 : pct > 0.25 ? 0xff8800 : 0xff0000;
+    this.hpBarFill.width = Math.max(0, 204 * pct);
+    this.hpBarFill.fillColor = pct > 0.5 ? 0x44cc66 : pct > 0.25 ? 0xaacc22 : 0xcc4422;
     this.hpText.setText(`HP  ${hp}`);
     this._refreshElement(element);
   }
 
   private _refreshElement(es: ElementSystem): void {
     const { type, level } = es;
-    const name = ELEMENT_NAMES[type];
     const col = ELEMENT_COLORS[type];
     const hex = `#${col.toString(16).padStart(6, '0')}`;
 
-    this.elementLabel.setText(`${name}  Lv.${level}`).setStyle({ color: hex });
-    this.elementBg.fillColor = Phaser.Display.Color.IntegerToColor(col).darken(70).color;
-    this.specialLabel.setText(`X: ${es.getSpecialName()}`);
+    this.elementLabel.setText(`ELEMENT  ${ELEMENT_NAMES[type]}`).setStyle({ color: hex, fontFamily: MONO });
+    this.elementBg.fillColor = Phaser.Display.Color.IntegerToColor(col).darken(78).color;
+    this.specialLabel.setText(`SPECIAL  ${es.getSpecialName()}`);
     this.atomPips.forEach((pip, i) => {
-      pip.fillColor = i < level ? col : 0x222244;
+      pip.fillColor = i < level ? col : 0x0d1a0d;
     });
   }
 }

@@ -1,5 +1,39 @@
 # Patch Notes
 
+## v0.3.0 — 2026-05-31
+
+### Art Direction — Clinical/Microscope Overhaul
+
+**Enemies**
+- Bacterium redrawn as Gram-stain positive: deep violet body (`0x5533aa`), translucent capsule halo, dark nucleoid oval, ribosome granules, two wispy flagella, wet-glass specular
+- Virus redrawn as fluorescent antibody stain: teal-cyan (`0x00ccbb`), 12 thin sharp spikes (was 8 fat), no cartoon eyes, protein coat dots between spikes, dark inner core
+- Dust bunny redrawn as unstained cellular debris: blue-gray aggregate (`0x8899a8`), semi-transparent blobs, trapped organelle blobs replacing cute eyes, faint membrane boundary
+- Pollen redrawn with autofluorescence amber: 6 surface aperture pits instead of outer bumps, exine radial lines, bright inner glow
+- Boss redrawn as pathogenic strain: dark purple (`0x3a2266`), three distinct nucleoid ovals, double membrane/capsule ring, five flagella of varying weight
+
+**Player**
+- White lab coat replacing navy uniform, with lapel folds and collar V
+- Wide clinical goggles covering the eye area — pale teal lenses neutral for element tinting
+- Dark clinical trousers and white lab shoes
+- Pen clipped to breast pocket
+- Arms are now live graphics objects (not baked into texture) — correct position tracked via `postupdate` event
+- Melee punch spawns an extending sleeve+gloved fist graphic; the punching arm disappears during the animation; no hit flash on melee
+
+**HUD**
+- HP bar redesigned as graduated pipette: dark track with tick marks at 25/50/75%, fill shifts green → yellow → red, label centered inside bar
+- All text in monospace — lab readout aesthetic
+- Element panel: `ELEMENT  {name}` / `SPECIAL  {name}` format, thin clinical-green border
+- Score: `SCORE` label above monospace digits in clinical green
+- Combo display: muted green monospace, less saturated
+- Boss warning: `! PATHOGEN DETECTED !` fades out after 2s instead of persisting
+
+**Background & Environment**
+- Ground tiles darkened and desaturated across all sectors; wet-glass sheen (two-layer lighter band at top edge)
+- Background tiles near-black with faint `strokeCircle` cell membrane debris rings replacing block texture
+- World background particles: 1 in 3 are now hollow cell-debris rings, rest are smaller granules
+
+---
+
 ## v0.2.1 — 2026-05-30
 
 ### Stages
