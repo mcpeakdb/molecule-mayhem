@@ -9,7 +9,7 @@ new Phaser.Game({
   type: Phaser.AUTO,
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
-  backgroundColor: '#0a0010',
+  backgroundColor: '#0d1420',
   physics: {
     default: 'arcade',
     arcade: { debug: false, gravity: { x: 0, y: 0 } },

@@ -103,7 +103,7 @@ export default class HUDScene extends Phaser.Scene {
       .text(
         GAME_WIDTH / 2,
         (this.game.config.height as number) - 16,
-        'WASD/Arrows: Move   Z: Punch   X: Special Power',
+        'WASD/Arrows: Move   Space: Jump   Z: Punch   X: Special Power',
         {
           fontSize: '10px',
           color: '#666688',

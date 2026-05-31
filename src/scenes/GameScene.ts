@@ -8,7 +8,23 @@ import Player from '../entities/Player';
 import SoundSystem from '../systems/SoundSystem';
 import type { AtomSprite, EnemySprite, WasdKeys } from '../types';
 
-type ProjectileSprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody & { damage: number; knockback: number; piercing: boolean };
+type ProjectileSprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody & {
+  damage: number;
+  knockback: number;
+  piercing: boolean;
+};
+
+const SECTOR_THEMES: Record<number, {
+  floorLine: number; shadow: number; label: string; tick: number; particles: number[];
+  flashR: number; flashG: number; flashB: number; clearColor: string;
+}> = {
+  1: { floorLine: 0x7a9040, shadow: 0x081408, label: '#88bb60', tick: 0x6a8030,
+       particles: [0xc8a040, 0x4aaa60, 0x80c8a0, 0xb8c870], flashR: 255, flashG: 230, flashB: 100, clearColor: '#ffee44' },
+  2: { floorLine: 0xa04030, shadow: 0x180808, label: '#dd7744', tick: 0x803020,
+       particles: [0xcc5030, 0xee7050, 0xff8860, 0xbb3820], flashR: 255, flashG: 110, flashB: 80,  clearColor: '#ff9944' },
+  3: { floorLine: 0x5050c0, shadow: 0x080812, label: '#7788ee', tick: 0x4040a0,
+       particles: [0x7070cc, 0x5060cc, 0x9090ff, 0x5048cc], flashR: 120, flashG: 150, flashB: 255, clearColor: '#aaccff' },
+};
 
 export default class GameScene extends Phaser.Scene {
   // Declared here so entities can reference them via `import type GameScene`
@@ -21,6 +37,8 @@ export default class GameScene extends Phaser.Scene {
   projectileGroup!: Phaser.Physics.Arcade.Group;
   enemyProjectileGroup!: Phaser.Physics.Arcade.Group;
 
+  currentStage = 1;
+
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: WasdKeys;
   private attackKey!: Phaser.Input.Keyboard.Key;
@@ -30,6 +48,11 @@ export default class GameScene extends Phaser.Scene {
 
   constructor() {
     super('GameScene');
+  }
+
+  init(data?: { stage?: number }): void {
+    this.currentStage = data?.stage ?? 1;
+    this.score = 0;
   }
 
   create(): void {
@@ -84,6 +107,13 @@ export default class GameScene extends Phaser.Scene {
     const w = GAME_WIDTH;
     const h = GAME_HEIGHT;
 
+    const dishMask = this.add.graphics().setScrollFactor(0).setDepth(-999);
+    dishMask.fillStyle(0xffffff);
+    dishMask.fillEllipse(w / 2, h / 2, w - 4, h - 4);
+    this.cameras.main.setMask(dishMask.createGeometryMask());
+
+    this.time.delayedCall(0, () => this.events.emit('intro-start'));
+
     const topBar = this.add.rectangle(0, -30, w, 60, 0x000000).setOrigin(0, 0.5).setScrollFactor(0).setDepth(400);
     const botBar = this.add
       .rectangle(0, h + 30, w, 60, 0x000000)
@@ -92,7 +122,7 @@ export default class GameScene extends Phaser.Scene {
       .setDepth(400);
 
     const subText = this.add
-      .text(w / 2, h / 2 - 35, 'Stage 1', {
+      .text(w / 2, h / 2 - 35, `Stage ${this.currentStage}`, {
         fontSize: '18px',
         color: '#aaaacc',
       })
@@ -102,7 +132,7 @@ export default class GameScene extends Phaser.Scene {
       .setAlpha(0);
 
     const titleText = this.add
-      .text(w / 2, h / 2 + 5, 'PETRI DISH SECTOR 1', {
+      .text(w / 2, h / 2 + 5, `PETRI DISH SECTOR ${this.currentStage}`, {
         fontSize: '36px',
         color: '#ffffff',
         fontStyle: 'bold',
@@ -130,6 +160,7 @@ export default class GameScene extends Phaser.Scene {
           onComplete: () => {
             // Hold, then retract
             this.time.delayedCall(1200, () => {
+              this.events.emit('intro-end');
               this.tweens.add({ targets: [subText, titleText], alpha: 0, duration: 300 });
               this.tweens.add({ targets: topBar, y: -30, duration: 300, ease: 'Power2' });
               this.tweens.add({
@@ -153,19 +184,24 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private _buildWorld(): void {
-    this.add.tileSprite(0, 0, WORLD_WIDTH, GAME_HEIGHT, 'bg_tile').setOrigin(0, 0).setScrollFactor(0.3).setDepth(-10);
+    const theme = SECTOR_THEMES[this.currentStage];
 
-    this.add.tileSprite(0, FLOOR_MAX_Y, WORLD_WIDTH, 160, 'ground_tile').setOrigin(0, 0).setDepth(-5);
+    this.add.tileSprite(0, 0, WORLD_WIDTH, GAME_HEIGHT, `bg_tile_${this.currentStage}`).setOrigin(0, 0).setScrollFactor(0.3).setDepth(-10);
+    this.add.tileSprite(0, FLOOR_MIN_Y, WORLD_WIDTH, GAME_HEIGHT - FLOOR_MIN_Y, `ground_tile_${this.currentStage}`).setOrigin(0, 0).setDepth(-5);
 
     const gLine = this.add.graphics().setDepth(-4);
-    gLine.lineStyle(3, 0x6a4a28, 0.6);
-    gLine.lineBetween(0, FLOOR_MAX_Y, WORLD_WIDTH, FLOOR_MAX_Y);
+    gLine.lineStyle(3, theme.floorLine, 0.65);
+    gLine.lineBetween(0, FLOOR_MIN_Y, WORLD_WIDTH, FLOOR_MIN_Y);
+    gLine.lineStyle(1, theme.tick, 0.5);
+    for (let tx = 0; tx <= WORLD_WIDTH; tx += 100) {
+      gLine.lineBetween(tx, FLOOR_MIN_Y, tx, FLOOR_MIN_Y - (tx % 500 === 0 ? 14 : 7));
+    }
 
-    this.add.rectangle(WORLD_WIDTH / 2, FLOOR_MIN_Y - 30, WORLD_WIDTH, 60, 0x110820, 0.85).setDepth(-6);
+    this.add.rectangle(WORLD_WIDTH / 2, FLOOR_MIN_Y - 30, WORLD_WIDTH, 60, theme.shadow, 0.9).setDepth(-6);
 
     for (let i = 0; i < 80; i++) {
       const g = this.add.graphics().setDepth(-3);
-      g.fillStyle(0xaa88ff, Phaser.Math.FloatBetween(0.05, 0.25));
+      g.fillStyle(theme.particles[i % theme.particles.length], Phaser.Math.FloatBetween(0.06, 0.28));
       g.fillCircle(
         Phaser.Math.Between(0, WORLD_WIDTH),
         Phaser.Math.Between(50, FLOOR_MIN_Y - 20),
@@ -174,56 +210,138 @@ export default class GameScene extends Phaser.Scene {
     }
 
     this.add
-      .text(300, FLOOR_MIN_Y - 50, '— PETRI DISH SECTOR 1 —', {
-        fontSize: '14px',
-        color: '#cc99ff',
-        fontStyle: 'italic',
+      .text(300, FLOOR_MIN_Y - 50, `— PETRI DISH SECTOR ${this.currentStage} —`, {
+        fontSize: '14px', color: theme.label, fontStyle: 'italic',
       })
       .setDepth(5)
-      .setAlpha(0.7);
+      .setAlpha(0.65);
   }
 
   private _spawnStage(): void {
-    const atomDefs: { x: number; type: AtomType; choices?: ElementType[] }[] = [
-      { x: 380, type: 'hydrogen' },
-      { x: 820, type: 'mystery', choices: ['hydrogen', 'carbon'] },
-      { x: 1350, type: 'oxygen' },
-      { x: 1900, type: 'mystery', choices: ['nitrogen', 'oxygen'] },
-      { x: 2500, type: 'hydrogen' },
-      { x: 3200, type: 'mystery', choices: ['hydrogen', 'oxygen'] },
-      { x: 3900, type: 'oxygen' },
-    ];
+    const rY = () => Phaser.Math.Between(FLOOR_MIN_Y + 40, FLOOR_MAX_Y - 15);
+
+    const atomDefs: { x: number; type: AtomType; choices?: ElementType[] }[] = this.currentStage === 1
+      ? [
+          { x: 380,  type: 'hydrogen' },
+          { x: 1350, type: 'mystery', choices: ['hydrogen', 'carbon'] },
+          { x: 2500, type: 'oxygen' },
+          { x: 3600, type: 'mystery', choices: ['nitrogen', 'oxygen'] },
+        ]
+      : this.currentStage === 2
+      ? [
+          { x: 450,  type: 'oxygen' },
+          { x: 1400, type: 'mystery', choices: ['carbon', 'nitrogen'] },
+          { x: 2600, type: 'hydrogen' },
+          { x: 3700, type: 'mystery', choices: ['oxygen', 'carbon'] },
+        ]
+      : [
+          { x: 700,  type: 'mystery', choices: ['nitrogen', 'carbon'] },
+          { x: 2200, type: 'mystery', choices: ['hydrogen', 'oxygen'] },
+          { x: 3800, type: 'mystery', choices: ['carbon', 'nitrogen'] },
+        ];
+
     atomDefs.forEach((def) => {
       const atom = new Atom(this, def.x, FLOOR_CENTER_Y - 80, def.type, def.choices ?? null);
       this.atomGroup.add(atom.sprite);
     });
 
-    const enemyDefs: { x: number; y: number; type: EnemyType }[] = [
-      { x: 600, y: FLOOR_CENTER_Y, type: 'bacterium' },
-      { x: 720, y: FLOOR_CENTER_Y - 50, type: 'virus' },
-      { x: 1100, y: FLOOR_CENTER_Y, type: 'bacterium' },
-      { x: 1180, y: FLOOR_CENTER_Y - 40, type: 'bacterium' },
-      { x: 1600, y: FLOOR_CENTER_Y, type: 'virus' },
-      { x: 1680, y: FLOOR_CENTER_Y - 30, type: 'dustbunny' },
-      { x: 2100, y: FLOOR_CENTER_Y, type: 'bacterium' },
-      { x: 2200, y: FLOOR_CENTER_Y - 55, type: 'pollen' },
-      { x: 2300, y: FLOOR_CENTER_Y, type: 'virus' },
-      { x: 2700, y: FLOOR_CENTER_Y, type: 'dustbunny' },
-      { x: 2800, y: FLOOR_CENTER_Y - 40, type: 'pollen' },
-      { x: 2900, y: FLOOR_CENTER_Y, type: 'virus' },
-      { x: 3300, y: FLOOR_CENTER_Y, type: 'bacterium' },
-      { x: 3400, y: FLOOR_CENTER_Y - 60, type: 'virus' },
-      { x: 3500, y: FLOOR_CENTER_Y, type: 'bacterium' },
-      { x: 4200, y: FLOOR_CENTER_Y, type: 'virus' },
-      { x: 4280, y: FLOOR_CENTER_Y - 45, type: 'pollen' },
-      { x: 4350, y: FLOOR_CENTER_Y, type: 'dustbunny' },
-    ];
+    const enemyDefs: { x: number; y: number; type: EnemyType }[] = this.currentStage === 1
+      ? [
+          { x: 600,  y: rY(), type: 'bacterium' },
+          { x: 720,  y: rY(), type: 'virus' },
+          { x: 1100, y: rY(), type: 'bacterium' },
+          { x: 1180, y: rY(), type: 'bacterium' },
+          { x: 1600, y: rY(), type: 'virus' },
+          { x: 1680, y: rY(), type: 'dustbunny' },
+          { x: 2100, y: rY(), type: 'bacterium' },
+          { x: 2200, y: rY(), type: 'pollen' },
+          { x: 2300, y: rY(), type: 'virus' },
+          { x: 2700, y: rY(), type: 'dustbunny' },
+          { x: 2800, y: rY(), type: 'pollen' },
+          { x: 2900, y: rY(), type: 'virus' },
+          { x: 3300, y: rY(), type: 'bacterium' },
+          { x: 3400, y: rY(), type: 'virus' },
+          { x: 3500, y: rY(), type: 'bacterium' },
+          { x: 4200, y: rY(), type: 'virus' },
+          { x: 4280, y: rY(), type: 'pollen' },
+          { x: 4350, y: rY(), type: 'dustbunny' },
+        ]
+      : this.currentStage === 2
+      ? [
+          { x: 500,  y: rY(), type: 'virus' },
+          { x: 620,  y: rY(), type: 'bacterium' },
+          { x: 740,  y: rY(), type: 'virus' },
+          { x: 1000, y: rY(), type: 'dustbunny' },
+          { x: 1120, y: rY(), type: 'pollen' },
+          { x: 1260, y: rY(), type: 'virus' },
+          { x: 1380, y: rY(), type: 'bacterium' },
+          { x: 1600, y: rY(), type: 'virus' },
+          { x: 1720, y: rY(), type: 'dustbunny' },
+          { x: 1840, y: rY(), type: 'pollen' },
+          { x: 2100, y: rY(), type: 'bacterium' },
+          { x: 2220, y: rY(), type: 'virus' },
+          { x: 2340, y: rY(), type: 'virus' },
+          { x: 2480, y: rY(), type: 'pollen' },
+          { x: 2700, y: rY(), type: 'dustbunny' },
+          { x: 2820, y: rY(), type: 'virus' },
+          { x: 2940, y: rY(), type: 'bacterium' },
+          { x: 3080, y: rY(), type: 'virus' },
+          { x: 3300, y: rY(), type: 'pollen' },
+          { x: 3420, y: rY(), type: 'dustbunny' },
+          { x: 3540, y: rY(), type: 'virus' },
+          { x: 3660, y: rY(), type: 'bacterium' },
+          { x: 3900, y: rY(), type: 'virus' },
+          { x: 4020, y: rY(), type: 'dustbunny' },
+          { x: 4140, y: rY(), type: 'pollen' },
+          { x: 4280, y: rY(), type: 'virus' },
+        ]
+      : [
+          { x: 420,  y: rY(), type: 'virus' },
+          { x: 530,  y: rY(), type: 'bacterium' },
+          { x: 640,  y: rY(), type: 'virus' },
+          { x: 760,  y: rY(), type: 'pollen' },
+          { x: 880,  y: rY(), type: 'dustbunny' },
+          { x: 1000, y: rY(), type: 'virus' },
+          { x: 1120, y: rY(), type: 'bacterium' },
+          { x: 1240, y: rY(), type: 'virus' },
+          { x: 1360, y: rY(), type: 'dustbunny' },
+          { x: 1480, y: rY(), type: 'pollen' },
+          { x: 1600, y: rY(), type: 'virus' },
+          { x: 1720, y: rY(), type: 'bacterium' },
+          { x: 1840, y: rY(), type: 'virus' },
+          { x: 1960, y: rY(), type: 'pollen' },
+          { x: 2080, y: rY(), type: 'dustbunny' },
+          { x: 2200, y: rY(), type: 'bacterium' },
+          { x: 2320, y: rY(), type: 'virus' },
+          { x: 2440, y: rY(), type: 'virus' },
+          { x: 2560, y: rY(), type: 'dustbunny' },
+          { x: 2680, y: rY(), type: 'pollen' },
+          { x: 2800, y: rY(), type: 'bacterium' },
+          { x: 2920, y: rY(), type: 'virus' },
+          { x: 3050, y: rY(), type: 'virus' },
+          { x: 3170, y: rY(), type: 'pollen' },
+          { x: 3290, y: rY(), type: 'dustbunny' },
+          { x: 3410, y: rY(), type: 'bacterium' },
+          { x: 3530, y: rY(), type: 'virus' },
+          { x: 3660, y: rY(), type: 'virus' },
+          { x: 3780, y: rY(), type: 'pollen' },
+          { x: 3900, y: rY(), type: 'dustbunny' },
+          { x: 4080, y: rY(), type: 'bacterium' },
+          { x: 4220, y: rY(), type: 'virus' },
+          { x: 4360, y: rY(), type: 'virus' },
+        ];
+
     enemyDefs.forEach((def) => {
       const e = new Enemy(this, def.x, def.y, def.type);
       this.enemyGroup.add(e.sprite);
     });
 
     this.boss = new Boss(this, BOSS_X, FLOOR_CENTER_Y);
+    if (this.currentStage === 2) {
+      this.boss.maxHp = 750; this.boss.hp = 750; this.boss.speed = 160;
+    } else if (this.currentStage === 3) {
+      this.boss.maxHp = 1100; this.boss.hp = 1100; this.boss.speed = 180; this.boss.damage = 30;
+    }
     this.enemyGroup.add(this.boss.sprite);
   }
 
@@ -419,11 +537,6 @@ export default class GameScene extends Phaser.Scene {
     this.score += enemy.isBoss ? 1000 : (SCORES[(enemy as Enemy).type] ?? 100);
     this.events.emit('score-update', this.score);
 
-    if (!enemy.isBoss && Math.random() < 0.15) {
-      const dropType: ElementType = Math.random() < 0.5 ? 'hydrogen' : 'oxygen';
-      const a = new Atom(this, enemy.sprite.x, enemy.sprite.y - 30, dropType);
-      this.atomGroup.add(a.sprite);
-    }
   }
 
   onPlayerDeath(): void {
@@ -484,43 +597,47 @@ export default class GameScene extends Phaser.Scene {
 
     this.input.keyboard?.once('keydown-Z', () => {
       this.scene.stop('HUDScene');
-      this.scene.restart();
+      this.scene.start('GameScene', { stage: this.currentStage });
     });
   }
 
   onBossDefeated(): void {
     this.stageCleared = true;
-    this.cameras.main.flash(600, 255, 230, 100);
+    const theme = SECTOR_THEMES[this.currentStage];
+    this.cameras.main.flash(600, theme.flashR, theme.flashG, theme.flashB);
     this.time.delayedCall(700, () => {
-      const w = GAME_WIDTH,
-        h = GAME_HEIGHT;
+      const w = GAME_WIDTH, h = GAME_HEIGHT;
+      this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.55).setScrollFactor(0).setDepth(300);
+
+      const isLast = this.currentStage >= 3;
       this.add
-        .rectangle(w / 2, h / 2, w, h, 0x000000, 0.5)
-        .setScrollFactor(0)
-        .setDepth(300);
-      this.add
-        .text(w / 2, h / 2 - 40, 'STAGE CLEAR!', {
-          fontSize: '48px',
-          color: '#ffee44',
+        .text(w / 2, h / 2 - 40, isLast ? 'EXPERIMENT COMPLETE!' : 'SECTOR CLEAR!', {
+          fontSize: isLast ? '40px' : '48px',
+          color: theme.clearColor,
           fontStyle: 'bold',
-          stroke: '#884400',
+          stroke: '#000000',
           strokeThickness: 6,
         })
-        .setScrollFactor(0)
-        .setOrigin(0.5)
-        .setDepth(301);
-      this.add
-        .text(w / 2, h / 2 + 30, 'Press Z to continue', {
-          fontSize: '20px',
-          color: '#ffffff',
+        .setScrollFactor(0).setOrigin(0.5).setDepth(301);
+
+      if (isLast) {
+        this.add
+          .text(w / 2, h / 2 + 10, `Final Score: ${this.score.toLocaleString()}`, {
+            fontSize: '22px', color: '#ffffff',
+          })
+          .setScrollFactor(0).setOrigin(0.5).setDepth(301);
+      }
+
+      const prompt = this.add
+        .text(w / 2, h / 2 + (isLast ? 55 : 30), isLast ? 'Press Z to play again' : `Press Z to enter Sector ${this.currentStage + 1}`, {
+          fontSize: '20px', color: '#ffeeaa',
         })
-        .setScrollFactor(0)
-        .setOrigin(0.5)
-        .setDepth(301);
+        .setScrollFactor(0).setOrigin(0.5).setDepth(301);
+      this.tweens.add({ targets: prompt, alpha: 0.3, duration: 600, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
 
       this.input.keyboard?.once('keydown-Z', () => {
         this.scene.stop('HUDScene');
-        this.scene.restart();
+        this.scene.start('GameScene', { stage: isLast ? 1 : this.currentStage + 1 });
       });
     });
   }

@@ -1,7 +1,5 @@
 # Phase 2 — More Elements: Task Breakdown
 
-**Status: Complete**
-
 ---
 
 ## 1. Constants (`src/constants.ts`) ✓

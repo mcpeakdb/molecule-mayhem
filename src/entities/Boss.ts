@@ -159,7 +159,9 @@ export default class Boss {
     this.hpLabel.setScrollFactor(0).setPosition(cx - 80, 32);
   }
 
-  applyBleed(_damage: number, _duration: number): void { /* boss is immune to bleed */ }
+  applyBleed(_damage: number, _duration: number): void {
+    /* boss is immune to bleed */
+  }
 
   takeDamage(amount: number, knockbackDir = 1): void {
     if (!this.alive || this.phase === PHASES.DEAD) return;

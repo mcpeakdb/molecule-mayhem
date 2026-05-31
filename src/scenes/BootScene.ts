@@ -304,26 +304,42 @@ export default class BootScene extends Phaser.Scene {
     // Carbon (C)
     {
       const g = this._g();
-      g.fillStyle(0x333333, 0.2); g.fillCircle(20, 20, 20);
-      g.lineStyle(1.5, 0x888888, 0.6); g.strokeEllipse(20, 20, 36, 14);
-      g.lineStyle(1.5, 0x888888, 0.4); g.strokeEllipse(20, 20, 14, 36);
-      g.fillStyle(0xaaaaaa); g.fillCircle(38, 20, 3);
-      g.fillStyle(0x555555); g.fillCircle(20, 20, 9);
-      g.fillStyle(0x999999); g.fillCircle(18, 18, 4);
-      g.fillStyle(0xffffff, 0.6); g.fillCircle(17, 17, 2);
+      g.fillStyle(0x333333, 0.2);
+      g.fillCircle(20, 20, 20);
+      g.lineStyle(1.5, 0x888888, 0.6);
+      g.strokeEllipse(20, 20, 36, 14);
+      g.lineStyle(1.5, 0x888888, 0.4);
+      g.strokeEllipse(20, 20, 14, 36);
+      g.fillStyle(0xaaaaaa);
+      g.fillCircle(38, 20, 3);
+      g.fillStyle(0x555555);
+      g.fillCircle(20, 20, 9);
+      g.fillStyle(0x999999);
+      g.fillCircle(18, 18, 4);
+      g.fillStyle(0xffffff, 0.6);
+      g.fillCircle(17, 17, 2);
       g._done('atom_carbon', 40, 40);
     }
     // Nitrogen (N)
     {
       const g = this._g();
-      g.fillStyle(0x44ddcc, 0.15); g.fillCircle(20, 20, 20);
-      g.lineStyle(1.5, 0x66eedd, 0.7); g.strokeEllipse(20, 20, 36, 14);
-      g.lineStyle(1.5, 0x66eedd, 0.5); g.strokeEllipse(20, 20, 14, 36);
-      g.lineStyle(1.5, 0x66eedd, 0.3); g.strokeEllipse(20, 20, 32, 32);
-      g.fillStyle(0x77eedd); g.fillCircle(38, 20, 3); g.fillCircle(2, 20, 3);
-      g.fillStyle(0x33bbaa); g.fillCircle(20, 20, 9);
-      g.fillStyle(0x77eedd); g.fillCircle(18, 18, 4);
-      g.fillStyle(0xffffff, 0.6); g.fillCircle(17, 17, 2);
+      g.fillStyle(0x44ddcc, 0.15);
+      g.fillCircle(20, 20, 20);
+      g.lineStyle(1.5, 0x66eedd, 0.7);
+      g.strokeEllipse(20, 20, 36, 14);
+      g.lineStyle(1.5, 0x66eedd, 0.5);
+      g.strokeEllipse(20, 20, 14, 36);
+      g.lineStyle(1.5, 0x66eedd, 0.3);
+      g.strokeEllipse(20, 20, 32, 32);
+      g.fillStyle(0x77eedd);
+      g.fillCircle(38, 20, 3);
+      g.fillCircle(2, 20, 3);
+      g.fillStyle(0x33bbaa);
+      g.fillCircle(20, 20, 9);
+      g.fillStyle(0x77eedd);
+      g.fillCircle(18, 18, 4);
+      g.fillStyle(0xffffff, 0.6);
+      g.fillCircle(17, 17, 2);
       g._done('atom_nitrogen', 40, 40);
     }
   }
@@ -362,32 +378,98 @@ export default class BootScene extends Phaser.Scene {
   }
 
   private _makeBackground(): void {
-    // Ground tile — agar plate / lab bench aesthetic
+    // === Sector 1 — nutrient agar (green/amber) ===
     {
       const g = this._g();
-      g.fillStyle(0xb8956a);
+      g.fillStyle(0xc8aa60);
       g.fillRect(0, 0, 64, 64);
-      g.lineStyle(1, 0x9a7a52, 0.4);
-      g.strokeRect(0, 0, 64, 64);
-      g.fillStyle(0xd4ae88, 0.4);
-      g.fillRect(4, 4, 20, 20);
-      g.fillRect(40, 38, 18, 18);
-      g.fillStyle(0xa07850, 0.3);
+      g.lineStyle(1, 0xa08840, 0.55);
+      g.lineBetween(0, 32, 64, 32);
+      g.lineBetween(32, 0, 32, 64);
+      g.fillStyle(0xdcbc78, 0.35);
+      g.fillRect(4, 4, 22, 22);
+      g.fillRect(38, 40, 18, 18);
+      g.fillStyle(0x9a7838, 0.28);
       g.fillCircle(48, 16, 10);
-      g.fillCircle(16, 48, 8);
-      g._done('ground_tile', 64, 64);
+      g.fillCircle(14, 48, 8);
+      g._done('ground_tile_1', 64, 64);
     }
-    // Sky/wall — deep biological purple
     {
       const g = this._g();
-      g.fillStyle(0x1a0a2e);
+      g.fillStyle(0x0e1c0a);
       g.fillRect(0, 0, 64, 64);
-      g.fillStyle(0x2a1545, 0.5);
-      g.fillRect(8, 8, 20, 20);
-      g.fillRect(40, 36, 16, 20);
-      g.fillStyle(0x3d2260, 0.2);
-      g.fillCircle(32, 32, 20);
-      g._done('bg_tile', 64, 64);
+      g.lineStyle(1, 0x1c3016, 1.0);
+      g.lineBetween(0, 32, 64, 32);
+      g.lineBetween(32, 0, 32, 64);
+      g.fillStyle(0x162a10, 0.45);
+      g.fillRect(8, 8, 22, 22);
+      g.fillRect(38, 36, 16, 20);
+      g.fillStyle(0x0a1408, 0.25);
+      g.fillCircle(48, 14, 10);
+      g.fillCircle(12, 50, 8);
+      g._done('bg_tile_1', 64, 64);
+    }
+    // === Sector 2 — blood agar (red/pink) ===
+    {
+      const g = this._g();
+      g.fillStyle(0xd4907a);
+      g.fillRect(0, 0, 64, 64);
+      g.lineStyle(1, 0xaa6050, 0.55);
+      g.lineBetween(0, 32, 64, 32);
+      g.lineBetween(32, 0, 32, 64);
+      g.fillStyle(0xe8a890, 0.35);
+      g.fillRect(4, 4, 22, 22);
+      g.fillRect(38, 40, 18, 18);
+      g.fillStyle(0xa05040, 0.28);
+      g.fillCircle(48, 16, 10);
+      g.fillCircle(14, 48, 8);
+      g._done('ground_tile_2', 64, 64);
+    }
+    {
+      const g = this._g();
+      g.fillStyle(0x1e0808);
+      g.fillRect(0, 0, 64, 64);
+      g.lineStyle(1, 0x321414, 1.0);
+      g.lineBetween(0, 32, 64, 32);
+      g.lineBetween(32, 0, 32, 64);
+      g.fillStyle(0x281010, 0.45);
+      g.fillRect(8, 8, 22, 22);
+      g.fillRect(38, 36, 16, 20);
+      g.fillStyle(0x180808, 0.25);
+      g.fillCircle(48, 14, 10);
+      g.fillCircle(12, 50, 8);
+      g._done('bg_tile_2', 64, 64);
+    }
+    // === Sector 3 — MacConkey agar (blue/purple) ===
+    {
+      const g = this._g();
+      g.fillStyle(0x8880b8);
+      g.fillRect(0, 0, 64, 64);
+      g.lineStyle(1, 0x6860a0, 0.55);
+      g.lineBetween(0, 32, 64, 32);
+      g.lineBetween(32, 0, 32, 64);
+      g.fillStyle(0xa898d0, 0.35);
+      g.fillRect(4, 4, 22, 22);
+      g.fillRect(38, 40, 18, 18);
+      g.fillStyle(0x504880, 0.28);
+      g.fillCircle(48, 16, 10);
+      g.fillCircle(14, 48, 8);
+      g._done('ground_tile_3', 64, 64);
+    }
+    {
+      const g = this._g();
+      g.fillStyle(0x080a1e);
+      g.fillRect(0, 0, 64, 64);
+      g.lineStyle(1, 0x141430, 1.0);
+      g.lineBetween(0, 32, 64, 32);
+      g.lineBetween(32, 0, 32, 64);
+      g.fillStyle(0x10102e, 0.45);
+      g.fillRect(8, 8, 22, 22);
+      g.fillRect(38, 36, 16, 20);
+      g.fillStyle(0x080816, 0.25);
+      g.fillCircle(48, 14, 10);
+      g.fillCircle(12, 50, 8);
+      g._done('bg_tile_3', 64, 64);
     }
   }
 }

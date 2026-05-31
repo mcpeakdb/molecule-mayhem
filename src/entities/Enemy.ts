@@ -53,6 +53,9 @@ export default class Enemy {
   bleedTimer = 0;
   bleedDamage = 0;
   private bleedTickTimer = 0;
+  private hopTimer = 0;
+  private hopPhase: 'idle' | 'up' | 'down' = 'idle';
+  private hoverTime = 0;
 
   constructor(scene: GameScene, x: number, y: number, type: EnemyType = 'bacterium') {
     this.scene = scene;
@@ -72,6 +75,8 @@ export default class Enemy {
     base.body.setCollideWorldBounds(true);
     this.sprite = base as EnemySprite;
     this.sprite.enemyRef = this;
+    if (type === 'dustbunny') this.hopTimer = Phaser.Math.Between(300, 700);
+    if (type === 'virus') this.hoverTime = Math.random() * Math.PI * 2;
   }
 
   update(_time: number, delta: number, playerSprite: Phaser.Physics.Arcade.Sprite): void {
@@ -89,7 +94,9 @@ export default class Enemy {
         this.bleedTickTimer = 400;
         this.hp = Math.round(this.hp - this.bleedDamage);
         this.sprite.setTint(0xff4444);
-        this.scene.time.delayedCall(100, () => { if (this.sprite.active) this.sprite.clearTint(); });
+        this.scene.time.delayedCall(100, () => {
+          if (this.sprite.active) this.sprite.clearTint();
+        });
         if (this.hp <= 0) this._die();
       }
     }
@@ -119,6 +126,9 @@ export default class Enemy {
         this._tryAttack(playerSprite);
         break;
     }
+
+    if (this.type === 'dustbunny') this._applyHop(delta);
+    if (this.type === 'virus') this._applyHover(delta);
 
     if (this.state === STATES.CHASE && dist < ATTACK_RANGE) this.state = STATES.ATTACK;
     if (this.state === STATES.ATTACK && dist > ATTACK_RANGE * 1.4) this.state = STATES.CHASE;
@@ -192,6 +202,40 @@ export default class Enemy {
     this.hurtTimer = 300;
 
     if (this.hp <= 0) this._die();
+  }
+
+  private _applyHover(delta: number): void {
+    if (this.state === STATES.HURT || this.state === STATES.DEAD) return;
+    this.hoverTime += delta / 1000;
+    this.sprite.body.setVelocityY(80 * Math.cos(this.hoverTime * 2.6));
+  }
+
+  private _applyHop(delta: number): void {
+    if (this.state === STATES.HURT || this.state === STATES.DEAD) return;
+    this.hopTimer -= delta;
+
+    if (this.hopPhase === 'idle' && this.hopTimer <= 0) {
+      this.hopPhase = 'up';
+      this.hopTimer = 260;
+      this.scene.tweens.add({
+        targets: this.sprite, scaleX: 0.78, scaleY: 1.3, duration: 70, ease: 'Power2',
+        yoyo: true, onComplete: () => { if (this.sprite.active) this.sprite.setScale(1); },
+      });
+    } else if (this.hopPhase === 'up' && this.hopTimer <= 0) {
+      this.hopPhase = 'down';
+      this.hopTimer = 260;
+    } else if (this.hopPhase === 'down' && this.hopTimer <= 0) {
+      this.hopPhase = 'idle';
+      this.hopTimer = Phaser.Math.Between(500, 1100);
+      this.scene.tweens.killTweensOf(this.sprite);
+      this.scene.tweens.add({
+        targets: this.sprite, scaleX: 1.35, scaleY: 0.68, duration: 70, ease: 'Power2',
+        yoyo: true, onComplete: () => { if (this.sprite.active) this.sprite.setScale(1); },
+      });
+    }
+
+    const vy = this.hopPhase === 'up' ? -150 : this.hopPhase === 'down' ? 150 : 0;
+    this.sprite.body.setVelocityY(vy);
   }
 
   private _die(): void {
