@@ -72,6 +72,15 @@
 
 ---
 
+## Phase 6 — Molecular Tree & Numpad Arsenal
+
+Combat/progression overhaul: every atom pickup becomes a branching choice (a molecular *tree*),
+owning atoms unlocks **multiple simultaneous attacks** bound to the numpad (up to 9), and every
+special is restyled to its atom color. Full design in [PLAN_PHASE6.md](PLAN_PHASE6.md);
+work breakdown in [tasks/PHASE6_TASKS.md](tasks/PHASE6_TASKS.md).
+
+---
+
 ## Phase 4 — Progression & Meta
 
 - [ ] **Stage select screen** — unlock stages sequentially; show high score per stage

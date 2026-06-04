@@ -643,32 +643,122 @@ export default class GameScene extends Phaser.Scene {
     p.body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
   }
 
+  // Water Lv3 "Tidal Force" — a towering curling wave that sweeps the screen
   spawnTidalWave(x: number, _y: number, dir: number): void {
-    const damage = 60;
-    const wave = this.add.graphics().setDepth(90);
-    let waveX = x;
+    const d = dir;
+    const baseY = FLOOR_MAX_Y + 26; // wave foot, just below the walkable band
+    const crestY = FLOOR_MIN_Y - 150; // wave peak, towering above
+    const STEPS = 80;
+
+    // Behind the entity band (player/enemy depth = their y ≥ FLOOR_MIN_Y) so the wave passes behind the caster
+    const body = this.add.graphics().setDepth(FLOOR_MIN_Y - 20);
+    const foam = this.add.graphics().setDepth(FLOOR_MIN_Y - 19);
+    let waveX = x - d * 70;
     let step = 0;
+
+    this.cameras.main.shake(500, 0.009);
+    // A brief blue wash over the screen as it casts
+    const wash = this.add
+      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x2299ee, 0)
+      .setScrollFactor(0)
+      .setDepth(FLOOR_MAX_Y + 40);
+    this.tweens.add({
+      targets: wash,
+      alpha: 0.18,
+      duration: 200,
+      yoyo: true,
+      hold: 200,
+      onComplete: () => wash.destroy(),
+    });
 
     this.time.addEvent({
       delay: 16,
-      repeat: 60,
+      repeat: STEPS,
       callback: () => {
         step++;
-        waveX += dir * 8;
-        wave.clear();
-        wave.fillStyle(0x22ccff, 0.5);
-        wave.fillRect(waveX - 60, FLOOR_MIN_Y, 120, FLOOR_MAX_Y - FLOOR_MIN_Y);
-        wave.lineStyle(3, 0x88eeff);
-        wave.strokeRect(waveX - 60, FLOOR_MIN_Y, 120, FLOOR_MAX_Y - FLOOR_MIN_Y);
+        waveX += d * 13;
+        const wob = Math.sin(step * 0.5) * 10;
+        const cY = crestY + wob;
+        const fade = step > STEPS * 0.8 ? Math.max(0, 1 - (step - STEPS * 0.8) / (STEPS * 0.2)) : 1;
+        body.setAlpha(fade);
+        foam.setAlpha(fade);
 
+        // Wave silhouette — local x runs along the travel direction; concave curl handled by earcut
+        const pt = (sx: number, sy: number) => ({ x: waveX + d * sx, y: sy });
+        const outline = [
+          pt(-90, baseY),
+          pt(-88, baseY - 55),
+          pt(-45, (baseY + cY) / 2),
+          pt(-12, cY + 26),
+          pt(12, cY), // crest peak
+          pt(48, cY + 16), // curl lip overhanging forward
+          pt(30, cY + 52), // hollow under the curl
+          pt(54, baseY - 60), // front face
+          pt(62, baseY), // front foot
+        ];
+
+        body.clear();
+        // Wet trail dragging behind the wave along the floor
+        const trailBack = waveX - d * 240;
+        body.fillStyle(0x9fe8ff, 0.12 * fade);
+        body.fillRect(Math.min(waveX, trailBack), FLOOR_MAX_Y + 8, 240, 14);
+
+        // Depth layers: dark back → mid → bright front, offset for parallax volume
+        const layers = [
+          { col: 0x0d4f8a, a: 0.6, ox: -12 },
+          { col: 0x1d8ec4, a: 0.62, ox: 0 },
+          { col: 0x4fd0f5, a: 0.5, ox: 10 },
+        ];
+        for (const L of layers) {
+          body.fillStyle(L.col, L.a);
+          body.fillPoints(
+            outline.map((p) => ({ x: p.x + d * L.ox, y: p.y })) as unknown as Phaser.Math.Vector2[],
+            true,
+          );
+        }
+
+        // Bright specular running down the front face
+        body.lineStyle(3, 0xbff4ff, 0.7);
+        body.beginPath();
+        body.moveTo(pt(12, cY).x, pt(12, cY).y);
+        body.lineTo(pt(48, cY + 16).x, pt(48, cY + 16).y);
+        body.lineTo(pt(54, baseY - 60).x, pt(54, baseY - 60).y);
+        body.strokePath();
+
+        // Churning foam along the crest and curl
+        foam.clear();
+        for (let i = 0; i < 11; i++) {
+          const ph = step * 0.3 + i * 1.7;
+          const fx = waveX + d * (i * 5 - 22 + Math.sin(ph) * 26);
+          const fy = cY + 10 + Math.cos(ph * 1.3) * 11;
+          const r = 6 + (Math.sin(ph) * 0.5 + 0.5) * 7;
+          foam.fillStyle(0xffffff, 0.55);
+          foam.fillCircle(fx, fy, r);
+          foam.fillStyle(0xddf6ff, 0.4);
+          foam.fillCircle(fx, fy, r * 0.6);
+        }
+        // Spray droplets arcing off the crest (rise then fall under gravity)
+        for (let i = 0; i < 9; i++) {
+          const prog = ((step * 0.5 + i * 2.3) % 13) / 13;
+          const dx = d * (10 + prog * 80) + d * Math.sin(i * 3) * 6;
+          const dy = -prog * 130 + prog * prog * 95;
+          const r = 3 * (1 - prog) + 1;
+          foam.fillStyle(0xeaffff, 0.75 * (1 - prog));
+          foam.fillCircle(waveX + dx, cY + 12 + dy, r);
+        }
+
+        // Damage and shove anything caught in the wave front
         this.enemyGroup.getChildren().forEach((go) => {
           const s = go as EnemySprite;
-          if (s.active && s.enemyRef && Math.abs(s.x - waveX) < 80) {
-            s.enemyRef.takeDamage(damage / 10, dir * 4);
+          if (s.active && s.enemyRef && Math.abs(s.x - waveX) < 95) {
+            s.enemyRef.takeDamage(6, d * 6);
           }
         });
 
-        if (step >= 60) wave.destroy();
+        if (step >= STEPS) {
+          body.destroy();
+          foam.destroy();
+        }
       },
     });
   }

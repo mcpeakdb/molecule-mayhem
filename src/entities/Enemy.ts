@@ -56,6 +56,8 @@ export default class Enemy {
   private hopTimer = 0;
   private hopPhase: 'idle' | 'up' | 'down' = 'idle';
   private hoverTime = 0;
+  // Stays false until the enemy has scrolled into the camera view; attacks can't reach it before then
+  private hasEnteredView = false;
 
   constructor(scene: GameScene, x: number, y: number, type: EnemyType = 'bacterium') {
     this.scene = scene;
@@ -81,6 +83,11 @@ export default class Enemy {
 
   update(time: number, delta: number, playerSprite: Phaser.Physics.Arcade.Sprite): void {
     if (!this.sprite.active || this.state === STATES.DEAD) return;
+
+    if (!this.hasEnteredView) {
+      const view = this.scene.cameras.main.worldView;
+      if (this.sprite.x >= view.x && this.sprite.x <= view.right) this.hasEnteredView = true;
+    }
 
     this.hurtTimer = Math.max(0, this.hurtTimer - delta);
     this.attackTimer = Math.max(0, this.attackTimer - delta);
@@ -167,13 +174,15 @@ export default class Enemy {
   }
 
   applyBleed(damage: number, duration: number): void {
+    if (!this.hasEnteredView) return;
     this.bleedDamage = damage;
     this.bleedTimer = Math.max(this.bleedTimer, duration);
     this.bleedTickTimer = 0;
   }
 
   takeDamage(amount: number, knockbackDir = 1, slow = false): void {
-    if (this.state === STATES.DEAD) return;
+    // Offscreen enemies that haven't scrolled in yet are untouchable by any attack
+    if (!this.hasEnteredView || this.state === STATES.DEAD) return;
     this.hp = Math.round(this.hp - amount);
 
     // Freeze, squish, then launch after a brief stagger window

@@ -168,6 +168,9 @@ export default class Boss {
   }
 
   takeDamage(amount: number, knockbackDir = 1): void {
+    // Not on screen yet — screen-wide specials must not reach the boss before it activates,
+    // otherwise it can be killed offscreen and the stage gets stuck in a degenerate state.
+    if (!this.activated) return;
     if (!this.alive || this.phase === PHASES.DEAD) return;
     this.hp = Math.round(this.hp - amount);
 

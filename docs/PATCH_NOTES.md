@@ -2,6 +2,10 @@
 
 ## v0.5.0 — 2026-06-03
 
+### Fixes
+
+- **Stuck level after killing the boss offscreen** — screen-wide specials (Absolute Zero, Ammonia/CO₂ Lv3, Acid Rain, etc.) iterate the whole enemy group, so they could damage and kill the Super Bacterium while it was still offscreen and unactivated, leaving the stage in a broken state. Damage is now gated at the source: the boss is immune until it activates (comes on screen), and regular enemies are immune until they've scrolled into the camera view. This covers every attack path (melee, AOE, projectiles, splash, bleed)
+
 ### Jump Overhaul & Double Jump
 
 - Jump reworked from a fixed tween to a velocity-based arc (gravity-integrated each frame)
@@ -16,6 +20,10 @@
 - **Proton Punch** (Hydrogen Lv1) reworked to read as a stronger basic punch: reuses the punch animation but with a bigger fist colored hydrogen-blue (`0x3366ee`) with a glow halo and specular, longer reach, harder knockback, a hydrogen-blue impact flash, and the punch SFX (was an orange flash with no fist)
 - `_spawnPunchArm()` now takes color/size options so element-charged punches can restyle the fist while sharing the same animation
 - **Plasma Arc** (Hydrogen Lv2) rebuilt as a proper energy bolt: a glowing hydrogen-blue core with a white-hot center, randomized crackling electric arcs, and a fading motion trail; faster and harder-hitting (×3 damage, knockback 5) with an impact flash, expanding shock ring, and splash damage to nearby enemies (was a plain orange projectile). New `GameScene.spawnPlasmaBolt()`
+
+### Water Refinements
+
+- **Tidal Force** (Water Lv3) rebuilt as a towering, curling wave instead of a flat translucent rectangle: three parallax depth layers (dark back → bright front), a curling crest with churning foam, spray droplets that arc up and fall under gravity, a bright specular down the front face, a wet floor trail, and a brief blue screen wash + camera shake on cast. Sweeps the full screen width and shoves enemies along with stronger knockback
 
 ## v0.4.0 — 2026-05-31
 
