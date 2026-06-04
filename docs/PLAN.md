@@ -1,12 +1,13 @@
 # Molecule Mayhem — Development Plan
 
-## Current State (v0.3 — Phase 2 Complete)
+## Current State (v0.5 — Phase 2 Complete, Phase 5 in progress)
 
 - Stage 1: Petri Dish Sector — bacterium, virus, dustbunny, pollen enemies
 - **Elements: 10 total** — H, O, Water, C, N + 5 combos (Ammonia, CO₂, Methane, Nitric Oxide, Carbonic Acid)
 - Boss: Super Bacterium (3-phase, flagella projectiles)
 - All graphics procedural (no external assets)
 - **Phaser 4.1.0**
+- **Jump**: velocity-based arc with double jump (front-roll on the second leap); a clean leap over an enemy dodges its contact attack (timing dodge, not blanket airborne immunity)
 
 ### Added in Phase 1
 

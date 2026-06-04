@@ -158,6 +158,8 @@ export default class Enemy {
     this.sprite.body.setVelocity(0, 0);
     if (this.attackTimer <= 0) {
       this.attackTimer = this.attackRate;
+      // Player leaping cleanly over this enemy dodges the contact hit
+      if (this.scene.player.isClearingEnemy) return;
       this.scene.player.takeDamage(this.damage);
       this.sprite.setTint(0xff6666);
       this.scene.time.delayedCall(150, () => this.sprite.clearTint());

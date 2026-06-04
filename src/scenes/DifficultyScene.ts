@@ -49,13 +49,17 @@ export default class DifficultyScene extends Phaser.Scene {
     const cx = GAME_WIDTH / 2;
 
     // Background
-    this.add.rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x060e06)
-      .setScrollFactor(0);
+    this.add.rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x060e06).setScrollFactor(0);
 
     // Title
-    this.add.text(cx, 50, 'SELECT DIFFICULTY', {
-      fontSize: '26px', color: '#88cc88', fontFamily: MONO, fontStyle: 'bold',
-    }).setOrigin(0.5);
+    this.add
+      .text(cx, 50, 'SELECT DIFFICULTY', {
+        fontSize: '26px',
+        color: '#88cc88',
+        fontFamily: MONO,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
 
     // Separator
     const g = this.add.graphics();
@@ -69,8 +73,7 @@ export default class DifficultyScene extends Phaser.Scene {
       const top = CARD_CY - CARD_H / 2;
 
       // Background
-      const bg = this.add.rectangle(x, CARD_CY, CARD_W, CARD_H, opt.color, 0.06)
-        .setOrigin(0.5);
+      const bg = this.add.rectangle(x, CARD_CY, CARD_W, CARD_H, opt.color, 0.06).setOrigin(0.5);
       this.cardBgs.push(bg);
 
       // Border (separate Graphics per card so we can redraw individually)
@@ -78,10 +81,14 @@ export default class DifficultyScene extends Phaser.Scene {
       this.cardBorders.push(border);
 
       // Difficulty label
-      this.add.text(x, top + 30, opt.label, {
-        fontSize: '24px', color: `#${opt.color.toString(16).padStart(6, '0')}`,
-        fontFamily: MONO, fontStyle: 'bold',
-      }).setOrigin(0.5);
+      this.add
+        .text(x, top + 30, opt.label, {
+          fontSize: '24px',
+          color: `#${opt.color.toString(16).padStart(6, '0')}`,
+          fontFamily: MONO,
+          fontStyle: 'bold',
+        })
+        .setOrigin(0.5);
 
       // Thin rule below label
       const rule = this.add.graphics();
@@ -89,33 +96,47 @@ export default class DifficultyScene extends Phaser.Scene {
       rule.lineBetween(x - 90, top + 50, x + 90, top + 50);
 
       // Description
-      this.add.text(x, top + 78, opt.desc, {
-        fontSize: '13px', color: '#99bb99', fontFamily: MONO, align: 'center',
-      }).setOrigin(0.5, 0);
+      this.add
+        .text(x, top + 78, opt.desc, {
+          fontSize: '13px',
+          color: '#99bb99',
+          fontFamily: MONO,
+          align: 'center',
+        })
+        .setOrigin(0.5, 0);
 
       // Stats
-      this.add.text(x, top + 150, opt.stats, {
-        fontSize: '12px', color: '#779977', fontFamily: MONO, lineSpacing: 4,
-      }).setOrigin(0.5, 0);
+      this.add
+        .text(x, top + 150, opt.stats, {
+          fontSize: '12px',
+          color: '#779977',
+          fontFamily: MONO,
+          lineSpacing: 4,
+        })
+        .setOrigin(0.5, 0);
     });
 
     // Instructions
-    this.add.text(cx, 474, '← → to navigate     Z or Enter to confirm', {
-      fontSize: '13px', color: '#668866', fontFamily: MONO,
-    }).setOrigin(0.5);
+    this.add
+      .text(cx, 474, '← → to navigate     Z or Enter to confirm', {
+        fontSize: '13px',
+        color: '#668866',
+        fontFamily: MONO,
+      })
+      .setOrigin(0.5);
 
     this._refreshCards();
 
     // biome-ignore lint/style/noNonNullAssertion: keyboard always present
     const kb = this.input.keyboard!;
-    this.leftKey    = kb.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
-    this.rightKey   = kb.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
-    this.confirmKey  = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
+    this.leftKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
+    this.rightKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
+    this.confirmKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
     this.confirmKey2 = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
   }
 
   update(): void {
-    if (Phaser.Input.Keyboard.JustDown(this.leftKey))  this._move(-1);
+    if (Phaser.Input.Keyboard.JustDown(this.leftKey)) this._move(-1);
     if (Phaser.Input.Keyboard.JustDown(this.rightKey)) this._move(1);
     if (Phaser.Input.Keyboard.JustDown(this.confirmKey) || Phaser.Input.Keyboard.JustDown(this.confirmKey2)) {
       this._confirm();
@@ -137,12 +158,7 @@ export default class DifficultyScene extends Phaser.Scene {
       const border = this.cardBorders[i];
       border.clear();
       border.lineStyle(selected ? 2 : 1, col, selected ? 0.9 : 0.25);
-      border.strokeRect(
-        CARD_CX[i] - CARD_W / 2,
-        CARD_CY - CARD_H / 2,
-        CARD_W,
-        CARD_H,
-      );
+      border.strokeRect(CARD_CX[i] - CARD_W / 2, CARD_CY - CARD_H / 2, CARD_W, CARD_H);
     });
   }
 

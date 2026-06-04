@@ -101,7 +101,8 @@ export default class Boss {
         this.sprite.body.setVelocity((dx / dist) * this.speed * 1.6, (dy / dist) * this.speed * 0.6);
       }
       if (dist < 70) {
-        this.scene.player.takeDamage(this.damage);
+        // A clean leap over the boss dodges the charge impact
+        if (!this.scene.player.isClearingEnemy) this.scene.player.takeDamage(this.damage);
         this.phase = PHASES.IDLE;
         this.actionTimer = 800;
         this.sprite.body.setVelocity(-(dx / dist) * 150, 0);

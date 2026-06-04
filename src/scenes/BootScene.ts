@@ -58,6 +58,8 @@ export default class BootScene extends Phaser.Scene {
     this._makePlayerFrame('player_0', 46, 46);
     this._makePlayerFrame('player_1', 42, 50);
     this._makePlayerFrame('player_2', 50, 42);
+    // Jump pose — both legs tucked up
+    this._makePlayerFrame('player_jump', 40, 40);
 
     this.anims.create({
       key: 'player_walk',
@@ -68,6 +70,12 @@ export default class BootScene extends Phaser.Scene {
     this.anims.create({
       key: 'player_idle',
       frames: [{ key: 'player_0' }],
+      frameRate: 1,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'player_jump',
+      frames: [{ key: 'player_jump' }],
       frameRate: 1,
       repeat: -1,
     });

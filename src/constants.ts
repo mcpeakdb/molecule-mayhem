@@ -1,8 +1,8 @@
 export type Difficulty = 'easy' | 'normal' | 'hard';
 export const DIFFICULTY_SCALE: Record<Difficulty, { enemyHp: number; enemySpeed: number; invincMs: number }> = {
-  easy:   { enemyHp: 0.70, enemySpeed: 0.75, invincMs: 1400 },
-  normal: { enemyHp: 1.00, enemySpeed: 1.00, invincMs: 800  },
-  hard:   { enemyHp: 1.40, enemySpeed: 1.25, invincMs: 500  },
+  easy: { enemyHp: 0.7, enemySpeed: 0.75, invincMs: 1400 },
+  normal: { enemyHp: 1.0, enemySpeed: 1.0, invincMs: 800 },
+  hard: { enemyHp: 1.4, enemySpeed: 1.25, invincMs: 500 },
 };
 
 export const GAME_WIDTH = 960;
@@ -65,6 +65,12 @@ export const PLAYER_MELEE_DAMAGE = 12;
 export const PLAYER_ATTACK_COOLDOWN = 400; // ms
 export const PLAYER_SPECIAL_COOLDOWN = 1200; // ms
 export const PLAYER_INVINCIBILITY_MS = 800;
+
+// Jump — manual vertical integration (jumpOffset lifts the sprite visually above its ground Y)
+export const PLAYER_JUMP_VELOCITY = 540; // px/s initial upward velocity (peak ≈ 90px)
+export const PLAYER_DOUBLE_JUMP_VELOCITY = 470; // px/s for the airborne second jump
+export const PLAYER_JUMP_GRAVITY = 1600; // px/s²
+export const PLAYER_MAX_JUMPS = 2;
 
 export const MAX_ELEMENT_LEVEL = 3;
 

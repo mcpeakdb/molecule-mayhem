@@ -1,5 +1,22 @@
 # Patch Notes
 
+## v0.5.0 — 2026-06-03
+
+### Jump Overhaul & Double Jump
+
+- Jump reworked from a fixed tween to a velocity-based arc (gravity-integrated each frame)
+- **Double jump** — press Space again while airborne for a second mid-air leap
+- **First jump** plays a dedicated tucked `player_jump` pose with a takeoff stretch and landing squash
+- **Second jump** sends the player into a **front roll** — the sprite spins a full rotation in the direction it faces (arms hidden during the spin so they don't detach)
+- **Leap over enemies** — a jump that clears an enemy's body (airborne above a clearance height) dodges its contact attack and the boss charge; projectiles and other hits still connect, so it's a timing dodge rather than blanket airborne immunity
+- Ground shadow scaling fixed for the taller double-jump apex
+
+### Hydrogen Refinements
+
+- **Proton Punch** (Hydrogen Lv1) reworked to read as a stronger basic punch: reuses the punch animation but with a bigger fist colored hydrogen-blue (`0x3366ee`) with a glow halo and specular, longer reach, harder knockback, a hydrogen-blue impact flash, and the punch SFX (was an orange flash with no fist)
+- `_spawnPunchArm()` now takes color/size options so element-charged punches can restyle the fist while sharing the same animation
+- **Plasma Arc** (Hydrogen Lv2) rebuilt as a proper energy bolt: a glowing hydrogen-blue core with a white-hot center, randomized crackling electric arcs, and a fading motion trail; faster and harder-hitting (×3 damage, knockback 5) with an impact flash, expanding shock ring, and splash damage to nearby enemies (was a plain orange projectile). New `GameScene.spawnPlasmaBolt()`
+
 ## v0.4.0 — 2026-05-31
 
 ### Phase 5 — Content & QOL (begun)

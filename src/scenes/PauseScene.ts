@@ -29,13 +29,19 @@ export default class PauseScene extends Phaser.Scene {
     const cy = GAME_HEIGHT / 2;
 
     // Overlay
-    this.add.rectangle(cx, cy, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.78)
-      .setScrollFactor(0).setDepth(500);
+    this.add.rectangle(cx, cy, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.78).setScrollFactor(0).setDepth(500);
 
     // Title
-    this.add.text(cx, cy - 72, 'PAUSED', {
-      fontSize: '30px', color: '#88cc88', fontFamily: MONO, fontStyle: 'bold',
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(501);
+    this.add
+      .text(cx, cy - 72, 'PAUSED', {
+        fontSize: '30px',
+        color: '#88cc88',
+        fontFamily: MONO,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(501);
 
     // Separator lines
     const g = this.add.graphics().setScrollFactor(0).setDepth(501);
@@ -44,33 +50,46 @@ export default class PauseScene extends Phaser.Scene {
     g.lineBetween(cx - 130, cy + 58, cx + 130, cy + 58);
 
     // Cursor marker
-    this.cursorText = this.add.text(cx - 108, cy - 20, '›', {
-      fontSize: '20px', color: '#aaffaa', fontFamily: MONO,
-    }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(502);
+    this.cursorText = this.add
+      .text(cx - 108, cy - 20, '›', {
+        fontSize: '20px',
+        color: '#aaffaa',
+        fontFamily: MONO,
+      })
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(502);
 
     // Menu options
     this.optionTexts = OPTIONS.map((label, i) =>
-      this.add.text(cx - 88, cy - 20 + i * 34, label, {
-        fontSize: '18px', color: '#669966', fontFamily: MONO,
-      }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(502),
+      this.add
+        .text(cx - 88, cy - 20 + i * 34, label, {
+          fontSize: '18px',
+          color: '#669966',
+          fontFamily: MONO,
+        })
+        .setOrigin(0, 0.5)
+        .setScrollFactor(0)
+        .setDepth(502),
     );
 
     this._refreshCursor();
 
     // biome-ignore lint/style/noNonNullAssertion: keyboard always present
     const kb = this.input.keyboard!;
-    this.upKey      = kb.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
-    this.downKey    = kb.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
+    this.upKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
+    this.downKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
     this.confirmKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
     this.confirmKey2 = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
-    this.escKey     = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this.escKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
   }
 
   update(): void {
-    if (Phaser.Input.Keyboard.JustDown(this.upKey))   this._moveCursor(-1);
+    if (Phaser.Input.Keyboard.JustDown(this.upKey)) this._moveCursor(-1);
     if (Phaser.Input.Keyboard.JustDown(this.downKey)) this._moveCursor(1);
-    if (Phaser.Input.Keyboard.JustDown(this.confirmKey) || Phaser.Input.Keyboard.JustDown(this.confirmKey2)) this._confirm();
-    if (Phaser.Input.Keyboard.JustDown(this.escKey))  this._resume();
+    if (Phaser.Input.Keyboard.JustDown(this.confirmKey) || Phaser.Input.Keyboard.JustDown(this.confirmKey2))
+      this._confirm();
+    if (Phaser.Input.Keyboard.JustDown(this.escKey)) this._resume();
   }
 
   private _moveCursor(dir: number): void {
@@ -88,7 +107,9 @@ export default class PauseScene extends Phaser.Scene {
 
   private _confirm(): void {
     switch (this.cursor) {
-      case 0: this._resume(); break;
+      case 0:
+        this._resume();
+        break;
       case 1:
         this.scene.stop('HUDScene');
         this.scene.stop('PauseScene');

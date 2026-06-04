@@ -7,8 +7,12 @@ import {
   GAME_HEIGHT,
   GAME_WIDTH,
   PLAYER_ATTACK_COOLDOWN,
+  PLAYER_DOUBLE_JUMP_VELOCITY,
   PLAYER_INVINCIBILITY_MS,
+  PLAYER_JUMP_GRAVITY,
+  PLAYER_JUMP_VELOCITY,
   PLAYER_MAX_HP,
+  PLAYER_MAX_JUMPS,
   PLAYER_MELEE_DAMAGE,
   PLAYER_MELEE_RANGE,
   PLAYER_SPECIAL_COOLDOWN,
@@ -38,6 +42,10 @@ export default class Player {
   private _hitFlash = false;
   private jumpOffset = 0;
   private isJumping = false;
+  private jumpCount = 0;
+  private _jumpVelY = 0;
+  private _isRolling = false;
+  private _rollTween: Phaser.Tweens.Tween | null = null;
   private _groundY = 0;
   private _jumpShadow!: Phaser.GameObjects.Graphics;
   private _jumpKey!: Phaser.Input.Keyboard.Key;
@@ -62,6 +70,11 @@ export default class Player {
     this._armsGraphic = scene.add.graphics();
     this._jumpKey = scene.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE) as Phaser.Input.Keyboard.Key;
     scene.events.on('postupdate', this._updateArms, this);
+  }
+
+  /** Airborne high enough to clear an enemy's body — lets a well-timed jump leap clean over contact attacks (projectiles still hit). */
+  get isClearingEnemy(): boolean {
+    return this.isJumping && this.jumpOffset > 30;
   }
 
   update(time: number, delta: number, keys: InputKeys): void {
@@ -114,19 +127,30 @@ export default class Player {
     this.sprite.body.setVelocityX(vx);
     this.sprite.body.setVelocityY(0);
     this._groundY = Phaser.Math.Clamp(this._groundY + vy * (delta / 1000), FLOOR_MIN_Y, FLOOR_MAX_Y);
+
+    // Vertical jump arc — integrate velocity under gravity, land when back on the ground
+    if (this.isJumping) {
+      const dt = delta / 1000;
+      this._jumpVelY -= PLAYER_JUMP_GRAVITY * dt;
+      this.jumpOffset += this._jumpVelY * dt;
+      if (this.jumpOffset <= 0) this._land();
+    }
+
     this.sprite.y = this._groundY - this.jumpOffset;
     this.sprite.setDepth(this._groundY);
     this.sprite.setFlipX(!this.facingRight);
 
-    // Walk/idle — stay idle while airborne
-    const isMoving = (vx !== 0 || vy !== 0) && !this.isJumping;
-    const currentAnim = this.sprite.anims.currentAnim?.key;
-    if (isMoving && currentAnim !== 'player_walk') this.sprite.play('player_walk');
-    else if (!isMoving && currentAnim !== 'player_idle') this.sprite.play('player_idle');
+    // Walk/idle on the ground; the jump pose is held by _doJump while airborne
+    if (!this.isJumping) {
+      const isMoving = vx !== 0 || vy !== 0;
+      const currentAnim = this.sprite.anims.currentAnim?.key;
+      if (isMoving && currentAnim !== 'player_walk') this.sprite.play('player_walk');
+      else if (!isMoving && currentAnim !== 'player_idle') this.sprite.play('player_idle');
+    }
 
     // Ground shadow that stays at floor level while the player is airborne
     if (this.jumpOffset > 0) {
-      const t = this.jumpOffset / 80;
+      const t = Math.min(1, this.jumpOffset / 160);
       this._jumpShadow.setPosition(this.sprite.x, this._groundY + 4).setDepth(this._groundY - 1);
       this._jumpShadow.clear();
       this._jumpShadow.fillStyle(0x000000, 0.4 * (1 - t * 0.7));
@@ -154,18 +178,66 @@ export default class Player {
   }
 
   private _doJump(): void {
-    if (this.isJumping || !this.alive) return;
-    this.isJumping = true;
+    if (!this.alive || this.jumpCount >= PLAYER_MAX_JUMPS) return;
+
+    if (this.jumpCount === 0) {
+      // First jump — simple hop with a takeoff stretch
+      this.isJumping = true;
+      this._jumpVelY = PLAYER_JUMP_VELOCITY;
+      this.sprite.play('player_jump');
+      this.scene.tweens.add({
+        targets: this.sprite,
+        scaleY: 1.15,
+        scaleX: 0.9,
+        duration: 110,
+        yoyo: true,
+      });
+    } else {
+      // Second jump — re-boost upward and do a front roll in the air
+      this._jumpVelY = PLAYER_DOUBLE_JUMP_VELOCITY;
+      this._startRoll();
+    }
+
+    this.jumpCount++;
+  }
+
+  private _startRoll(): void {
+    this._isRolling = true;
+    this._rollTween?.remove();
+    // Forward roll in the direction the player faces
+    const dir = this.facingRight ? 1 : -1;
+    this.sprite.setRotation(0);
+    this._rollTween = this.scene.tweens.add({
+      targets: this.sprite,
+      rotation: dir * Math.PI * 2,
+      duration: 420,
+      ease: 'Linear',
+      onComplete: () => this._endRoll(),
+    });
+  }
+
+  private _endRoll(): void {
+    if (!this._isRolling) return;
+    this._isRolling = false;
+    this._rollTween?.remove();
+    this._rollTween = null;
+    this.sprite.setRotation(0);
+  }
+
+  private _land(): void {
+    this.jumpOffset = 0;
+    this._jumpVelY = 0;
+    this.isJumping = false;
+    this.jumpCount = 0;
+    this._endRoll();
+    // Landing squash
+    this.sprite.setScale(1.2, 0.8);
     this.scene.tweens.add({
-      targets: this,
-      jumpOffset: 80,
-      duration: 250,
-      ease: 'Sine.Out',
-      yoyo: true,
-      onComplete: () => {
-        this.isJumping = false;
-        this.jumpOffset = 0;
-      },
+      targets: this.sprite,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 120,
+      ease: 'Quad.Out',
     });
   }
 
@@ -202,6 +274,11 @@ export default class Player {
 
   private _updateArms(): void {
     if (!this.alive) return;
+    // Arms are drawn upright; during a front roll they'd detach from the spinning body, so hide them
+    if (this._isRolling) {
+      this._armsGraphic.clear();
+      return;
+    }
     if (this._punchArmGraphic) {
       this._punchArmGraphic
         .setPosition(this.sprite.x + this._punchArmDir * 11, this.sprite.y - 7)
@@ -228,19 +305,40 @@ export default class Player {
     }
   }
 
-  private _spawnPunchArm(dir: number): void {
+  private _spawnPunchArm(
+    dir: number,
+    opts: {
+      sleeveColor?: number;
+      fistColor?: number;
+      fistRadius?: number;
+      sleeveLen?: number;
+      sleeveH?: number;
+      glow?: number;
+    } = {},
+  ): void {
+    const sleeveColor = opts.sleeveColor ?? 0xf0f0f5;
+    const fistColor = opts.fistColor ?? 0x88ccdd;
+    const fistRadius = opts.fistRadius ?? 8;
+    const sleeveLen = opts.sleeveLen ?? 44;
+    const sleeveH = opts.sleeveH ?? 9;
+    const fistX = sleeveLen + fistRadius - 2;
+
     this._isPunching = true;
     this._punchArmDir = dir;
     const arm = this.scene.add.graphics();
-    arm.fillStyle(0xf0f0f5);
-    if (dir > 0) {
-      arm.fillRect(0, -4, 44, 9);
-      arm.fillStyle(0x88ccdd);
-      arm.fillCircle(50, 0, 8);
-    } else {
-      arm.fillRect(-44, -4, 44, 9);
-      arm.fillStyle(0x88ccdd);
-      arm.fillCircle(-50, 0, 8);
+    const s = dir > 0 ? 1 : -1;
+    // Optional glow halo behind the fist (used by element-charged punches)
+    if (opts.glow !== undefined) {
+      arm.fillStyle(opts.glow, 0.4);
+      arm.fillCircle(s * fistX, 0, fistRadius + 5);
+    }
+    arm.fillStyle(sleeveColor);
+    arm.fillRect(s > 0 ? 0 : -sleeveLen, -sleeveH / 2, sleeveLen, sleeveH);
+    arm.fillStyle(fistColor);
+    arm.fillCircle(s * fistX, 0, fistRadius);
+    if (opts.glow !== undefined) {
+      arm.fillStyle(0xffffff, 0.5);
+      arm.fillCircle(s * fistX - s * 3, -3, Math.max(2, fistRadius * 0.3));
     }
     this._punchArmGraphic = arm;
     this.scene.tweens.add({
@@ -277,11 +375,18 @@ export default class Player {
     const x = this.sprite.x,
       y = this.sprite.y;
     if (level === 1) {
-      this.scene.spawnHitFlash(x + dir * 80, y, 0xff8800, 50);
-      this.scene.cameras.main.shake(120, 0.005);
-      if (this._damageArc(x + dir * 50, y, 130, 70, PLAYER_MELEE_DAMAGE * 2, dir)) this._registerHit();
+      // Proton Punch — a bigger, harder version of the basic punch, charged hydrogen-blue
+      SoundSystem.play(this.scene.audioCtx, 'punch');
+      this._spawnPunchArm(dir, { fistColor: 0x3366ee, glow: 0x88aaff, fistRadius: 13, sleeveLen: 50, sleeveH: 11 });
+      this.scene.spawnHitFlash(x + dir * 62, y, 0x4499ff, 55);
+      this.scene.cameras.main.shake(120, 0.006);
+      if (this._damageArc(x + dir * 50, y, 130, 70, PLAYER_MELEE_DAMAGE * 2, dir, false, 4)) this._registerHit();
     } else if (level === 2) {
-      this.scene.spawnProjectile(x, y, dir, 0xff8800, PLAYER_MELEE_DAMAGE * 2.5, 600);
+      // Plasma Arc — crackling hydrogen-blue energy bolt
+      SoundSystem.play(this.scene.audioCtx, 'punch');
+      this.scene.spawnHitFlash(x + dir * 40, y, 0xaaddff, 40);
+      this.scene.cameras.main.shake(80, 0.004);
+      this.scene.spawnPlasmaBolt(x + dir * 30, y, dir, PLAYER_MELEE_DAMAGE * 3);
     } else {
       this.scene.spawnHitFlash(x, y, 0xff4400, 120);
       this.scene.cameras.main.shake(250, 0.01);
@@ -622,12 +727,16 @@ export default class Player {
     this.hp = Math.max(0, Math.round(this.hp - amount));
     this.invincibleTimer = this.invincibilityMs;
     this._hitFlash = true;
-    this.scene.time.delayedCall(160, () => { this._hitFlash = false; });
+    this.scene.time.delayedCall(160, () => {
+      this._hitFlash = false;
+    });
     if (this.hp === 0) this._die();
   }
 
   private _die(): void {
     this.alive = false;
+    this._endRoll();
+    this.sprite.setScale(1, 1);
     this._jumpShadow.clear();
     this._armsGraphic.clear();
     SoundSystem.play(this.scene.audioCtx, 'player_death');

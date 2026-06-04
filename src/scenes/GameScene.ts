@@ -1,6 +1,15 @@
 import Phaser from 'phaser';
 import type { Difficulty, ElementType } from '../constants';
-import { BOSS_X, DIFFICULTY_SCALE, FLOOR_CENTER_Y, FLOOR_MAX_Y, FLOOR_MIN_Y, GAME_HEIGHT, GAME_WIDTH, WORLD_WIDTH } from '../constants';
+import {
+  BOSS_X,
+  DIFFICULTY_SCALE,
+  FLOOR_CENTER_Y,
+  FLOOR_MAX_Y,
+  FLOOR_MIN_Y,
+  GAME_HEIGHT,
+  GAME_WIDTH,
+  WORLD_WIDTH,
+} from '../constants';
 import Atom, { type AtomType } from '../entities/Atom';
 import Boss from '../entities/Boss';
 import Enemy, { type EnemyType } from '../entities/Enemy';
@@ -93,9 +102,7 @@ export default class GameScene extends Phaser.Scene {
   init(data?: { stage?: number; difficulty?: Difficulty }): void {
     this.currentStage = data?.stage ?? 1;
     this.score = 0;
-    this.difficulty = data?.difficulty
-      ?? (this.registry.get('difficulty') as Difficulty | undefined)
-      ?? 'normal';
+    this.difficulty = data?.difficulty ?? (this.registry.get('difficulty') as Difficulty | undefined) ?? 'normal';
   }
 
   create(): void {
@@ -400,7 +407,7 @@ export default class GameScene extends Phaser.Scene {
 
     enemyDefs.forEach((def) => {
       const e = new Enemy(this, def.x, def.y, def.type);
-      e.hp    = Math.round(e.hp    * scale.enemyHp);
+      e.hp = Math.round(e.hp * scale.enemyHp);
       e.maxHp = Math.round(e.maxHp * scale.enemyHp);
       e.speed *= scale.enemySpeed;
       this.enemyGroup.add(e.sprite);
@@ -417,7 +424,7 @@ export default class GameScene extends Phaser.Scene {
       this.boss.speed = 180;
       this.boss.damage = 30;
     }
-    this.boss.hp    = Math.round(this.boss.hp    * scale.enemyHp);
+    this.boss.hp = Math.round(this.boss.hp * scale.enemyHp);
     this.boss.maxHp = Math.round(this.boss.maxHp * scale.enemyHp);
     this.boss.speed *= scale.enemySpeed;
     this.enemyGroup.add(this.boss.sprite);
@@ -428,9 +435,9 @@ export default class GameScene extends Phaser.Scene {
     const kb = this.input.keyboard!;
     this.cursors = kb.createCursorKeys();
     this.wasd = kb.addKeys('W,A,S,D') as WasdKeys;
-    this.attackKey   = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
-    this.specialKey  = kb.addKey(Phaser.Input.Keyboard.KeyCodes.X);
-    this.pauseKey    = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this.attackKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
+    this.specialKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.X);
+    this.pauseKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     this.pauseKeyAlt = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
   }
 
@@ -518,6 +525,102 @@ export default class GameScene extends Phaser.Scene {
     p.piercing = false;
     p.body.setAllowGravity(false);
     p.body.setVelocity(dir * speed, 0);
+  }
+
+  // Hydrogen Lv2 "Plasma Arc" — a glowing, crackling energy bolt with a trail and an impact burst
+  spawnPlasmaBolt(x: number, y: number, dir: number, damage: number): void {
+    const p = this.projectileGroup.create(x, y, 'projectile') as ProjectileSprite;
+    p.setTint(0x4499ff).setDepth(80).setScale(1.8).setAlpha(0); // base sprite hidden; the plasma graphic is the visual
+    p.damage = damage;
+    p.knockback = 5;
+    p.piercing = false;
+    p.body.setAllowGravity(false);
+    p.body.setVelocity(dir * 720, 0);
+
+    const gfx = this.add.graphics().setDepth(81);
+    const trail: { x: number; y: number }[] = [];
+    let t = 0;
+
+    const ev = this.time.addEvent({
+      delay: 16,
+      repeat: 220,
+      callback: () => {
+        t++;
+
+        // Destroyed by the projectile↔enemy overlap → it hit something: burst + splash
+        if (!p.active) {
+          const last = trail[trail.length - 1] ?? { x, y };
+          this.spawnHitFlash(last.x, last.y, 0x66bbff, 60);
+          this.cameras.main.shake(120, 0.006);
+          const ring = this.add.graphics().setDepth(82);
+          let rt = 0;
+          this.time.addEvent({
+            delay: 16,
+            repeat: 12,
+            callback: () => {
+              rt++;
+              ring.clear();
+              ring.lineStyle(3, 0xaaddff, 0.8 - rt * 0.06);
+              ring.strokeCircle(last.x, last.y, rt * 6);
+              if (rt >= 12) ring.destroy();
+            },
+          });
+          // Splash damage to nearby enemies
+          this.enemyGroup.getChildren().forEach((go) => {
+            const s = go as EnemySprite;
+            if (!s.active || !s.enemyRef) return;
+            if (Phaser.Math.Distance.Between(last.x, last.y, s.x, s.y) < 70) {
+              s.enemyRef.takeDamage(Math.round(damage * 0.5), dir * 3);
+            }
+          });
+          gfx.destroy();
+          ev.remove();
+          return;
+        }
+
+        trail.push({ x: p.x, y: p.y });
+        if (trail.length > 9) trail.shift();
+
+        gfx.clear();
+        // Fading trail
+        for (let i = 0; i < trail.length; i++) {
+          const f = i / trail.length;
+          gfx.fillStyle(0x88ccff, f * 0.45);
+          gfx.fillCircle(trail[i].x, trail[i].y, 3 + f * 8);
+        }
+        // Outer glow → core → white-hot center
+        gfx.fillStyle(0x4499ff, 0.35);
+        gfx.fillCircle(p.x, p.y, 18);
+        gfx.fillStyle(0xaaddff, 0.9);
+        gfx.fillCircle(p.x, p.y, 9);
+        gfx.fillStyle(0xffffff, 0.95);
+        gfx.fillCircle(p.x, p.y, 4);
+        // Crackling electric arcs radiating from the core
+        gfx.lineStyle(2, 0xcceeff, 0.85);
+        for (let k = 0; k < 3; k++) {
+          const ang = Math.random() * Math.PI * 2;
+          const len = 13 + Math.random() * 11;
+          const sx = p.x + Math.cos(ang) * 7;
+          const sy = p.y + Math.sin(ang) * 7;
+          const mx = p.x + Math.cos(ang) * len * 0.5 + (Math.random() - 0.5) * 9;
+          const my = p.y + Math.sin(ang) * len * 0.5 + (Math.random() - 0.5) * 9;
+          const ex = p.x + Math.cos(ang) * len;
+          const ey = p.y + Math.sin(ang) * len;
+          gfx.beginPath();
+          gfx.moveTo(sx, sy);
+          gfx.lineTo(mx, my);
+          gfx.lineTo(ex, ey);
+          gfx.strokePath();
+        }
+
+        // Flew off without hitting — clean up silently
+        if (t >= 220) {
+          gfx.destroy();
+          ev.remove();
+          p.destroy();
+        }
+      },
+    });
   }
 
   spawnPiercingProjectile(x: number, y: number, dir: number, color: number, damage: number, speed = 650): void {
