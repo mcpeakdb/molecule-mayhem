@@ -432,6 +432,30 @@ export default class BootScene extends Phaser.Scene {
       g.fillCircle(17, 17, 2);
       g._done('atom_mystery', 40, 40);
     }
+    // Choice node (every atom is a fork in the molecular tree)
+    {
+      const g = this._g();
+      g.fillStyle(0x6633cc, 0.22);
+      g.fillCircle(20, 20, 20);
+      // crossed orbital rings
+      g.lineStyle(1.5, 0x66ddff, 0.7);
+      g.strokeEllipse(20, 20, 36, 14);
+      g.lineStyle(1.5, 0xcc88ff, 0.7);
+      g.strokeEllipse(20, 20, 14, 36);
+      // electron dots on each ring
+      g.fillStyle(0x99eeff);
+      g.fillCircle(38, 20, 3);
+      g.fillStyle(0xddaaff);
+      g.fillCircle(20, 38, 3);
+      // bright unresolved nucleus
+      g.fillStyle(0x3344aa);
+      g.fillCircle(20, 20, 9);
+      g.fillStyle(0x88bbff);
+      g.fillCircle(18, 18, 4);
+      g.fillStyle(0xffffff, 0.7);
+      g.fillCircle(17, 17, 2);
+      g._done('atom_node', 40, 40);
+    }
     // Carbon (C)
     {
       const g = this._g();

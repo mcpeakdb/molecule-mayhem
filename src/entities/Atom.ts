@@ -1,22 +1,22 @@
 import type Phaser from 'phaser';
-import type { ElementType } from '../constants';
+import type { BaseAtom } from '../constants';
 import type { AtomSprite } from '../types';
 
-export type AtomType = ElementType | 'mystery';
-
+/**
+ * An atom pickup. Every atom is a *choice node* (Phase 6): collecting it opens a
+ * 2–3 way choice of base atoms, growing the player's molecular tree.
+ */
 export default class Atom {
   scene: Phaser.Scene;
-  type: AtomType;
-  choices: ElementType[] | null;
-  collected: boolean = false;
+  choices: BaseAtom[];
+  collected = false;
   sprite: AtomSprite;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, type: AtomType, choices: ElementType[] | null = null) {
+  constructor(scene: Phaser.Scene, x: number, y: number, choices: BaseAtom[]) {
     this.scene = scene;
-    this.type = type;
     this.choices = choices;
 
-    const base = scene.physics.add.sprite(x, y, `atom_${type}`);
+    const base = scene.physics.add.sprite(x, y, 'atom_node');
     base.body.setAllowGravity(false);
     base.setDepth(50);
     this.sprite = base as AtomSprite;
@@ -30,15 +30,12 @@ export default class Atom {
       repeat: -1,
       ease: 'Sine.InOut',
     });
-
-    if (type === 'mystery') {
-      scene.tweens.add({
-        targets: this.sprite,
-        angle: 360,
-        duration: 2200,
-        repeat: -1,
-        ease: 'Linear',
-      });
-    }
+    scene.tweens.add({
+      targets: this.sprite,
+      angle: 360,
+      duration: 2200,
+      repeat: -1,
+      ease: 'Linear',
+    });
   }
 }

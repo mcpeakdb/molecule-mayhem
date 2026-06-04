@@ -1,87 +1,102 @@
 # Phase 6 — Molecular Tree & Numpad Arsenal: Task Breakdown
 
-Design doc: [../PLAN_PHASE6.md](../PLAN_PHASE6.md). Build in the order below — each section
+**Status: ✅ COMPLETE (v0.6.0 — 2026-06-04).**
+
+Design doc: [../PLAN_PHASE6.md](../PLAN_PHASE6.md). Built in the order below — each section
 depends on the ones above it.
 
 ---
 
-## 1. Data model — attack registry (`src/constants.ts`, `src/types.ts`)
+## 1. Data model — attack registry (`src/constants.ts`, `src/types.ts`) ✓
 
-- [ ] Define an `ATTACKS` registry keyed by `AttackId`, each with: `element` (`ElementType`),
-      `name`, `color`, `constituents` (atoms required), `slotOrder`, `cooldownMs`
-- [ ] Base entries: `hydrogen`, `oxygen`, `carbon`, `nitrogen`
-- [ ] Compound entries: `water`, `ammonia`, `carbon_dioxide`, `methane`, `nitric_oxide`, `carbonic_acid`
-- [ ] Fixed slot priority order: H, O, C, N, Water, Ammonia, CO₂, Methane, NO, Carbonic Acid
-- [ ] `src/types.ts`: add `AttackId`, `AttackSlot { id, level, slot, cooldownRemaining }`
-
----
-
-## 2. ElementSystem rewrite (`src/systems/ElementSystem.ts`)
-
-- [ ] Keep H/O/C/N counts; drop the single `type`/`level` collapse in `_resolve()`
-- [ ] `collectAtom(element)` just increments the count (return whether any new attack unlocked)
-- [ ] `getAvailableAttacks(): AttackSlot[]` — base attack per owned atom + compound attack when all
-      constituents present; level = `min(count,3)` (base) / `min(sum,3)` (compound); sorted by slot order
-- [ ] `getAttackLevel(id)` / `isUnlocked(id)` helpers
-- [ ] Preserve `getSpecialName()`-style lookups for HUD labels (per attack id + level)
+- [x] `ATTACKS` registry keyed by `AttackId`, each with `constituents`, `slot`, `color`, `tierNames`, `cooldownMs`
+- [x] Base entries: `hydrogen`, `oxygen`, `carbon`, `nitrogen`
+- [x] Compound entries: `water`, `ammonia`, `carbon_dioxide`, `methane`, `nitric_oxide`, `carbonic_acid`
+- [x] Fixed slot priority order via `ATTACK_ORDER`: H, O, C, N, Water, Ammonia, CO₂, Methane, NO, Carbonic Acid
+- [x] `src/types.ts`: `AttackId` (in constants), `AttackSlot`, `ArsenalEntry`, `ArsenalUpdate`
 
 ---
 
-## 3. Input + dispatch + cooldowns (`src/entities/Player.ts`, `src/scenes/GameScene.ts`, `src/types.ts`)
+## 2. ElementSystem rewrite (`src/systems/ElementSystem.ts`) ✓
 
-- [ ] Bind Numpad 1–9 (`NUMPAD_ONE..NINE`) + number-row 1–9 fallback in `GameScene._setupInput()`
-- [ ] Pass numpad presses into `Player.update()` (extend `InputKeys`)
-- [ ] Replace single `_doSpecialAttack()` with `fireSlot(n)` → resolve slot → attack id + level → dispatch
-- [ ] Per-attack cooldown map (replace shared `specialCooldown`); tick down each frame; ignore press if on cooldown
-- [ ] Decide `X` key fate (Open question O2) — retire or alias to slot 1
-- [ ] Emit `arsenal-update` event for the HUD when the kit or cooldowns change
-
----
-
-## 4. Atom = choice node (`src/entities/Atom.ts`, `src/scenes/GameScene.ts`, `src/scenes/ElementChoiceScene.ts`, `src/scenes/BootScene.ts`)
-
-- [ ] `Atom`: every node carries `choices: ElementType[]` (2–3); remove special-cased `mystery` path
-- [ ] `BootScene`: generic "atom node" texture (or reuse mystery visual) for unresolved choices
-- [ ] `GameScene._onAtomCollect()`: always open the choice overlay; on confirm, `collectAtom(chosen)`
-- [ ] `GameScene._spawnStage()`: author `choices` per atom spawn to shape the tree across sectors
-- [ ] `ElementChoiceScene`: present 2–3 base atoms; show what each pick unlocks/levels (tree-growth feedback)
+- [x] Keep H/O/C/N counts; dropped the single `type`/`level` collapse
+- [x] `collectAtom(atom)` increments the count, returns whether an attack unlocked/leveled
+- [x] `getAvailableAttacks(): AttackSlot[]` — base + compound, leveled, sorted, numbered 1..9 then 0
+- [x] `getAttackLevel(id)` / `isUnlocked(id)` / `getCounts()` / `getPrimary()` helpers
+- [x] `getSpecialName(id, level)` retained for labels; `type`/`level` getters kept for player tint
 
 ---
 
-## 5. Visual refinement pass (`src/entities/Player.ts`, `src/scenes/GameScene.ts`)
+## 3. Input + dispatch + cooldowns (`src/entities/Player.ts`, `src/scenes/GameScene.ts`, `src/types.ts`) ✓
 
-Restyle each to its atom color + juice (glow layers, trail, particles, impact ring/flash, shake).
-Pattern reference: Proton Punch, Plasma Arc, Tidal Force (already done).
-
-- [ ] **Hydrogen** — H3 Fusion Burst (blue `0x4499ff` → white-hot core, expanding nova ring)
-- [ ] **Oxygen** (red/orange `0xff5533`) — O1 Oxidize slash, O2 Reactive Cloud, O3 Oxidation Nova
-- [ ] **Water** (cyan `0x22ccff`) — W1 Water Jet bolt, W2 Hydro Wave surge *(W3 done)*
-- [ ] **Carbon** (grey `0x888888`, diamond `0xaaddff`) — C1 Claw, C2 Diamond Shard, C3 Graphene Shockwave
-- [ ] **Nitrogen** (teal `0x44ddcc`, frost `0x88eeff`) — N1 Frost, N2 Cryo Burst, N3 Absolute Zero
-- [ ] **Ammonia** (yellow-green `0xaadd44`) — Lv1–3 caustic spray/cloud/deluge
-- [ ] **Carbon Dioxide** (`0x99bbcc`) — Lv1–3 smog/suffocation/blackout
-- [ ] **Methane** (orange `0xff9922`) — Lv1–3 ignite/chain/fireball
-- [ ] **Nitric Oxide** (magenta `0xdd44aa`) — Lv1–3 rush/aura/overclock
-- [ ] **Carbonic Acid** (acid blue `0x33aadd`) — Lv1–3 drop/spray/rain
-- [ ] Recolor atom-collect burst map in `GameScene._onAtomCollect()` to per-atom colors
+- [x] Bind Numpad `.` (punch) + `1–9`,`0` (slots) in `GameScene._setupInput()`
+- [x] `InputKeys` now carries `punchKey` + `slotKeys[]`
+- [x] `_fireSlot(i)` → resolve i-th available attack → `_dispatchAttack(id, level, dir)`
+- [x] Per-attack cooldown `Map`; ticked each frame; press ignored while on cooldown
+- [x] `X` retired; punch on numpad `.` (O2)
+- [x] `arsenal-update` emitted each frame + on atom pickup
 
 ---
 
-## 6. HUD arsenal (`src/scenes/HUDScene.ts`)
+## 4. Atom = choice node (`src/entities/Atom.ts`, `src/scenes/GameScene.ts`, `src/scenes/ElementChoiceScene.ts`, `src/scenes/BootScene.ts`) ✓
 
-- [ ] Replace single ELEMENT/SPECIAL panel with an **attack bar**: up to 9 slots, numpad-numbered,
-      colored per attack, dimmed while on cooldown (radial/linear wipe)
-- [ ] Listen to `arsenal-update`; show level pips per slot
-- [ ] Molecular tree panel (Open question O4) — owned atoms + lit compounds; may defer
-- [ ] Update controls hint: `Numpad 1-9: Attacks` (drop `X: Special`)
+- [x] `Atom` carries `choices: BaseAtom[]`; `mystery` path removed
+- [x] `BootScene`: `atom_node` texture (crossed-orbital choice node)
+- [x] `GameScene._onAtomCollect()`: always opens the choice overlay
+- [x] `GameScene._spawnStage()`: authored `choices` per spawn across the three sectors
+- [x] `ElementChoiceScene`: presents 2–3 base atoms ("ADD AN ATOM")
+- [x] Tree-growth feedback in the choice overlay — each card previews the exact attacks a pick would
+      ★ unlock or ▲ level (computed from current atom counts via `ElementSystem.levelFor`/`attacksFor`)
 
 ---
 
-## 7. Balance, docs, polish
+## 5. Visual refinement pass (`src/entities/Player.ts`, `src/scenes/GameScene.ts`) ✓
 
-- [ ] Retune per-attack cooldowns/damage now that attacks are usable in parallel
-- [ ] Update `docs/PLAN.md` current-state; check off items here
-- [ ] `docs/PATCH_NOTES.md` entry; bump `package.json` version (proposed 0.6.0)
-- [ ] Update `CLAUDE.md` "Adding a new element" steps to the registry/tree flow
-- [ ] Manual playtest: tree forks, all numpad slots, cooldowns, boss flow intact
+Restyled each to its atom color + juice. Added reusable color-parameterized helpers in
+`GameScene`: `spawnBurst`, `spawnNova`, `spawnSlashArc`, `spawnCloud`.
+
+- [x] **Hydrogen** — H3 Fusion Burst (white-hot core + blue nova rings + sparks) *(H1/H2 prior)*
+- [x] **Oxygen** (red/orange `0xff5533`) — O1 corrosive slash, O2 reactive cloud, O3 oxidation nova
+      (fixed: was mistakenly green)
+- [x] **Water** (cyan `0x22ccff`) — W1 Water Jet w/ droplet spray, W2 Hydro Wave surge *(W3 prior)*
+- [x] **Carbon** (grey `0x888888`, diamond `0xaaddff`) — C1 triple claw+blood, C2 sparkling shard, C3 shockwave+debris
+- [x] **Nitrogen** (frost `0x88eeff`) — N1 frost slash, N2 cryo nova, N3 Absolute Zero screen-freeze
+- [x] **Ammonia** (yellow-green `0xaadd44`) — Lv1–3 caustic clouds + screen haze
+- [x] **Carbon Dioxide** (`0x99bbcc`) — Lv1–3 smog clouds/nova + blackout
+- [x] **Methane** (orange `0xff9922`) — Lv1–3 flame-trailed bolt, fiery nova + flame burst on detonate
+- [x] **Nitric Oxide** (magenta `0xdd44aa`) — Lv1–3 activation flare + nova
+- [x] **Carbonic Acid** (acid blue `0x33aadd`) — Lv1–3 drops w/ splash + corrosive puddle
+- [x] Atom-collect burst uses the choice-node purple (per-atom color resolved on pick instead)
+
+---
+
+## 6. HUD arsenal (`src/scenes/HUDScene.ts`) ✓
+
+- [x] **Attack bar** of up to 10 chips, numpad-numbered, colored per attack, dimmed with a downward
+      cooldown wipe while recharging
+- [x] Listens to `arsenal-update`; shows level pips + the attack's tier name per chip
+- [x] Molecular tree panel — owned-atom badges (H/O/C/N with live counts); compounds light up as
+      chips in the attack bar
+- [x] Controls hint updated (`. : Punch   Numpad/Row 1-9,0: Attacks`)
+
+---
+
+## 7. Balance, docs, polish ✓
+
+- [x] First cooldown pass: bases stay snappy (700–900ms); strong AOE/screen-wide compounds slowed
+      (Ammonia/CO₂ 1300, Methane 1100, Carbonic Acid 1800). Stoichiometry also self-gates power
+      (compounds rarely exceed Lv1 early). Fine-tuning pending real playtest
+- [x] Updated `docs/PLAN.md` current-state; checked off items here
+- [x] `docs/PATCH_NOTES.md` entry; bumped `package.json` to 0.6.0
+- [x] Updated `CLAUDE.md` "Adding a new element" steps to the registry/tree flow
+- [x] **Manual playtest**: tree forks, all numpad/number-row slots, cooldowns, boss flow — signed off
+
+---
+
+## Open / follow-ups
+
+- **Atom persistence across sectors?** Atoms currently reset each sector (fresh `Player`). Making them
+  carry over a run (reset on death) would let the tree grow and complex molecules gate on progression.
+- **Choice-overlay progress hints** — show partial progress toward locked compounds (e.g. "CH₄ 2/4 H"),
+  not just the attacks a pick completes.
 </content>

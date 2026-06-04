@@ -1,89 +1,101 @@
-import { ELEMENTS, type ElementType, MAX_ELEMENT_LEVEL } from '../constants';
-import type { ElementState } from '../types';
+import {
+  ATTACK_ORDER,
+  ATTACKS,
+  type AttackId,
+  BASE_ATOMS,
+  type BaseAtom,
+  ELEMENTS,
+  type ElementType,
+  MAX_ELEMENT_LEVEL,
+} from '../constants';
+import type { AttackSlot, ElementState } from '../types';
 
+/**
+ * Tracks the multiset of base atoms the player has collected and derives the
+ * set of attacks that are available *simultaneously* from them (Phase 6).
+ *
+ * - A base attack (H/O/C/N) is available once its atom is owned; level = min(count, 3).
+ * - A compound attack is available once all its constituent atoms are owned;
+ *   level = min(sum of constituent counts, 3).
+ */
 export default class ElementSystem {
-  type: ElementType = ELEMENTS.NONE;
-  level: number = 0;
-  private _hCount = 0;
-  private _oCount = 0;
-  private _cCount = 0;
-  private _nCount = 0;
+  private counts: Record<BaseAtom, number> = { hydrogen: 0, oxygen: 0, carbon: 0, nitrogen: 0 };
+
+  /** Increment an atom's count. Returns true if this unlocked a new attack or raised a level. */
+  collectAtom(atom: BaseAtom): boolean {
+    const before = this._signature();
+    this.counts[atom]++;
+    return this._signature() !== before;
+  }
+
+  getCounts(): Record<BaseAtom, number> {
+    return { ...this.counts };
+  }
+
+  /** Available attacks in fixed priority order, numbered for the numpad (1..9, then 0 for the 10th). */
+  getAvailableAttacks(): AttackSlot[] {
+    return ElementSystem.attacksFor(this.counts);
+  }
+
+  getAttackLevel(id: AttackId): number {
+    return ElementSystem.levelFor(id, this.counts);
+  }
+
+  /**
+   * Pure: the attack level a given counts map yields (0 = unavailable).
+   * Level = how many complete copies of the molecule's recipe the atoms can assemble, capped at 3.
+   * e.g. Water needs 2H+1O: 2H/1O → Lv1, 4H/2O → Lv2, 6H/3O → Lv3.
+   */
+  static levelFor(id: AttackId, counts: Record<BaseAtom, number>): number {
+    const recipe = ATTACKS[id].recipe;
+    let copies = MAX_ELEMENT_LEVEL;
+    for (const atom of Object.keys(recipe) as BaseAtom[]) {
+      const need = recipe[atom] ?? 0;
+      copies = Math.min(copies, Math.floor(counts[atom] / need));
+    }
+    return Math.min(copies, MAX_ELEMENT_LEVEL);
+  }
+
+  /** Pure: available attacks for an arbitrary counts map (used to preview a pick). */
+  static attacksFor(counts: Record<BaseAtom, number>): AttackSlot[] {
+    const slots: { id: AttackId; level: number }[] = [];
+    for (const id of ATTACK_ORDER) {
+      const level = ElementSystem.levelFor(id, counts);
+      if (level > 0) slots.push({ id, level });
+    }
+    return slots.map((s, i) => ({ ...s, key: i < 9 ? i + 1 : 0 }));
+  }
+
+  isUnlocked(id: AttackId): boolean {
+    return this.getAttackLevel(id) > 0;
+  }
+
+  /** Most-advanced available attack (highest slot) — used for the player tint. */
+  getPrimary(): AttackId | null {
+    const available = this.getAvailableAttacks();
+    return available.length ? available[available.length - 1].id : null;
+  }
+
+  getSpecialName(id: AttackId, level: number): string {
+    return ATTACKS[id].tierNames[Math.max(0, level - 1)] ?? '—';
+  }
+
+  // ── Backward-compatible accessors (player tint, etc.) ──────────────────────
+  get type(): ElementType {
+    return this.getPrimary() ?? ELEMENTS.NONE;
+  }
+
+  get level(): number {
+    const p = this.getPrimary();
+    return p ? this.getAttackLevel(p) : 0;
+  }
 
   getState(): ElementState {
     return { type: this.type, level: this.level };
   }
 
-  collectAtom(element: ElementType): boolean {
-    const prevLevel = this.level;
-    if (element === ELEMENTS.HYDROGEN) this._hCount++;
-    else if (element === ELEMENTS.OXYGEN) this._oCount++;
-    else if (element === ELEMENTS.CARBON) this._cCount++;
-    else if (element === ELEMENTS.NITROGEN) this._nCount++;
-    this._resolve();
-    return this.level > prevLevel;
-  }
-
-  private _resolve(): void {
-    const h = this._hCount,
-      o = this._oCount,
-      c = this._cCount,
-      n = this._nCount;
-
-    if (c >= 1 && h >= 1 && o >= 1) {
-      this.type = ELEMENTS.CARBONIC_ACID;
-      this.level = Math.min(c + h + o, MAX_ELEMENT_LEVEL);
-    } else if (c >= 1 && h >= 1 && o === 0 && n === 0) {
-      this.type = ELEMENTS.METHANE;
-      this.level = Math.min(c + h, MAX_ELEMENT_LEVEL);
-    } else if (n >= 1 && h >= 1 && c === 0 && o === 0) {
-      this.type = ELEMENTS.AMMONIA;
-      this.level = Math.min(n + h, MAX_ELEMENT_LEVEL);
-    } else if (c >= 1 && o >= 1 && h === 0 && n === 0) {
-      this.type = ELEMENTS.CARBON_DIOXIDE;
-      this.level = Math.min(c + o, MAX_ELEMENT_LEVEL);
-    } else if (n >= 1 && o >= 1 && c === 0 && h === 0) {
-      this.type = ELEMENTS.NITRIC_OXIDE;
-      this.level = Math.min(n + o, MAX_ELEMENT_LEVEL);
-    } else if (h > 0 && o > 0) {
-      this.type = ELEMENTS.WATER;
-      this.level = Math.min(h + o, MAX_ELEMENT_LEVEL);
-    } else if (h > 0) {
-      this.type = ELEMENTS.HYDROGEN;
-      this.level = Math.min(h, MAX_ELEMENT_LEVEL);
-    } else if (o > 0) {
-      this.type = ELEMENTS.OXYGEN;
-      this.level = Math.min(o, MAX_ELEMENT_LEVEL);
-    } else if (c > 0) {
-      this.type = ELEMENTS.CARBON;
-      this.level = Math.min(c, MAX_ELEMENT_LEVEL);
-    } else if (n > 0) {
-      this.type = ELEMENTS.NITROGEN;
-      this.level = Math.min(n, MAX_ELEMENT_LEVEL);
-    } else {
-      this.type = ELEMENTS.NONE;
-      this.level = 0;
-    }
-  }
-
-  getSpecialName(): string {
-    const { type, level } = this;
-    const NAMES: Partial<Record<ElementType, string[]>> = {
-      [ELEMENTS.HYDROGEN]: ['Proton Punch', 'Plasma Arc', 'Fusion Burst'],
-      [ELEMENTS.OXYGEN]: ['Oxidize', 'Reactive Cloud', 'Oxidation Nova'],
-      [ELEMENTS.WATER]: ['Water Jet', 'Hydro Wave', 'Tidal Force'],
-      [ELEMENTS.CARBON]: ['Carbon Claw', 'Diamond Shard', 'Graphene Shockwave'],
-      [ELEMENTS.NITROGEN]: ['Nitrogen Frost', 'Cryo Burst', 'Absolute Zero'],
-      [ELEMENTS.AMMONIA]: ['Caustic Spray', 'Acid Cloud', 'Toxic Deluge'],
-      [ELEMENTS.CARBON_DIOXIDE]: ['Smog Pulse', 'Suffocation Field', 'Blackout'],
-      [ELEMENTS.METHANE]: ['Gas Ignite', 'Chain Blast', 'Fireball'],
-      [ELEMENTS.NITRIC_OXIDE]: ['Radical Rush', 'Reactive Aura', 'Overclock'],
-      [ELEMENTS.CARBONIC_ACID]: ['Acid Drop', 'Corrosive Spray', 'Acid Rain'],
-    };
-    if (type === ELEMENTS.NONE || level === 0) return 'No Power';
-    return NAMES[type]?.[level - 1] ?? 'No Power';
-  }
-
-  isMaxLevel(): boolean {
-    return this.level >= MAX_ELEMENT_LEVEL;
+  private _signature(): string {
+    // Changes whenever an attack unlocks or a level rises (until everything is capped).
+    return BASE_ATOMS.map((a) => Math.min(this.counts[a], MAX_ELEMENT_LEVEL)).join(',');
   }
 }

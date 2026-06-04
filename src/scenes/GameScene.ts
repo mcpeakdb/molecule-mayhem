@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { Difficulty, ElementType } from '../constants';
+import type { BaseAtom, Difficulty } from '../constants';
 import {
   BOSS_X,
   DIFFICULTY_SCALE,
@@ -10,7 +10,7 @@ import {
   GAME_WIDTH,
   WORLD_WIDTH,
 } from '../constants';
-import Atom, { type AtomType } from '../entities/Atom';
+import Atom from '../entities/Atom';
 import Boss from '../entities/Boss';
 import Enemy, { type EnemyType } from '../entities/Enemy';
 import Player from '../entities/Player';
@@ -88,8 +88,8 @@ export default class GameScene extends Phaser.Scene {
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: WasdKeys;
-  private attackKey!: Phaser.Input.Keyboard.Key;
-  private specialKey!: Phaser.Input.Keyboard.Key;
+  private punchKeys!: Phaser.Input.Keyboard.Key[];
+  private slotKeys!: Phaser.Input.Keyboard.Key[][];
   private pauseKey!: Phaser.Input.Keyboard.Key;
   private pauseKeyAlt!: Phaser.Input.Keyboard.Key;
   private isPaused = false;
@@ -290,29 +290,43 @@ export default class GameScene extends Phaser.Scene {
   private _spawnStage(): void {
     const rY = () => Phaser.Math.Between(FLOOR_MIN_Y + 40, FLOOR_MAX_Y - 15);
 
-    const atomDefs: { x: number; type: AtomType; choices?: ElementType[] }[] =
+    // Every atom is a choice node. With real stoichiometry, compounds cost several atoms
+    // (e.g. CH₄ = 1C+4H), so sectors ramp up: Sector 1 is small and simple (base attacks /
+    // Water at most), later sectors add nodes and richer choices for complex molecules.
+    const atomDefs: { x: number; choices: BaseAtom[] }[] =
       this.currentStage === 1
         ? [
-            { x: 380, type: 'hydrogen' },
-            { x: 1350, type: 'mystery', choices: ['hydrogen', 'carbon'] },
-            { x: 2500, type: 'oxygen' },
-            { x: 3600, type: 'mystery', choices: ['nitrogen', 'oxygen'] },
+            // Sector 1 — only 4 atoms, just H/O/C. Enough for a base attack or a little Water.
+            { x: 700, choices: ['hydrogen', 'oxygen'] },
+            { x: 1700, choices: ['hydrogen', 'oxygen'] },
+            { x: 2700, choices: ['hydrogen', 'carbon'] },
+            { x: 3700, choices: ['oxygen', 'hydrogen'] },
           ]
         : this.currentStage === 2
           ? [
-              { x: 450, type: 'oxygen' },
-              { x: 1400, type: 'mystery', choices: ['carbon', 'nitrogen'] },
-              { x: 2600, type: 'hydrogen' },
-              { x: 3700, type: 'mystery', choices: ['oxygen', 'carbon'] },
+              // Sector 2 — 6 atoms, introduces Nitrogen (CO₂, Nitric Oxide, Ammonia, Water)
+              { x: 500, choices: ['oxygen', 'carbon'] },
+              { x: 1100, choices: ['hydrogen', 'nitrogen'] },
+              { x: 1700, choices: ['oxygen', 'carbon'] },
+              { x: 2400, choices: ['carbon', 'nitrogen'] },
+              { x: 3100, choices: ['hydrogen', 'oxygen'] },
+              { x: 3800, choices: ['oxygen', 'carbon', 'nitrogen'] },
             ]
           : [
-              { x: 700, type: 'mystery', choices: ['nitrogen', 'carbon'] },
-              { x: 2200, type: 'mystery', choices: ['hydrogen', 'oxygen'] },
-              { x: 3800, type: 'mystery', choices: ['carbon', 'nitrogen'] },
+              // Sector 3 — 9 atoms, all four; enough to assemble Methane / Carbonic Acid
+              { x: 360, choices: ['nitrogen', 'carbon'] },
+              { x: 760, choices: ['hydrogen', 'oxygen'] },
+              { x: 1150, choices: ['oxygen', 'carbon'] },
+              { x: 1600, choices: ['hydrogen', 'oxygen'] },
+              { x: 2050, choices: ['oxygen', 'nitrogen'] },
+              { x: 2500, choices: ['hydrogen', 'carbon'] },
+              { x: 2950, choices: ['oxygen', 'hydrogen'] },
+              { x: 3450, choices: ['carbon', 'oxygen'] },
+              { x: 3950, choices: ['hydrogen', 'oxygen', 'nitrogen'] },
             ];
 
     atomDefs.forEach((def) => {
-      const atom = new Atom(this, def.x, FLOOR_CENTER_Y - 80, def.type, def.choices ?? null);
+      const atom = new Atom(this, def.x, FLOOR_CENTER_Y - 80, def.choices);
       this.atomGroup.add(atom.sprite);
     });
 
@@ -435,9 +449,25 @@ export default class GameScene extends Phaser.Scene {
     const kb = this.input.keyboard!;
     this.cursors = kb.createCursorKeys();
     this.wasd = kb.addKeys('W,A,S,D') as WasdKeys;
-    this.attackKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
-    this.specialKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.X);
-    this.pauseKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    // All offense on the numpad: `.` = punch, 1-9 then 0 = attack slots.
+    // Number-row digits + main-keyboard `.` are mirrored as a laptop fallback.
+    const KC = Phaser.Input.Keyboard.KeyCodes;
+    this.punchKeys = [kb.addKey(110), kb.addKey(KC.PERIOD)]; // numpad decimal + main `.`
+    const numpad = [
+      KC.NUMPAD_ONE,
+      KC.NUMPAD_TWO,
+      KC.NUMPAD_THREE,
+      KC.NUMPAD_FOUR,
+      KC.NUMPAD_FIVE,
+      KC.NUMPAD_SIX,
+      KC.NUMPAD_SEVEN,
+      KC.NUMPAD_EIGHT,
+      KC.NUMPAD_NINE,
+      KC.NUMPAD_ZERO, // 10th slot
+    ];
+    const numRow = [KC.ONE, KC.TWO, KC.THREE, KC.FOUR, KC.FIVE, KC.SIX, KC.SEVEN, KC.EIGHT, KC.NINE, KC.ZERO];
+    this.slotKeys = numpad.map((np, i) => [kb.addKey(np), kb.addKey(numRow[i])]);
+    this.pauseKey = kb.addKey(KC.ESC);
     this.pauseKeyAlt = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
   }
 
@@ -458,8 +488,8 @@ export default class GameScene extends Phaser.Scene {
     this.player.update(_time, delta, {
       cursors: this.cursors,
       wasd: this.wasd,
-      attackKey: this.attackKey,
-      specialKey: this.specialKey,
+      punchKeys: this.punchKeys,
+      slotKeys: this.slotKeys,
     });
 
     this.player.sprite.x = Phaser.Math.Clamp(this.player.sprite.x, 40, WORLD_WIDTH - 40);
@@ -515,6 +545,139 @@ export default class GameScene extends Phaser.Scene {
     emitter.setDepth(95);
     emitter.explode(22);
     this.time.delayedCall(700, () => emitter.destroy());
+  }
+
+  // ── Reusable juice helpers (color-parameterized; visual only) ────────────────
+
+  /** Radial particle burst — sparks, droplets, ice shards, debris, etc. */
+  spawnBurst(
+    x: number,
+    y: number,
+    color: number,
+    opts: {
+      count?: number;
+      speed?: [number, number];
+      angle?: [number, number];
+      lifespan?: number;
+      scale?: number;
+    } = {},
+  ): void {
+    const [sMin, sMax] = opts.speed ?? [60, 180];
+    const [aMin, aMax] = opts.angle ?? [0, 360];
+    const lifespan = opts.lifespan ?? 500;
+    const emitter = this.add.particles(x, y, 'particle', {
+      lifespan,
+      speed: { min: sMin, max: sMax },
+      angle: { min: aMin, max: aMax },
+      scale: { start: opts.scale ?? 1.0, end: 0 },
+      alpha: { start: 1, end: 0 },
+      tint: color,
+      emitting: false,
+    });
+    emitter.setDepth(95);
+    emitter.explode(opts.count ?? 16);
+    this.time.delayedCall(lifespan + 100, () => emitter.destroy());
+  }
+
+  /** Expanding ring shockwave (one or more concentric rings, optional soft fill). */
+  spawnNova(
+    x: number,
+    y: number,
+    color: number,
+    maxR: number,
+    opts: { rings?: number; life?: number; lineWidth?: number; fill?: boolean } = {},
+  ): void {
+    const rings = opts.rings ?? 2;
+    const life = opts.life ?? 26;
+    const g = this.add.graphics().setDepth(96);
+    let t = 0;
+    this.time.addEvent({
+      delay: 16,
+      repeat: life,
+      callback: () => {
+        t++;
+        const f = t / life;
+        g.clear();
+        if (opts.fill) {
+          g.fillStyle(color, 0.22 * (1 - f));
+          g.fillCircle(x, y, maxR * f);
+        }
+        for (let i = 0; i < rings; i++) {
+          const rf = Phaser.Math.Clamp(f - i * 0.18, 0, 1);
+          if (rf <= 0) continue;
+          g.lineStyle(opts.lineWidth ?? 3, color, 0.85 * (1 - rf));
+          g.strokeCircle(x, y, maxR * rf);
+        }
+        if (t >= life) g.destroy();
+      },
+    });
+  }
+
+  /** A crescent slash that sweeps out in front and fades — for melee specials. */
+  spawnSlashArc(x: number, y: number, dir: number, color: number, range = 110, height = 80): void {
+    const g = this.add.graphics().setDepth(96);
+    g.lineStyle(7, color, 0.95);
+    g.beginPath();
+    const steps = 12;
+    for (let i = 0; i <= steps; i++) {
+      const tt = i / steps;
+      const ang = (tt - 0.5) * Math.PI * 0.9;
+      const px = dir * Math.cos(ang) * range;
+      const py = Math.sin(ang) * height;
+      if (i === 0) g.moveTo(px, py);
+      else g.lineTo(px, py);
+    }
+    g.strokePath();
+    g.setPosition(x + dir * 25, y).setScale(0.6);
+    this.tweens.add({
+      targets: g,
+      scaleX: 1.15,
+      scaleY: 1.1,
+      alpha: 0,
+      duration: 220,
+      ease: 'Quad.Out',
+      onComplete: () => g.destroy(),
+    });
+  }
+
+  /** A lingering, drifting cloud of translucent blobs — gas, fog, smog, acid mist. */
+  spawnCloud(
+    x: number,
+    y: number,
+    r: number,
+    color: number,
+    durationMs: number,
+    opts: { blobs?: number; depth?: number; alpha?: number } = {},
+  ): void {
+    const blobs = opts.blobs ?? 9;
+    const g = this.add.graphics().setDepth(opts.depth ?? 86);
+    const seeds = Array.from({ length: blobs }, () => ({
+      ang: Math.random() * Math.PI * 2,
+      dist: Math.random() * r,
+      rad: r * 0.3 + Math.random() * r * 0.35,
+      ph: Math.random() * Math.PI * 2,
+    }));
+    const steps = Math.max(1, Math.floor(durationMs / 32));
+    const peak = opts.alpha ?? 0.2;
+    let t = 0;
+    this.time.addEvent({
+      delay: 32,
+      repeat: steps,
+      callback: () => {
+        t++;
+        const f = t / steps;
+        const env = Math.min(1, f * 4) * (1 - Math.max(0, (f - 0.7) / 0.3));
+        g.clear();
+        for (const s of seeds) {
+          const bx = x + Math.cos(s.ang) * s.dist;
+          const by = y + Math.sin(s.ang) * s.dist * 0.6 - Math.sin(t * 0.05 + s.ph) * 6;
+          const br = s.rad * (0.85 + 0.15 * Math.sin(t * 0.06 + s.ph));
+          g.fillStyle(color, peak * env);
+          g.fillCircle(bx, by, br);
+        }
+        if (t >= steps) g.destroy();
+      },
+    });
   }
 
   spawnProjectile(x: number, y: number, dir: number, color: number, damage: number, speed = 600, knockback = 2): void {
@@ -773,37 +936,27 @@ export default class GameScene extends Phaser.Scene {
     const { x, y } = atomSprite;
     atomSprite.destroy();
 
-    const colorMap: Partial<Record<AtomType, number>> = {
-      hydrogen: 0x4499ff,
-      oxygen: 0xff5533,
-      mystery: 0xaa44ff,
-    };
-    const burstColor = colorMap[atom.type] ?? 0xffffff;
-    this.spawnHitFlash(x, y, burstColor, 28);
-    this.spawnAtomBurst(x, y, burstColor);
+    this.spawnHitFlash(x, y, 0xaa44ff, 28);
+    this.spawnAtomBurst(x, y, 0xaa44ff);
     this.cameras.main.shake(120, 0.004);
     SoundSystem.play(this.audioCtx, 'atom_collect');
 
-    if (atom.type === 'mystery') {
-      this._showElementChoice(atom.choices ?? ['hydrogen', 'oxygen']);
-    } else {
-      const upgraded = this.player.elementSystem.collectAtom(atom.type as ElementType);
-      if (upgraded) SoundSystem.play(this.audioCtx, 'element_upgrade');
-      this.events.emit('element-changed', this.player.elementSystem.getState());
-    }
+    // Every atom is now a choice node — pick a base atom to grow the molecular tree
+    this._showElementChoice(atom.choices ?? ['hydrogen', 'oxygen']);
   }
 
-  private _showElementChoice(choices: ElementType[]): void {
+  private _showElementChoice(choices: BaseAtom[]): void {
     this.isPaused = true;
     this.physics.pause();
     this.scene.launch('ElementChoiceScene', {
       choices,
-      callback: (chosen: ElementType) => {
+      counts: this.player.elementSystem.getCounts(),
+      callback: (chosen: BaseAtom) => {
         this.isPaused = false;
         this.physics.resume();
         const upgraded = this.player.elementSystem.collectAtom(chosen);
         if (upgraded) SoundSystem.play(this.audioCtx, 'element_upgrade');
-        this.events.emit('element-changed', this.player.elementSystem.getState());
+        this.events.emit('arsenal-update', this.player.getArsenalUpdate());
         this.scene.stop('ElementChoiceScene');
       },
     });

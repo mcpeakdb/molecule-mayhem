@@ -1,13 +1,17 @@
 # Molecule Mayhem — Development Plan
 
-## Current State (v0.5 — Phase 2 Complete, Phase 5 in progress)
+## Current State (v0.6 — Phase 6 Molecular Tree & Numpad Arsenal)
 
-- Stage 1: Petri Dish Sector — bacterium, virus, dustbunny, pollen enemies
-- **Elements: 10 total** — H, O, Water, C, N + 5 combos (Ammonia, CO₂, Methane, Nitric Oxide, Carbonic Acid)
-- Boss: Super Bacterium (3-phase, flagella projectiles)
-- All graphics procedural (no external assets)
-- **Phaser 4.1.0**
+- Three sectors (petri dish / blood agar / MacConkey); Boss: Super Bacterium (3-phase, flagella)
+- **10 attacks** — H, O, C, N + 6 molecules, each restyled to its atom color
+- **Molecular tree**: every atom pickup is a branching choice; compounds use real stoichiometry
+  (H₂O = 2H+1O, etc.); level = complete recipe copies. Sectors ramp the atom supply (4 → 6 → 9)
+- **Numpad arsenal**: owned atoms unlock multiple simultaneous attacks; `.` punch, `1–9`/`0` slots
+  (number-row mirrors), each with its own cooldown; HUD shows atom badges + a numpad attack bar
+- All graphics procedural (no external assets) · **Phaser 4.1.0**
 - **Jump**: velocity-based arc with double jump (front-roll on the second leap); a clean leap over an enemy dodges its contact attack (timing dodge, not blanket airborne immunity)
+
+See [PLAN_PHASE6.md](PLAN_PHASE6.md) and [tasks/PHASE6_TASKS.md](tasks/PHASE6_TASKS.md) for details.
 
 ### Added in Phase 1
 
@@ -72,12 +76,15 @@
 
 ---
 
-## Phase 6 — Molecular Tree & Numpad Arsenal
+## Phase 6 — Molecular Tree & Numpad Arsenal ✅ (v0.6.0)
 
-Combat/progression overhaul: every atom pickup becomes a branching choice (a molecular *tree*),
-owning atoms unlocks **multiple simultaneous attacks** bound to the numpad (up to 9), and every
-special is restyled to its atom color. Full design in [PLAN_PHASE6.md](PLAN_PHASE6.md);
-work breakdown in [tasks/PHASE6_TASKS.md](tasks/PHASE6_TASKS.md).
+Combat/progression overhaul: every atom pickup is a branching choice (a molecular *tree*),
+owning atoms unlocks **multiple simultaneous attacks** bound to the numpad (up to 10, real
+stoichiometry), and every special is restyled to its atom color. Full design in
+[PLAN_PHASE6.md](PLAN_PHASE6.md); work breakdown in [tasks/PHASE6_TASKS.md](tasks/PHASE6_TASKS.md).
+
+Deferred follow-ups: atom persistence across sectors; choice-overlay progress hints toward
+locked compounds.
 
 ---
 

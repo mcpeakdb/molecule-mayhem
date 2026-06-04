@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import {
+  ATTACKS,
+  type AttackId,
   ELEMENT_COLORS,
   ELEMENTS,
   FLOOR_MAX_Y,
@@ -15,13 +17,12 @@ import {
   PLAYER_MAX_JUMPS,
   PLAYER_MELEE_DAMAGE,
   PLAYER_MELEE_RANGE,
-  PLAYER_SPECIAL_COOLDOWN,
   PLAYER_SPEED,
 } from '../constants';
 import type GameScene from '../scenes/GameScene';
 import ElementSystem from '../systems/ElementSystem';
 import SoundSystem from '../systems/SoundSystem';
-import type { EnemySprite, InputKeys } from '../types';
+import type { ArsenalEntry, EnemySprite, InputKeys } from '../types';
 
 export default class Player {
   scene: GameScene;
@@ -37,7 +38,8 @@ export default class Player {
   invincibilityMs = PLAYER_INVINCIBILITY_MS;
 
   private attackCooldown = 0;
-  private specialCooldown = 0;
+  /** Per-attack cooldown remaining (ms), keyed by attack id. */
+  private _cooldowns = new Map<AttackId, number>();
   private invincibleTimer = 0;
   private _hitFlash = false;
   private jumpOffset = 0;
@@ -81,14 +83,14 @@ export default class Player {
     if (!this.alive) return;
 
     this.attackCooldown = Math.max(0, this.attackCooldown - delta);
-    this.specialCooldown = Math.max(0, this.specialCooldown - delta);
     this.invincibleTimer = Math.max(0, this.invincibleTimer - delta);
+    this._tickCooldowns(delta);
 
     const flickerAlpha = this.invincibleTimer > 0 && Math.floor(time / 80) % 2 === 0 ? 0.3 : 1;
     this.sprite.setAlpha(flickerAlpha);
     this._armsGraphic.setAlpha(flickerAlpha);
 
-    const { cursors, wasd, attackKey, specialKey } = keys;
+    const { cursors, wasd, punchKeys, slotKeys } = keys;
     const left = cursors.left.isDown || wasd.A.isDown;
     const right = cursors.right.isDown || wasd.D.isDown;
     const up = cursors.up.isDown || wasd.W.isDown;
@@ -173,8 +175,64 @@ export default class Player {
     }
 
     if (Phaser.Input.Keyboard.JustDown(this._jumpKey)) this._doJump();
-    if (Phaser.Input.Keyboard.JustDown(attackKey) && this.attackCooldown === 0) this._doMeleeAttack();
-    if (Phaser.Input.Keyboard.JustDown(specialKey) && this.specialCooldown === 0) this._doSpecialAttack();
+    if (this.attackCooldown === 0 && punchKeys.some((k) => Phaser.Input.Keyboard.JustDown(k))) this._doMeleeAttack();
+    for (let i = 0; i < slotKeys.length; i++) {
+      if (slotKeys[i].some((k) => Phaser.Input.Keyboard.JustDown(k))) this._fireSlot(i);
+    }
+
+    this.scene.events.emit('arsenal-update', this.getArsenalUpdate());
+  }
+
+  /** Full HUD snapshot: arsenal + owned-atom counts. */
+  getArsenalUpdate() {
+    return { attacks: this.getArsenal(), counts: this.elementSystem.getCounts() };
+  }
+
+  private _tickCooldowns(delta: number): void {
+    for (const [id, t] of this._cooldowns) {
+      const nt = t - delta;
+      if (nt <= 0) this._cooldowns.delete(id);
+      else this._cooldowns.set(id, nt);
+    }
+  }
+
+  /** Current arsenal with live cooldown state, for the HUD. */
+  getArsenal(): ArsenalEntry[] {
+    return this.elementSystem.getAvailableAttacks().map((s) => {
+      const def = ATTACKS[s.id];
+      return {
+        ...s,
+        name: def.tierNames[s.level - 1],
+        color: def.color,
+        cooldownRemaining: this._cooldowns.get(s.id) ?? 0,
+        cooldownMs: def.cooldownMs,
+      };
+    });
+  }
+
+  /** Fire the i-th available attack (i = numpad position, 0-based). */
+  private _fireSlot(i: number): void {
+    if (!this.alive) return;
+    const attacks = this.elementSystem.getAvailableAttacks();
+    if (i >= attacks.length) return;
+    const { id, level } = attacks[i];
+    if ((this._cooldowns.get(id) ?? 0) > 0) return;
+    this._cooldowns.set(id, ATTACKS[id].cooldownMs);
+    const dir = this.facingRight ? 1 : -1;
+    this._dispatchAttack(id, level, dir);
+  }
+
+  private _dispatchAttack(id: AttackId, level: number, dir: number): void {
+    if (id === ELEMENTS.HYDROGEN) this._specialHydrogen(level, dir);
+    else if (id === ELEMENTS.OXYGEN) this._specialOxygen(level, dir);
+    else if (id === ELEMENTS.WATER) this._specialWater(level, dir);
+    else if (id === ELEMENTS.CARBON) this._specialCarbon(level, dir);
+    else if (id === ELEMENTS.NITROGEN) this._specialNitrogen(level, dir);
+    else if (id === ELEMENTS.AMMONIA) this._specialAmmonia(level, dir);
+    else if (id === ELEMENTS.CARBON_DIOXIDE) this._specialCarbonDioxide(level, dir);
+    else if (id === ELEMENTS.METHANE) this._specialMethane(level, dir);
+    else if (id === ELEMENTS.NITRIC_OXIDE) this._specialNitricOxide(level, dir);
+    else if (id === ELEMENTS.CARBONIC_ACID) this._specialCarbonicAcid(level, dir);
   }
 
   private _doJump(): void {
@@ -354,23 +412,6 @@ export default class Player {
     });
   }
 
-  private _doSpecialAttack(): void {
-    const { type, level } = this.elementSystem;
-    if (type === ELEMENTS.NONE || level === 0) return;
-    this.specialCooldown = PLAYER_SPECIAL_COOLDOWN;
-    const dir = this.facingRight ? 1 : -1;
-    if (type === ELEMENTS.HYDROGEN) this._specialHydrogen(level, dir);
-    else if (type === ELEMENTS.OXYGEN) this._specialOxygen(level, dir);
-    else if (type === ELEMENTS.WATER) this._specialWater(level, dir);
-    else if (type === ELEMENTS.CARBON) this._specialCarbon(level, dir);
-    else if (type === ELEMENTS.NITROGEN) this._specialNitrogen(level, dir);
-    else if (type === ELEMENTS.AMMONIA) this._specialAmmonia(level, dir);
-    else if (type === ELEMENTS.CARBON_DIOXIDE) this._specialCarbonDioxide(level, dir);
-    else if (type === ELEMENTS.METHANE) this._specialMethane(level, dir);
-    else if (type === ELEMENTS.NITRIC_OXIDE) this._specialNitricOxide(level, dir);
-    else if (type === ELEMENTS.CARBONIC_ACID) this._specialCarbonicAcid(level, dir);
-  }
-
   private _specialHydrogen(level: number, dir: number): void {
     const x = this.sprite.x,
       y = this.sprite.y;
@@ -388,9 +429,14 @@ export default class Player {
       this.scene.cameras.main.shake(80, 0.004);
       this.scene.spawnPlasmaBolt(x + dir * 30, y, dir, PLAYER_MELEE_DAMAGE * 3);
     } else {
-      this.scene.spawnHitFlash(x, y, 0xff4400, 120);
-      this.scene.cameras.main.shake(250, 0.01);
-      if (this._damageRadius(x, y, 180, PLAYER_MELEE_DAMAGE * 4)) this._registerHit();
+      // Fusion Burst — white-hot detonation with hydrogen-blue shockwave rings
+      SoundSystem.play(this.scene.audioCtx, 'punch');
+      this.scene.spawnHitFlash(x, y, 0xffffff, 90);
+      this.scene.spawnHitFlash(x, y, 0x4499ff, 150);
+      this.scene.spawnNova(x, y, 0x66bbff, 200, { rings: 3, life: 30, lineWidth: 4, fill: true });
+      this.scene.spawnBurst(x, y, 0x88bbff, { count: 26, speed: [120, 320], lifespan: 550, scale: 1.3 });
+      this.scene.cameras.main.shake(280, 0.012);
+      if (this._damageRadius(x, y, 190, PLAYER_MELEE_DAMAGE * 4)) this._registerHit();
     }
   }
 
@@ -398,13 +444,27 @@ export default class Player {
     const x = this.sprite.x,
       y = this.sprite.y;
     if (level === 1) {
-      this.scene.spawnHitFlash(x + dir * 60, y, 0x44ff88, 45);
+      // Oxidize — a corrosive rust-orange slash
+      this.scene.spawnSlashArc(x, y, dir, 0xff7744, 120, 70);
+      this.scene.spawnHitFlash(x + dir * 55, y, 0xff5533, 45);
+      this.scene.spawnBurst(x + dir * 50, y, 0xff8855, {
+        count: 10,
+        speed: [80, 200],
+        angle: dir > 0 ? [-45, 45] : [135, 225],
+        lifespan: 380,
+      });
       if (this._damageArc(x + dir * 40, y, 110, 65, PLAYER_MELEE_DAMAGE * 1.5, dir, true)) this._registerHit();
     } else if (level === 2) {
-      this.scene.spawnHitFlash(x, y, 0x00cc66, 90);
+      // Reactive Cloud — lingering corrosive haze that slows
+      this.scene.spawnCloud(x, y, 150, 0xff5533, 1300, { alpha: 0.16 });
+      this.scene.spawnHitFlash(x, y, 0xff6644, 90);
+      this.scene.spawnNova(x, y, 0xff7744, 150, { rings: 1, life: 22 });
       if (this._damageRadius(x, y, 150, PLAYER_MELEE_DAMAGE * 2, true)) this._registerHit();
     } else {
-      this.scene.spawnHitFlash(x, y, 0x00ff88, 200);
+      // Oxidation Nova — huge corrosive blast
+      this.scene.spawnHitFlash(x, y, 0xff5533, 200);
+      this.scene.spawnNova(x, y, 0xff7744, 280, { rings: 3, life: 32, lineWidth: 4, fill: true });
+      this.scene.spawnBurst(x, y, 0xff8855, { count: 28, speed: [120, 340], lifespan: 600, scale: 1.3 });
       this.scene.cameras.main.shake(300, 0.012);
       if (this._damageRadius(x, y, 280, PLAYER_MELEE_DAMAGE * 3.5, true)) this._registerHit();
     }
@@ -414,9 +474,26 @@ export default class Player {
     const x = this.sprite.x,
       y = this.sprite.y;
     if (level === 1) {
+      // Water Jet — pressurized bolt with a spray of droplets at the muzzle
       this.scene.spawnProjectile(x, y, dir, 0x22ccff, PLAYER_MELEE_DAMAGE * 2, 700, 3);
+      this.scene.spawnHitFlash(x + dir * 30, y, 0x88eeff, 32);
+      this.scene.spawnBurst(x + dir * 24, y, 0x66ddff, {
+        count: 8,
+        speed: [120, 260],
+        angle: dir > 0 ? [-30, 30] : [150, 210],
+        lifespan: 360,
+      });
     } else if (level === 2) {
+      // Hydro Wave — a forward surge of water
+      this.scene.spawnSlashArc(x + dir * 30, y, dir, 0x66ddff, 200, 120);
       this.scene.spawnHitFlash(x + dir * 80, y, 0x22ccff, 100);
+      this.scene.spawnBurst(x + dir * 90, y, 0x88eeff, {
+        count: 16,
+        speed: [140, 320],
+        angle: dir > 0 ? [-40, 40] : [140, 220],
+        lifespan: 480,
+        scale: 1.1,
+      });
       this.scene.cameras.main.shake(180, 0.007);
       if (this._damageArc(x + dir * 80, y, 220, 120, PLAYER_MELEE_DAMAGE * 2.5, dir, false, 5)) this._registerHit();
     } else {
@@ -429,10 +506,15 @@ export default class Player {
     const x = this.sprite.x,
       y = this.sprite.y;
     if (level === 1) {
-      this.scene.spawnHitFlash(x + dir * 60, y, 0x888888, 45);
+      // Carbon Claw — three raking grey slashes that draw blood
+      this.scene.spawnSlashArc(x, y, dir, 0xbbbbbb, 110, 64);
+      this.scene.spawnSlashArc(x, y - 14, dir, 0x999999, 100, 50);
+      this.scene.spawnSlashArc(x, y + 14, dir, 0x999999, 100, 50);
+      this.scene.spawnHitFlash(x + dir * 55, y, 0xaaaaaa, 40);
       const hit = this._damageArc(x + dir * 40, y, 110, 60, PLAYER_MELEE_DAMAGE * 1.8, dir);
       if (hit) {
         this._registerHit();
+        this.scene.spawnBurst(x + dir * 50, y, 0xcc3322, { count: 8, speed: [60, 160], lifespan: 360 });
         this.scene.enemyGroup.getChildren().forEach((go) => {
           const s = go as EnemySprite;
           if (!s.active || !s.enemyRef) return;
@@ -440,11 +522,27 @@ export default class Player {
         });
       }
     } else if (level === 2) {
+      // Diamond Shard — piercing crystalline bolt with a sparkle at launch
       this.scene.spawnPiercingProjectile(x, y, dir, 0xaaddff, PLAYER_MELEE_DAMAGE * 3, 650);
+      this.scene.spawnHitFlash(x + dir * 26, y, 0xddffff, 30);
+      this.scene.spawnBurst(x + dir * 24, y, 0xcceeff, {
+        count: 8,
+        speed: [100, 240],
+        angle: dir > 0 ? [-25, 25] : [155, 205],
+        lifespan: 380,
+      });
     } else {
-      // Graphene Shockwave — expanding crack
+      // Graphene Shockwave — expanding crack + flung debris
       this.scene.cameras.main.shake(300, 0.012);
       this.scene.spawnHitFlash(x, y, 0x777777, 100);
+      this.scene.spawnNova(x, y, 0x999999, 180, { rings: 2, life: 28 });
+      this.scene.spawnBurst(x, y + 16, 0x888888, {
+        count: 20,
+        speed: [120, 300],
+        angle: [200, 340],
+        lifespan: 600,
+        scale: 1.2,
+      });
       const crack = this.scene.add.graphics().setDepth(90);
       let t = 0;
       this.scene.time.addEvent({
@@ -468,20 +566,29 @@ export default class Player {
     const x = this.sprite.x,
       y = this.sprite.y;
     if (level === 1) {
-      this.scene.spawnHitFlash(x + dir * 60, y, 0x88eeff, 45);
+      // Nitrogen Frost — a freezing slash that scatters ice crystals
+      this.scene.spawnSlashArc(x, y, dir, 0x88eeff, 110, 64);
+      this.scene.spawnHitFlash(x + dir * 55, y, 0xaaf4ff, 45);
+      this.scene.spawnBurst(x + dir * 50, y, 0xbbf6ff, { count: 12, speed: [60, 180], lifespan: 460 });
       if (this._damageArc(x + dir * 40, y, 110, 60, PLAYER_MELEE_DAMAGE * 1.5, dir, true)) this._registerHit();
     } else if (level === 2) {
-      this.scene.spawnHitFlash(x, y, 0x44ccff, 80);
+      // Cryo Burst — radial freeze that shatters outward
+      this.scene.spawnHitFlash(x, y, 0x66ddff, 80);
+      this.scene.spawnNova(x, y, 0x88eeff, 160, { rings: 2, life: 26, fill: true });
+      this.scene.spawnBurst(x, y, 0xbbf6ff, { count: 22, speed: [120, 300], lifespan: 520, scale: 1.2 });
       this.scene.cameras.main.shake(150, 0.006);
       if (this._damageRadius(x, y, 160, PLAYER_MELEE_DAMAGE * 2.5, true)) this._registerHit();
     } else {
+      // Absolute Zero — the whole screen flash-freezes
       this.scene.cameras.main.shake(500, 0.015);
-      this.scene.spawnHitFlash(x, y, 0x88ffff, 200);
+      this.scene.cameras.main.flash(220, 180, 230, 255);
+      this.scene.spawnNova(x, this._groundY, 0x88eeff, 420, { rings: 3, life: 34, lineWidth: 4 });
       let hit = false;
       this.scene.enemyGroup.getChildren().forEach((go) => {
         const s = go as EnemySprite;
         if (!s.active || !s.enemyRef) return;
         s.enemyRef.takeDamage(PLAYER_MELEE_DAMAGE * 5, 0, true);
+        this.scene.spawnBurst(s.x, s.y, 0xbbf6ff, { count: 10, speed: [60, 200], lifespan: 480 });
         hit = true;
       });
       if (hit) this._registerHit();
@@ -495,6 +602,7 @@ export default class Player {
     const dmgs = [PLAYER_MELEE_DAMAGE * 1.5, PLAYER_MELEE_DAMAGE * 2, PLAYER_MELEE_DAMAGE * 1.5];
     this.scene.spawnHitFlash(x, y, 0xaadd44, level === 1 ? 50 : level === 2 ? 80 : 100);
     if (level < 3) {
+      this.scene.spawnCloud(x, y, radii[level - 1], 0xaadd44, level === 1 ? 1100 : 1700, { alpha: 0.2 });
       const hit = this._damageRadius(x, y, radii[level - 1], dmgs[level - 1], level === 2);
       if (hit) {
         this._registerHit();
@@ -505,12 +613,26 @@ export default class Player {
         });
       }
     } else {
+      // Toxic Deluge — caustic haze blankets the screen
+      const haze = this.scene.add
+        .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x99cc33, 0)
+        .setScrollFactor(0)
+        .setDepth(340);
+      this.scene.tweens.add({
+        targets: haze,
+        alpha: 0.18,
+        duration: 300,
+        yoyo: true,
+        hold: 1600,
+        onComplete: () => haze.destroy(),
+      });
       let hit = false;
       this.scene.enemyGroup.getChildren().forEach((go) => {
         const s = go as EnemySprite;
         if (!s.active || !s.enemyRef) return;
         s.enemyRef.takeDamage(PLAYER_MELEE_DAMAGE * 1.5, 0);
         s.enemyRef.applyBleed(3, 4000);
+        this.scene.spawnCloud(s.x, s.y, 40, 0xaadd44, 1400, { blobs: 4, alpha: 0.2 });
         hit = true;
       });
       if (hit) this._registerHit();
@@ -537,14 +659,18 @@ export default class Player {
       onComplete: () => fog.destroy(),
     });
     if (level < 3) {
+      this.scene.spawnCloud(x, y, radii[level - 1], 0x99bbcc, level === 1 ? 1100 : 1700, { alpha: 0.22 });
+      this.scene.spawnNova(x, y, 0xbbccdd, radii[level - 1], { rings: 1, life: 22 });
       if (this._damageRadius(x, y, radii[level - 1], PLAYER_MELEE_DAMAGE * 2)) this._registerHit();
     } else {
+      // Blackout — choking smog across the whole screen
       this.scene.cameras.main.shake(400, 0.012);
       let hit = false;
       this.scene.enemyGroup.getChildren().forEach((go) => {
         const s = go as EnemySprite;
         if (!s.active || !s.enemyRef) return;
         s.enemyRef.takeDamage(PLAYER_MELEE_DAMAGE * 3, 0);
+        this.scene.spawnCloud(s.x, s.y, 50, 0x99bbcc, 1400, { blobs: 4, alpha: 0.25 });
         hit = true;
       });
       if (hit) this._registerHit();
@@ -558,15 +684,33 @@ export default class Player {
     proj.setTint(0xff9922).setDepth(80).setScale(1.8);
     proj.body.setAllowGravity(false);
     proj.body.setVelocity(dir * 220, 0);
+    this.scene.spawnHitFlash(x + dir * 24, y, 0xffbb44, 30);
+    // Trailing flames follow the gas bolt
+    const trail = this.scene.time.addEvent({
+      delay: 40,
+      loop: true,
+      callback: () => {
+        if (proj.active)
+          this.scene.spawnBurst(proj.x, proj.y, 0xff7722, { count: 2, speed: [10, 50], lifespan: 280, scale: 0.8 });
+      },
+    });
 
     const detonate = () => {
       if (!proj.active) return;
+      trail.remove();
       const ex = proj.x,
         ey = proj.y;
       proj.destroy();
-      this.scene.spawnHitFlash(ex, ey, 0xff6600, 80);
-      this.scene.cameras.main.shake(200, 0.008);
       const r = level === 1 ? 100 : level === 2 ? 140 : 220;
+      this.scene.spawnHitFlash(ex, ey, 0xff6600, 80);
+      this.scene.spawnNova(ex, ey, 0xff8822, r, { rings: 2, life: 24, fill: true });
+      this.scene.spawnBurst(ex, ey, 0xffaa33, {
+        count: level === 3 ? 30 : 18,
+        speed: [120, 340],
+        lifespan: 560,
+        scale: 1.3,
+      });
+      this.scene.cameras.main.shake(200, 0.008);
       const dmg =
         level === 1 ? PLAYER_MELEE_DAMAGE * 3 : level === 2 ? PLAYER_MELEE_DAMAGE * 3.5 : PLAYER_MELEE_DAMAGE * 6;
       if (this._damageRadius(ex, ey, r, dmg)) this._registerHit();
@@ -590,6 +734,11 @@ export default class Player {
     const durations = [3000, 5000, 8000];
     this._speedBoost = boosts[level - 1];
     this._speedBoostTimer = durations[level - 1];
+
+    // Reactive flare as the radical buff kicks in
+    this.scene.spawnHitFlash(this.sprite.x, this._groundY, 0xdd44aa, 70);
+    this.scene.spawnNova(this.sprite.x, this._groundY, 0xff66cc, 90, { rings: 2, life: 20 });
+    this.scene.spawnBurst(this.sprite.x, this._groundY, 0xff88dd, { count: 16, speed: [120, 280], lifespan: 480 });
 
     if (this._speedBoostAura) this._speedBoostAura.destroy();
     this._speedBoostAura = this.scene.add.graphics().setDepth(this.sprite.depth - 1);
@@ -637,6 +786,13 @@ export default class Player {
             ease: 'Quad.In',
             onComplete: () => {
               this.scene.spawnHitFlash(tx, this._groundY, 0x33aadd, 20);
+              this.scene.spawnBurst(tx, this._groundY, 0x66ccee, {
+                count: 6,
+                speed: [40, 130],
+                angle: [200, 340],
+                lifespan: 320,
+              });
+              this.scene.spawnCloud(tx, this._groundY, 26, 0x33aadd, 700, { blobs: 3, alpha: 0.22 });
               this._damageRadius(tx, this._groundY, 35, PLAYER_MELEE_DAMAGE * 1.2);
               if (level === 2) {
                 this.scene.enemyGroup.getChildren().forEach((go) => {
@@ -668,6 +824,13 @@ export default class Player {
             ease: 'Quad.In',
             onComplete: () => {
               this.scene.spawnHitFlash(s.x, s.y, 0x33aadd, 24);
+              this.scene.spawnBurst(s.x, s.y, 0x66ccee, {
+                count: 7,
+                speed: [50, 150],
+                angle: [200, 340],
+                lifespan: 340,
+              });
+              this.scene.spawnCloud(s.x, s.y, 30, 0x33aadd, 800, { blobs: 3, alpha: 0.22 });
               if (s.enemyRef) {
                 s.enemyRef.takeDamage(PLAYER_MELEE_DAMAGE * 2, 0);
                 s.enemyRef.applyBleed(3, 2000);

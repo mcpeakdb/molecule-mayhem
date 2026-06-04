@@ -1,18 +1,16 @@
 import Phaser from 'phaser';
-import { ELEMENT_COLORS, ELEMENT_NAMES, type ElementType, GAME_HEIGHT, GAME_WIDTH } from '../constants';
-
-const CHOICE_DESCRIPTIONS: Partial<Record<ElementType, string[]>> = {
-  hydrogen: ['Proton Punch  → fast melee', 'Plasma Arc  → energy bolt', 'Fusion Burst  → area explosion'],
-  oxygen: ['Oxidize  → corrosive slash', 'Reactive Cloud  → slow + dmg', 'Oxidation Nova  → massive AOE'],
-  water: ['Water Jet  → knockback bolt', 'Hydro Wave  → forward surge', 'Tidal Force  → screen wipe'],
-  carbon: ['Carbon Claw  → bleed DOT', 'Diamond Shard  → piercing shot', 'Shockwave  → ground AOE'],
-  nitrogen: ['N. Frost  → freeze melee', 'Cryo Burst  → freeze + shatter', 'Absolute Zero  → freeze all'],
-  ammonia: ['Caustic Spray  → nearby DOT', 'Acid Cloud  → DOT + slow', 'Toxic Deluge  → full-screen DOT'],
-  carbon_dioxide: ['Smog Pulse  → fog burst', 'Suffocation  → vision + dmg', 'Blackout  → screen-wide'],
-  methane: ['Gas Ignite  → contact blast', 'Chain Blast  → chain explosion', 'Fireball  → massive AOE'],
-  nitric_oxide: ['Radical Rush  → speed + aura', 'Reactive Aura  → extended buff', 'Overclock  → 2× speed+dmg'],
-  carbonic_acid: ['Acid Drop  → multi-hit drops', 'Corrosive Spray  → cone drops', 'Acid Rain  → all on screen'],
-};
+import {
+  ATTACK_ORDER,
+  ATTACKS,
+  type AttackId,
+  type BaseAtom,
+  ELEMENT_COLORS,
+  ELEMENT_NAMES,
+  type ElementType,
+  GAME_HEIGHT,
+  GAME_WIDTH,
+} from '../constants';
+import ElementSystem from '../systems/ElementSystem';
 
 const ELEMENT_SYMBOLS: Partial<Record<ElementType, string>> = {
   hydrogen: 'H',
@@ -30,17 +28,19 @@ const ELEMENT_SYMBOLS: Partial<Record<ElementType, string>> = {
 interface Card {
   bg: Phaser.GameObjects.Rectangle;
   border: Phaser.GameObjects.Rectangle;
-  element: ElementType;
+  element: BaseAtom;
 }
 
 interface ChoiceData {
-  choices: ElementType[];
-  callback: (chosen: ElementType) => void;
+  choices: BaseAtom[];
+  counts?: Record<BaseAtom, number>;
+  callback: (chosen: BaseAtom) => void;
 }
 
 export default class ElementChoiceScene extends Phaser.Scene {
-  private choices!: ElementType[];
-  private callback!: (chosen: ElementType) => void;
+  private choices!: BaseAtom[];
+  private counts!: Record<BaseAtom, number>;
+  private callback!: (chosen: BaseAtom) => void;
   private selected = 0;
   private cards!: Card[];
 
@@ -50,8 +50,21 @@ export default class ElementChoiceScene extends Phaser.Scene {
 
   init(data: ChoiceData): void {
     this.choices = data.choices;
+    this.counts = data.counts ?? { hydrogen: 0, oxygen: 0, carbon: 0, nitrogen: 0 };
     this.callback = data.callback;
     this.selected = 0;
+  }
+
+  /** Attacks that picking `element` would unlock or level, given the current molecule. */
+  private _changes(element: BaseAtom): { id: AttackId; level: number; isNew: boolean }[] {
+    const after = { ...this.counts, [element]: this.counts[element] + 1 };
+    const out: { id: AttackId; level: number; isNew: boolean }[] = [];
+    for (const id of ATTACK_ORDER) {
+      const before = ElementSystem.levelFor(id, this.counts);
+      const level = ElementSystem.levelFor(id, after);
+      if (level > before) out.push({ id, level, isNew: before === 0 });
+    }
+    return out;
   }
 
   create(): void {
@@ -60,7 +73,7 @@ export default class ElementChoiceScene extends Phaser.Scene {
 
     this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.72).setDepth(0);
     this.add
-      .text(w / 2, 78, '⚛  MYSTERY ATOM  ⚛', {
+      .text(w / 2, 78, '⚛  ADD AN ATOM  ⚛', {
         fontSize: '32px',
         color: '#cc88ff',
         fontStyle: 'bold',
@@ -70,7 +83,7 @@ export default class ElementChoiceScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(2);
     this.add
-      .text(w / 2, 122, 'Choose your element path:', {
+      .text(w / 2, 122, 'Grow your molecule — each pick unlocks & levels attacks:', {
         fontSize: '18px',
         color: '#aaaacc',
       })
@@ -97,14 +110,14 @@ export default class ElementChoiceScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-ENTER', () => this._confirm());
   }
 
-  private _buildCard(element: ElementType, index: number): Card {
+  private _buildCard(element: BaseAtom, index: number): Card {
     const col = ELEMENT_COLORS[element];
     const hex = `#${col.toString(16).padStart(6, '0')}`;
-    const cardW = 220,
-      cardH = 260;
-    const totalW = this.choices.length * (cardW + 30) - 30;
-    const startX = (GAME_WIDTH - totalW) / 2 + index * (cardW + 30) + cardW / 2;
-    const cardY = GAME_HEIGHT / 2 + 20;
+    const cardW = 240,
+      cardH = 286;
+    const totalW = this.choices.length * (cardW + 28) - 28;
+    const startX = (GAME_WIDTH - totalW) / 2 + index * (cardW + 28) + cardW / 2;
+    const cardY = GAME_HEIGHT / 2 + 28;
 
     const bg = this.add
       .rectangle(startX, cardY, cardW, cardH, Phaser.Display.Color.IntegerToColor(col).darken(65).color, 0.95)
@@ -115,35 +128,50 @@ export default class ElementChoiceScene extends Phaser.Scene {
       .setDepth(2)
       .setFillStyle(0x000000, 0);
 
+    // Title: "+1  Hydrogen"
     this.add
-      .text(startX, cardY - 90, ELEMENT_NAMES[element], {
-        fontSize: '23px',
+      .text(startX, cardY - 112, `+1  ${ELEMENT_NAMES[element]}`, {
+        fontSize: '22px',
         color: hex,
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
       .setDepth(3);
 
+    // Big atom symbol watermark
     this.add
-      .text(startX, cardY - 50, ELEMENT_SYMBOLS[element] ?? '?', {
-        fontSize: '44px',
-        color: hex,
-        fontStyle: 'bold',
-      })
+      .text(startX, cardY - 74, ELEMENT_SYMBOLS[element] ?? '?', { fontSize: '40px', color: hex, fontStyle: 'bold' })
       .setOrigin(0.5)
       .setDepth(3)
-      .setAlpha(0.6);
+      .setAlpha(0.55);
 
-    (CHOICE_DESCRIPTIONS[element] ?? []).forEach((d, li) => {
+    this.add
+      .text(startX, cardY - 38, 'UNLOCKS / LEVELS', { fontSize: '11px', color: '#8899aa', fontStyle: 'bold' })
+      .setOrigin(0.5)
+      .setDepth(3);
+
+    const changes = this._changes(element);
+    if (changes.length === 0) {
       this.add
-        .text(startX, cardY + 20 + li * 32, `Lv.${li + 1}  ${d}`, {
-          fontSize: '13px',
-          color: '#ccccdd',
-          wordWrap: { width: cardW - 20 },
-        })
+        .text(startX, cardY + 10, 'All maxed', { fontSize: '14px', color: '#888899' })
         .setOrigin(0.5)
         .setDepth(3);
-    });
+    } else {
+      changes.forEach((c, li) => {
+        const cHex = `#${ATTACKS[c.id].color.toString(16).padStart(6, '0')}`;
+        const marker = c.isNew ? '★ NEW' : `▲ Lv${c.level}`;
+        const sym = ELEMENT_SYMBOLS[c.id] ?? '?';
+        this.add
+          .text(startX, cardY - 16 + li * 26, `${marker}  ${sym}  ${ATTACKS[c.id].tierNames[c.level - 1]}`, {
+            fontSize: '13px',
+            color: cHex,
+            fontStyle: c.isNew ? 'bold' : 'normal',
+            wordWrap: { width: cardW - 18 },
+          })
+          .setOrigin(0.5, 0)
+          .setDepth(3);
+      });
+    }
 
     return { bg, border, element };
   }

@@ -1,7 +1,11 @@
 # Molecule Mayhem — Phase 6 Plan: Molecular Tree & Numpad Arsenal
 
+> **Status: ✅ COMPLETE — shipped in v0.6.0 (2026-06-04).**
+>
 > Second plan document, focused on the combat/progression overhaul. See [PLAN.md](PLAN.md)
 > for the overall roadmap and [tasks/PHASE6_TASKS.md](tasks/PHASE6_TASKS.md) for the work breakdown.
+> Deferred follow-ups (atom persistence across sectors; choice-overlay progress hints) are tracked
+> at the bottom of the task file.
 
 ## Goal
 
@@ -49,20 +53,25 @@ Three threads, in priority order:
 
 From the current atom counts, compute the list of **available attacks**:
 
-- **Base element attack** for each atom with count ≥ 1. Level = `min(count, 3)`.
-- **Compound attack** for each compound whose constituents are *all* present (count ≥ 1 each).
-  Level = `min(sum of constituent counts, 3)`.
+- **Real stoichiometry** — each molecule has a recipe of exact atom counts (`ATTACKS[id].recipe`).
+- **Level = complete copies** of the recipe the atoms can assemble, capped at 3
+  (`level = min over atoms of floor(count / required)`). Base atoms have a 1-atom recipe, so their
+  level is just `min(count, 3)`. e.g. Water (2H+1O): 2H1O → Lv1, 4H2O → Lv2, 6H3O → Lv3.
 
-Compounds and their constituents:
+Compound recipes:
 
-| Compound | Atoms | Color (proposed) |
-|----------|-------|------------------|
-| Water (H₂O) | H + O | cyan `0x22ccff` |
-| Ammonia (NH₃) | N + H | yellow-green `0xaadd44` |
-| Carbon Dioxide (CO₂) | C + O | pale blue-grey `0x99bbcc` |
-| Methane (CH₄) | C + H | combustion orange `0xff9922` |
-| Nitric Oxide (NO) | N + O | reactive magenta `0xdd44aa` |
-| Carbonic Acid (H₂CO₃) | C + H + O | acid blue `0x33aadd` |
+| Compound | Recipe | Color |
+|----------|--------|-------|
+| Water (H₂O) | 2 H + 1 O | cyan `0x22ccff` |
+| Ammonia (NH₃) | 1 N + 3 H | yellow-green `0xaadd44` |
+| Carbon Dioxide (CO₂) | 1 C + 2 O | pale blue-grey `0x99bbcc` |
+| Methane (CH₄) | 1 C + 4 H | combustion orange `0xff9922` |
+| Nitric Oxide (NO) | 1 N + 1 O | reactive magenta `0xdd44aa` |
+| Carbonic Acid (H₂CO₃) | 2 H + 1 C + 3 O | acid blue `0x33aadd` |
+
+Because molecules cost several atoms, sectors ramp the atom supply: **Sector 1 seeds only 4 atoms**
+(base attacks / a little Water), **Sector 2 = 6** (adds Nitrogen → CO₂/NO/Ammonia), **Sector 3 = 9**
+(all four → Methane / Carbonic Acid).
 
 Base colors: H `0x4499ff`, O `0xff5533`, C `0x888888`, N `0x44ddcc`.
 
@@ -117,17 +126,25 @@ Guidance per element is in [tasks/PHASE6_TASKS.md](tasks/PHASE6_TASKS.md) §5.
 
 ---
 
-## Decisions to confirm
+## Confirmed decisions
 
-- **O1 — Attack/slot model.** Proposed: one slot per owned base element *and* per unlocked compound,
-  available simultaneously, leveled by atom counts (above). Alternative: each level is its own slot
-  (rejected — blows past 9 instantly).
-- **O2 — Keep `X`?** Proposed: retire it; optionally alias to slot 1. Confirm preference.
-- **O3 — 10th slot.** Max possible is 10 (all 4 bases + all 6 compounds). Proposed: bind Numpad 0 to
-  the 10th (Carbonic Acid) and still call 9 the "design ceiling." Or hard-cap at 9 and hide the 10th.
-- **O4 — Tree HUD depth.** Proposed: a compact molecular-diagram panel (owned atoms + lit compounds).
-  Could be deferred to a follow-up if we want the mechanic working first.
-- **O5 — Versioning.** Proposed **0.6.0** (large gameplay feature, pre-1.0 minor).
+- **O1 — Attack/slot model.** ✅ One slot per owned base element *and* per unlocked compound,
+  available simultaneously, leveled by atom counts (base `min(count,3)`, compound `min(sum,3)`).
+- **O2 — Controls.** ✅ **All offense on the numpad.** Basic Punch moves from `Z` to the numpad
+  `.` (decimal) key. `Z` is freed/unused. Numpad `1–9` + `0` are the attack slots.
+- **O3 — 10th slot.** ✅ Numpad `0` binds the 10th slot (Carbonic Acid, needs all three atoms).
+- **O4 — Tree HUD.** ✅ Build the molecular-tree HUD panel now (owned atoms + lit compounds),
+  alongside the numpad attack bar.
+- **O5 — Versioning.** ✅ **0.6.0**.
+
+### Final control scheme
+
+```
+WASD / Arrows = move      Space = jump (+ double jump)
+Numpad .      = Punch (basic melee)
+Numpad 1-9    = attack slots (in priority order)
+Numpad 0      = 10th slot (Carbonic Acid)
+```
 
 ---
 

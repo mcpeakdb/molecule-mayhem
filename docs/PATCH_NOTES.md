@@ -1,5 +1,63 @@
 # Patch Notes
 
+## v0.6.0 — 2026-06-04
+
+### Phase 6 — Molecular Tree & Numpad Arsenal (complete)
+
+System overhaul (design: [PLAN_PHASE6.md](PLAN_PHASE6.md), tasks: [tasks/PHASE6_TASKS.md](tasks/PHASE6_TASKS.md)).
+
+- **Branching atom tree** — every atom pickup is now a 2–3 way choice of base atoms (H/O/C/N).
+  Picks accumulate into a multiset instead of collapsing to a single element.
+- **Simultaneous arsenal** — owning atoms unlocks base *and* compound attacks at the same time
+  (own H+O → Hydrogen, Oxygen, **and** Water are all usable). Up to 10 attacks at once.
+- **Numpad controls** — all offense moved to the numpad: `.` = Punch, `1–9` = attack slots in
+  priority order, `0` = the 10th slot (Carbonic Acid). Each attack has its own cooldown.
+- **New HUD** — molecular-tree atom badges (owned H/O/C/N with counts) + a numpad attack bar
+  showing each available attack, its key, level pips, and a cooldown wipe.
+- New attack registry in `constants.ts` (`ATTACKS`/`ATTACK_ORDER`); `ElementSystem` rewritten to
+  derive available attacks from atom counts; `Atom` is now a generic choice node (`atom_node` texture).
+
+### Per-element visual refinement pass
+
+Every special restyled to its atom/compound color with juice, matching Proton Punch / Plasma Arc /
+Tidal Force. New reusable color-parameterized effect helpers in `GameScene`: `spawnBurst` (particle
+burst), `spawnNova` (expanding ring shockwave), `spawnSlashArc` (crescent melee slash), `spawnCloud`
+(drifting gas/acid haze).
+
+- **Oxygen** corrected from green to its proper red-orange — corrosive slash, lingering reactive
+  cloud, oxidation nova
+- **Hydrogen** Fusion Burst — white-hot core, triple blue shockwave rings, spark burst
+- **Carbon** — triple grey claw with blood spray, sparkling diamond shard, graphene shockwave + debris
+- **Nitrogen** — frost slash and cryo nova throwing ice crystals; Absolute Zero flash-freezes the screen
+- **Water** Lv1–2 — pressurized jet with droplet spray, forward hydro-wave surge
+- **Ammonia / CO₂** — caustic & smog clouds (localized + screen-wide hazes)
+- **Methane** — flame-trailed gas bolt with a fiery nova + flame burst on detonation
+- **Nitric Oxide** — magenta activation flare + nova on the speed buff
+- **Carbonic Acid** — acid drops now splash and leave a brief corrosive puddle
+- **Controls:** number-row `1–9,0` mirror the numpad slots and main-keyboard `.` mirrors numpad punch
+  (laptop fallback)
+
+### Numpad arsenal — number-row mirror
+
+- Number-row digits mirror the numpad attack slots; `.`/numpad-decimal both punch, so the game is
+  fully playable without a numpad.
+
+### Real stoichiometry
+
+- Compounds now require their **actual atomic recipe**, not just one of each constituent: Water = 2H+1O,
+  Ammonia = 1N+3H, CO₂ = 1C+2O, Methane = 1C+4H, NO = 1N+1O, Carbonic Acid = 2H+1C+3O.
+- An attack's level is now **how many complete copies of the molecule you can assemble** (capped at 3) —
+  `min` over its atoms of `floor(owned / required)`.
+- Sectors ramp the atom supply to match: **Sector 1 = 4 atoms** (base attacks / a little Water),
+  **Sector 2 = 6** (adds Nitrogen), **Sector 3 = 9** (all four; enough for Methane / Carbonic Acid).
+
+### Choice overlay — tree-growth feedback
+
+- "ADD AN ATOM" cards now preview the exact effect of each pick given your current molecule: every
+  attack it would **★ unlock** or **▲ level** is listed, colored by that attack, with its tier name
+  (e.g. picking O when you hold H shows "★ NEW H₂O Water Jet"). Powered by pure
+  `ElementSystem.levelFor`/`attacksFor` helpers so the preview always matches what you'll get.
+
 ## v0.5.0 — 2026-06-03
 
 ### Fixes

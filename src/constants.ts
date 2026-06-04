@@ -77,3 +77,113 @@ export const MAX_ELEMENT_LEVEL = 3;
 // Stage layout
 export const BOSS_X = 4600;
 export const STAGE_END_X = 5200;
+
+// ── Attack registry (Phase 6: molecular tree + numpad arsenal) ──────────────
+// The four collectable base atoms.
+export type BaseAtom = 'hydrogen' | 'oxygen' | 'carbon' | 'nitrogen';
+export const BASE_ATOMS: BaseAtom[] = ['hydrogen', 'oxygen', 'carbon', 'nitrogen'];
+
+// Every attack maps 1:1 to an element/compound (i.e. every ElementType except NONE).
+export type AttackId = Exclude<ElementType, typeof ELEMENTS.NONE>;
+
+export interface AttackDef {
+  id: AttackId;
+  /** Stoichiometric recipe — exact atom counts needed to assemble one copy of the molecule. */
+  recipe: Partial<Record<BaseAtom, number>>;
+  /** Fixed priority used to order the numpad slots (lower = earlier key). */
+  slot: number;
+  /** Effect/HUD color — tuned to match the atom or compound. */
+  color: number;
+  /** Per-tier special names (Lv1, Lv2, Lv3). */
+  tierNames: [string, string, string];
+  /** Independent cooldown for this attack, in ms. */
+  cooldownMs: number;
+}
+
+export const ATTACKS: Record<AttackId, AttackDef> = {
+  [ELEMENTS.HYDROGEN]: {
+    id: ELEMENTS.HYDROGEN,
+    recipe: { hydrogen: 1 },
+    slot: 1,
+    color: 0x4499ff,
+    tierNames: ['Proton Punch', 'Plasma Arc', 'Fusion Burst'],
+    cooldownMs: 700,
+  },
+  [ELEMENTS.OXYGEN]: {
+    id: ELEMENTS.OXYGEN,
+    recipe: { oxygen: 1 },
+    slot: 2,
+    color: 0xff5533,
+    tierNames: ['Oxidize', 'Reactive Cloud', 'Oxidation Nova'],
+    cooldownMs: 800,
+  },
+  [ELEMENTS.CARBON]: {
+    id: ELEMENTS.CARBON,
+    recipe: { carbon: 1 },
+    slot: 3,
+    color: 0x888888,
+    tierNames: ['Carbon Claw', 'Diamond Shard', 'Graphene Shockwave'],
+    cooldownMs: 800,
+  },
+  [ELEMENTS.NITROGEN]: {
+    id: ELEMENTS.NITROGEN,
+    recipe: { nitrogen: 1 },
+    slot: 4,
+    color: 0x44ddcc,
+    tierNames: ['Nitrogen Frost', 'Cryo Burst', 'Absolute Zero'],
+    cooldownMs: 900,
+  },
+  [ELEMENTS.WATER]: {
+    id: ELEMENTS.WATER,
+    recipe: { hydrogen: 2, oxygen: 1 },
+    slot: 5,
+    color: 0x22ccff,
+    tierNames: ['Water Jet', 'Hydro Wave', 'Tidal Force'],
+    cooldownMs: 1200,
+  },
+  [ELEMENTS.AMMONIA]: {
+    id: ELEMENTS.AMMONIA,
+    recipe: { nitrogen: 1, hydrogen: 3 },
+    slot: 6,
+    color: 0xaadd44,
+    tierNames: ['Caustic Spray', 'Acid Cloud', 'Toxic Deluge'],
+    cooldownMs: 1300,
+  },
+  [ELEMENTS.CARBON_DIOXIDE]: {
+    id: ELEMENTS.CARBON_DIOXIDE,
+    recipe: { carbon: 1, oxygen: 2 },
+    slot: 7,
+    color: 0x99bbcc,
+    tierNames: ['Smog Pulse', 'Suffocation Field', 'Blackout'],
+    cooldownMs: 1300,
+  },
+  [ELEMENTS.METHANE]: {
+    id: ELEMENTS.METHANE,
+    recipe: { carbon: 1, hydrogen: 4 },
+    slot: 8,
+    color: 0xff9922,
+    tierNames: ['Gas Ignite', 'Chain Blast', 'Fireball'],
+    cooldownMs: 1100,
+  },
+  [ELEMENTS.NITRIC_OXIDE]: {
+    id: ELEMENTS.NITRIC_OXIDE,
+    recipe: { nitrogen: 1, oxygen: 1 },
+    slot: 9,
+    color: 0xdd44aa,
+    tierNames: ['Radical Rush', 'Reactive Aura', 'Overclock'],
+    cooldownMs: 1400,
+  },
+  [ELEMENTS.CARBONIC_ACID]: {
+    id: ELEMENTS.CARBONIC_ACID,
+    recipe: { hydrogen: 2, carbon: 1, oxygen: 3 },
+    slot: 10,
+    color: 0x33aadd,
+    tierNames: ['Acid Drop', 'Corrosive Spray', 'Acid Rain'],
+    cooldownMs: 1800,
+  },
+};
+
+/** Attack ids in fixed slot/priority order. */
+export const ATTACK_ORDER: AttackId[] = Object.values(ATTACKS)
+  .sort((a, b) => a.slot - b.slot)
+  .map((a) => a.id);

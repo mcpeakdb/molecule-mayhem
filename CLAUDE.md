@@ -75,13 +75,24 @@ Whenever the version is bumped, add a new entry to [docs/PATCH_NOTES.md](docs/PA
 
 ## Architecture Reference
 
-### Adding a new element
+### Adding a new element / molecule (Phase 6 molecular-tree model)
+
+Attacks are data-driven by the `ATTACKS` registry. Each element/compound is one attack with a
+stoichiometric `recipe`; `ElementSystem` derives the level (= complete recipe copies, capped at 3)
+and the numpad slot ordering from it. There is no longer a `_resolve()` combo table or
+`CHOICE_DESCRIPTIONS`.
 
 1. Add to `ELEMENTS` and `ELEMENT_COLORS` / `ELEMENT_NAMES` in [src/constants.ts](src/constants.ts)
-2. Extend `ElementSystem._resolve()` combo table in [src/systems/ElementSystem.ts](src/systems/ElementSystem.ts)
-3. Add `_specialXxx()` methods in [src/entities/Player.ts](src/entities/Player.ts)
-4. Add atom texture in [src/scenes/BootScene.ts](src/scenes/BootScene.ts) `_makeAtoms()`
-5. Add power descriptions to [src/scenes/ElementChoiceScene.ts](src/scenes/ElementChoiceScene.ts) `CHOICE_DESCRIPTIONS`
+2. Add an `ATTACKS` entry in [src/constants.ts](src/constants.ts): `recipe` (atom→count), `slot`
+   (priority/order), `color`, `tierNames` (Lv1–3), `cooldownMs`. `ATTACK_ORDER` derives automatically.
+   For a brand-new **base atom**, also extend `BaseAtom` / `BASE_ATOMS`.
+3. Add a `_specialXxx()` method in [src/entities/Player.ts](src/entities/Player.ts) and a branch in
+   `_dispatchAttack()`
+4. Add the symbol to `ATTACK_SYMBOL` (and `ATOM_SYMBOL` for a new base atom) in
+   [src/scenes/HUDScene.ts](src/scenes/HUDScene.ts) and `ELEMENT_SYMBOLS` in
+   [src/scenes/ElementChoiceScene.ts](src/scenes/ElementChoiceScene.ts)
+5. For a new base atom: add its texture in [src/scenes/BootScene.ts](src/scenes/BootScene.ts) and
+   include it in `GameScene._spawnStage()` `atomDefs` choices
 
 ### Adding a new enemy
 
