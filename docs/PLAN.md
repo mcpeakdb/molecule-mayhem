@@ -43,69 +43,75 @@ See [PLAN_PHASE6.md](PLAN_PHASE6.md) and [tasks/PHASE6_TASKS.md](tasks/PHASE6_TA
 
 ---
 
-## Phase 3 — More Stages
+## Phase 3 — Distinct Sector Content
 
-### Stage 2: Bloodstream Corridor
+Three sectors already ship (Sector 1 nutrient agar, Sector 2 blood agar, Sector 3 MacConkey agar),
+but they currently **reskin the same four enemies** (bacterium / virus / dustbunny / pollen) and a
+per-sector scaled **Super Bacterium** boss. This phase gives each sector its own identity: unique
+enemies, unique bosses, and a stage mechanic.
 
-- Environment: red/dark-red, slow-scroll "blood cell" background parallax
+> Atom availability per sector is now handled by the Phase 6 molecular tree (authored atom-choice
+> nodes in `_spawnStage()`), not by "introducing" one specific atom per stage.
+
+### Sector 2 — Blood Agar
+
 - New enemies:
-  - **Red Blood Cell** — slow, high HP, rams player
-  - **White Blood Cell** — chases aggressively, calls for backup (spawns smaller enemies)
-  - **Platelet** — fast, low HP, sticks to player slowing movement
-- Atoms: introduce Carbon atoms
+  - **Red Blood Cell** — slow, high HP, rams the player
+  - **White Blood Cell** — aggressive chaser, calls for backup (spawns smaller enemies)
+  - **Platelet** — fast, low HP, sticks to the player and slows movement
 - Boss: **Giant White Blood Cell** — summons minion waves between phases
-- Stage mechanic: current pushes player backward slowly (must keep moving right)
+- Mechanic: a current pushes the player back slowly (must keep advancing right)
 
-### Stage 3: Lung Cavity
+### Sector 3 — MacConkey / Lung Cavity
 
-- Environment: pink/white, rhythmic camera pulse (breathing)
 - New enemies:
   - **Pollen Cluster** — splits into 3 smaller pollens on death
   - **Allergen Spore** — explodes on death dealing AOE damage
   - **Mold Filament** — long thin enemy that whips
-- Atoms: introduce Nitrogen atoms
-- Boss: **Mega Allergen** — periodic screen-wide sneeze attack (projectile spray)
-- Stage mechanic: air pockets that briefly boost player jump height / speed
+- Boss: **Mega Allergen** — periodic screen-wide sneeze spray
+- Mechanic: air pockets that briefly boost jump height / speed (jump + double-jump now exist)
 
-### Stage 4: Cell Nucleus
+### Sector 4 — Cell Nucleus (new, final)
 
-- Final stage, highest difficulty
-- All previous enemy types + upgraded variants (bigger, faster, more HP)
-- Atoms: all elements available, mystery atoms offer 3-way choices
-- Boss: **DNA Strand Guardian** — two-phase: strand form (dodging attack gaps) + core form (radial attacks)
-
----
-
-## Phase 6 — Molecular Tree & Numpad Arsenal ✅ (v0.6.0)
-
-Combat/progression overhaul: every atom pickup is a branching choice (a molecular *tree*),
-owning atoms unlocks **multiple simultaneous attacks** bound to the numpad (up to 10, real
-stoichiometry), and every special is restyled to its atom color. Full design in
-[PLAN_PHASE6.md](PLAN_PHASE6.md); work breakdown in [tasks/PHASE6_TASKS.md](tasks/PHASE6_TASKS.md).
-
-Deferred follow-ups: atom persistence across sectors; choice-overlay progress hints toward
-locked compounds.
+- Highest difficulty; all prior enemy types + upgraded variants (bigger, faster, more HP)
+- Boss: **DNA Strand Guardian** — two-phase: strand form (dodge attack gaps) + core form (radial attacks)
+- Wire a 4th sector into the `currentStage` flow, themes, and `_spawnStage()` configs
 
 ---
 
 ## Phase 4 — Progression & Meta
 
-- [ ] **Stage select screen** — unlock stages sequentially; show high score per stage
-- [ ] **Persistent power choices** — player keeps element level between stages (roguelite run)
-  - Alternative: hard reset each stage (arcade style) — decide which fits better
-- [ ] **Score system** — points per enemy kill, combo multiplier, time bonus, no-hit bonus
-- [ ] **Leaderboard** (local) — store top 5 runs with element path taken
-- [ ] **Element loadout memory** — remember which branch a player chose last run and hint it
+- [ ] **Sector select screen** — unlock sectors sequentially; show high score per sector
+- [ ] **Atom persistence across sectors** — carry the molecular tree over a run (reset on death) so
+      complex molecules gate on progression. This is the Phase 6 deferred follow-up; decide
+      roguelite (persist) vs arcade (reset each sector). Atoms currently reset per sector.
+- [~] **Score system** — per-enemy kill values + combo multiplier already exist; still want a
+      time bonus and a no-hit bonus
+- [ ] **Leaderboard** (local) — store top 5 runs with the molecule/atom path taken
+- [ ] **Run summary** — at sector clear / death, show the molecules assembled and the atom path chosen
 
 ---
 
 ## Phase 5 — Content & QOL
 
-- [ ] **Mobile/gamepad support** — Phaser gamepad API, on-screen buttons for mobile
-- [ ] **Difficulty modes** — Easy (more HP drops, slower enemies), Hard (aggressive AI, less invincibility)
+- [x] **Difficulty modes** — Easy / Normal / Hard (`DifficultyScene`, scales enemy HP/speed + i-frames) — v0.4.0
+- [x] **Pause menu** — in-game pause (ESC/Enter) with resume / restart / quit (`PauseScene`) — v0.4.0
+- [ ] **Mobile/gamepad support** — Phaser gamepad API, on-screen buttons for mobile (also covers numpad-less play)
 - [ ] **Sprite art pass** — replace procedural graphics with hand-drawn pixel art (keep BootScene as fallback)
 - [ ] **Tilemap stages** — replace flat ground with Tiled JSON tilemaps for varied terrain
-- [ ] **Pause menu** — in-game pause (ESC) with resume / restart / quit
+
+---
+
+## Phase 6 — Molecular Tree & Numpad Arsenal ✅ COMPLETE (v0.6.0)
+
+Combat/progression overhaul, shipped 2026-06-04: every atom pickup is a branching choice (a molecular
+*tree*), owning atoms unlocks **multiple simultaneous attacks** bound to the numpad (up to 10, with
+real stoichiometry — H₂O = 2H+1O, etc.), each special restyled to its atom color, plus a numpad/HUD
+arsenal and choice-overlay tree feedback. Full design in [PLAN_PHASE6.md](PLAN_PHASE6.md); work
+breakdown in [tasks/PHASE6_TASKS.md](tasks/PHASE6_TASKS.md).
+
+Deferred follow-ups (also folded into Phase 4): atom persistence across sectors; choice-overlay
+progress hints toward locked compounds.
 
 ---
 
@@ -117,13 +123,13 @@ locked compounds.
 2. Add texture generation in `BootScene._makeEnemyTextures()` (or new method)
 3. Add to `GameScene._spawnStage()` `enemyDefs` array
 
-**Adding a new element:**
+**Adding a new element / molecule** (see [CLAUDE.md](../CLAUDE.md) for the full version):
 
-1. Add to `ELEMENTS` and `ELEMENT_COLORS` / `ELEMENT_NAMES` in `constants.ts`
-2. Extend `ElementSystem._resolve()` combo table
-3. Add `_specialXxx()` methods in `Player.ts`
-4. Add atom texture in `BootScene._makeAtoms()`
-5. Add power descriptions to `ElementChoiceScene` `CHOICE_DESCRIPTIONS`
+1. Add to `ELEMENTS` / `ELEMENT_COLORS` / `ELEMENT_NAMES` in `constants.ts`
+2. Add an `ATTACKS` registry entry (`recipe`, `slot`, `color`, `tierNames`, `cooldownMs`) in `constants.ts`
+3. Add a `_specialXxx()` method + a `_dispatchAttack()` branch in `Player.ts`
+4. Add the symbol to `ATTACK_SYMBOL` (HUD) and `ELEMENT_SYMBOLS` (`ElementChoiceScene`)
+5. For a new base atom: extend `BaseAtom`/`BASE_ATOMS`, add its texture, and author it into `_spawnStage()` choices
 
 **Adding a new stage:**
 
