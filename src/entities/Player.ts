@@ -90,7 +90,7 @@ export default class Player {
     this.sprite.setAlpha(flickerAlpha);
     this._armsGraphic.setAlpha(flickerAlpha);
 
-    const { cursors, wasd, punchKeys, slotKeys } = keys;
+    const { cursors, wasd, slotKeys } = keys;
     const left = cursors.left.isDown || wasd.A.isDown;
     const right = cursors.right.isDown || wasd.D.isDown;
     const up = cursors.up.isDown || wasd.W.isDown;
@@ -175,9 +175,11 @@ export default class Player {
     }
 
     if (Phaser.Input.Keyboard.JustDown(this._jumpKey)) this._doJump();
-    if (this.attackCooldown === 0 && punchKeys.some((k) => Phaser.Input.Keyboard.JustDown(k))) this._doMeleeAttack();
+    const attackCount = this.elementSystem.getAvailableAttacks().length;
     for (let i = 0; i < slotKeys.length; i++) {
-      if (slotKeys[i].some((k) => Phaser.Input.Keyboard.JustDown(k))) this._fireSlot(i);
+      if (!slotKeys[i].some((k) => Phaser.Input.Keyboard.JustDown(k))) continue;
+      if (i < attackCount) this._fireSlot(i);
+      else if (i === 0 && this.attackCooldown === 0) this._doMeleeAttack(); // "1" = punch until armed
     }
 
     this.scene.events.emit('arsenal-update', this.getArsenalUpdate());

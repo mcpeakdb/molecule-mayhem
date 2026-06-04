@@ -88,7 +88,6 @@ export default class GameScene extends Phaser.Scene {
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: WasdKeys;
-  private punchKeys!: Phaser.Input.Keyboard.Key[];
   private slotKeys!: Phaser.Input.Keyboard.Key[][];
   private pauseKey!: Phaser.Input.Keyboard.Key;
   private pauseKeyAlt!: Phaser.Input.Keyboard.Key;
@@ -449,10 +448,9 @@ export default class GameScene extends Phaser.Scene {
     const kb = this.input.keyboard!;
     this.cursors = kb.createCursorKeys();
     this.wasd = kb.addKeys('W,A,S,D') as WasdKeys;
-    // All offense on the numpad: `.` = punch, 1-9 then 0 = attack slots.
-    // Number-row digits + main-keyboard `.` are mirrored as a laptop fallback.
+    // All offense on the numpad: 1-9 then 0 = attack slots. Slot 1 doubles as basic punch
+    // until you unlock an attack. Number-row digits are mirrored as a laptop fallback.
     const KC = Phaser.Input.Keyboard.KeyCodes;
-    this.punchKeys = [kb.addKey(110), kb.addKey(KC.PERIOD)]; // numpad decimal + main `.`
     const numpad = [
       KC.NUMPAD_ONE,
       KC.NUMPAD_TWO,
@@ -488,7 +486,6 @@ export default class GameScene extends Phaser.Scene {
     this.player.update(_time, delta, {
       cursors: this.cursors,
       wasd: this.wasd,
-      punchKeys: this.punchKeys,
       slotKeys: this.slotKeys,
     });
 

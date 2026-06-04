@@ -6,8 +6,9 @@
 - **10 attacks** — H, O, C, N + 6 molecules, each restyled to its atom color
 - **Molecular tree**: every atom pickup is a branching choice; compounds use real stoichiometry
   (H₂O = 2H+1O, etc.); level = complete recipe copies. Sectors ramp the atom supply (4 → 6 → 9)
-- **Numpad arsenal**: owned atoms unlock multiple simultaneous attacks; `.` punch, `1–9`/`0` slots
-  (number-row mirrors), each with its own cooldown; HUD shows atom badges + a numpad attack bar
+- **Numpad arsenal**: owned atoms unlock multiple simultaneous attacks on `1–9`/`0` (number-row
+  mirrors), each with its own cooldown; slot `1` is the basic punch until you unlock an attack;
+  HUD shows atom badges + a numpad attack bar
 - All graphics procedural (no external assets) · **Phaser 4.1.0**
 - **Jump**: velocity-based arc with double jump (front-roll on the second leap); a clean leap over an enemy dodges its contact attack (timing dodge, not blanket airborne immunity)
 

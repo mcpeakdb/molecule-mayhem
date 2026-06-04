@@ -20,10 +20,9 @@ export type WasdKeys = {
 export type InputKeys = {
   cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   wasd: WasdKeys;
-  /** Basic punch — numpad `.` (and main-keyboard `.` mirror). Any key down fires. */
-  punchKeys: Phaser.Input.Keyboard.Key[];
   /** Attack slots: index 0 = slot "1" … index 8 = "9", index 9 = "0". Each slot lists its
-   *  equivalent keys (numpad + number-row mirror) — any of them fires that slot. */
+   *  equivalent keys (numpad + number-row mirror) — any of them fires that slot.
+   *  Slot 1 punches while no attacks are unlocked, then becomes the first attack. */
   slotKeys: Phaser.Input.Keyboard.Key[][];
 };
 

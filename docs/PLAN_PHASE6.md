@@ -91,8 +91,9 @@ Base colors: H `0x4499ff`, O `0xff5533`, C `0x888888`, N `0x44ddcc`.
 
 ### Retired/retained keys
 
-- Retain: WASD/Arrows move, Space jump (+ double jump), Z punch.
-- Retire the single `X` special. (Optional: alias `X` → "fire slot 1" for muscle memory — Open question O2.)
+- Retain: WASD/Arrows move, Space jump (+ double jump).
+- Retire the single `X` special **and** `Z` punch. Slot `1` doubles as the basic Punch until an
+  attack is unlocked, then becomes the first attack (final O2 decision — see below).
 
 ---
 
@@ -129,9 +130,9 @@ Guidance per element is in [tasks/PHASE6_TASKS.md](tasks/PHASE6_TASKS.md) §5.
 ## Confirmed decisions
 
 - **O1 — Attack/slot model.** ✅ One slot per owned base element *and* per unlocked compound,
-  available simultaneously, leveled by atom counts (base `min(count,3)`, compound `min(sum,3)`).
-- **O2 — Controls.** ✅ **All offense on the numpad.** Basic Punch moves from `Z` to the numpad
-  `.` (decimal) key. `Z` is freed/unused. Numpad `1–9` + `0` are the attack slots.
+  available simultaneously, leveled by completed recipe copies (real stoichiometry — see §2).
+- **O2 — Controls.** ✅ **All offense on the numpad.** No dedicated punch key: slot `1` is the basic
+  Punch until an attack unlocks, then becomes the first attack. `Z`/`X` retired. `1–9` + `0` = slots.
 - **O3 — 10th slot.** ✅ Numpad `0` binds the 10th slot (Carbonic Acid, needs all three atoms).
 - **O4 — Tree HUD.** ✅ Build the molecular-tree HUD panel now (owned atoms + lit compounds),
   alongside the numpad attack bar.
@@ -141,9 +142,9 @@ Guidance per element is in [tasks/PHASE6_TASKS.md](tasks/PHASE6_TASKS.md) §5.
 
 ```
 WASD / Arrows = move      Space = jump (+ double jump)
-Numpad .      = Punch (basic melee)
-Numpad 1-9    = attack slots (in priority order)
-Numpad 0      = 10th slot (Carbonic Acid)
+Numpad/Row 1  = first attack slot — basic Punch until you unlock an attack
+Numpad/Row 2-9 = attack slots (in priority order)
+Numpad/Row 0  = 10th slot (Carbonic Acid)
 ```
 
 ---

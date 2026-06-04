@@ -10,8 +10,9 @@ System overhaul (design: [PLAN_PHASE6.md](PLAN_PHASE6.md), tasks: [tasks/PHASE6_
   Picks accumulate into a multiset instead of collapsing to a single element.
 - **Simultaneous arsenal** — owning atoms unlocks base *and* compound attacks at the same time
   (own H+O → Hydrogen, Oxygen, **and** Water are all usable). Up to 10 attacks at once.
-- **Numpad controls** — all offense moved to the numpad: `.` = Punch, `1–9` = attack slots in
-  priority order, `0` = the 10th slot (Carbonic Acid). Each attack has its own cooldown.
+- **Numpad controls** — all offense on the numpad: `1–9` = attack slots in priority order,
+  `0` = the 10th slot (Carbonic Acid). Slot `1` is your basic Punch until you unlock an attack,
+  then becomes your first attack. Each attack has its own cooldown.
 - **New HUD** — molecular-tree atom badges (owned H/O/C/N with counts) + a numpad attack bar
   showing each available attack, its key, level pips, and a cooldown wipe.
 - New attack registry in `constants.ts` (`ATTACKS`/`ATTACK_ORDER`); `ElementSystem` rewritten to
@@ -34,13 +35,12 @@ burst), `spawnNova` (expanding ring shockwave), `spawnSlashArc` (crescent melee 
 - **Methane** — flame-trailed gas bolt with a fiery nova + flame burst on detonation
 - **Nitric Oxide** — magenta activation flare + nova on the speed buff
 - **Carbonic Acid** — acid drops now splash and leave a brief corrosive puddle
-- **Controls:** number-row `1–9,0` mirror the numpad slots and main-keyboard `.` mirrors numpad punch
-  (laptop fallback)
+- **Controls:** number-row `1–9,0` mirror the numpad slots (laptop fallback)
 
 ### Numpad arsenal — number-row mirror
 
-- Number-row digits mirror the numpad attack slots; `.`/numpad-decimal both punch, so the game is
-  fully playable without a numpad.
+- Number-row digits mirror the numpad attack slots, so the game is fully playable without a numpad.
+  Slot `1` punches until you unlock an attack (the dedicated `.` punch key was removed).
 
 ### Real stoichiometry
 

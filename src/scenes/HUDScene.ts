@@ -42,7 +42,7 @@ interface Chip {
   nameText: Phaser.GameObjects.Text;
   pips: Phaser.GameObjects.Arc[];
   cooldown: Phaser.GameObjects.Rectangle;
-  id: AttackId | null;
+  id: string | null;
 }
 
 const CHIP_W = 84;
@@ -195,7 +195,7 @@ export default class HUDScene extends Phaser.Scene {
       .text(
         GAME_WIDTH / 2,
         GAME_HEIGHT - 14,
-        'WASD/Arrows: Move   Space: Jump   . : Punch   Numpad/Row 1-9,0: Attacks',
+        'WASD/Arrows: Move   Space: Jump   Numpad/Row 1-9,0: Attacks  (1 = Punch until armed)',
         { fontSize: '12px', color: '#88aa88', fontFamily: MONO, stroke: '#000000', strokeThickness: 2 },
       )
       .setScrollFactor(0)
@@ -264,10 +264,45 @@ export default class HUDScene extends Phaser.Scene {
       circle.setAlpha(c > 0 ? 1 : 0.35);
     });
 
+    // Until any attack is unlocked, slot 1 shows the basic Punch
+    const display: {
+      id: string;
+      key: number;
+      symbol: string;
+      name: string;
+      color: number;
+      level: number;
+      cooldownRemaining: number;
+      cooldownMs: number;
+    }[] =
+      attacks.length === 0
+        ? [
+            {
+              id: '__punch__',
+              key: 1,
+              symbol: '✊',
+              name: 'Punch',
+              color: 0xcfcfcf,
+              level: 0,
+              cooldownRemaining: 0,
+              cooldownMs: 0,
+            },
+          ]
+        : attacks.map((a) => ({
+            id: a.id,
+            key: a.key,
+            symbol: ATTACK_SYMBOL[a.id],
+            name: a.name,
+            color: a.color,
+            level: a.level,
+            cooldownRemaining: a.cooldownRemaining,
+            cooldownMs: a.cooldownMs,
+          }));
+
     // Attack chips
     for (let i = 0; i < CHIP_COUNT; i++) {
       const chip = this.chips[i];
-      const entry = attacks[i];
+      const entry = display[i];
       if (!entry) {
         if (chip.container.visible) chip.container.setVisible(false);
         chip.id = null;
@@ -278,7 +313,7 @@ export default class HUDScene extends Phaser.Scene {
       if (chip.id !== entry.id) {
         chip.id = entry.id;
         chip.bg.setStrokeStyle(2, entry.color);
-        chip.symbolText.setText(ATTACK_SYMBOL[entry.id]).setColor(hex);
+        chip.symbolText.setText(entry.symbol).setColor(hex);
         chip.keyText.setText(`${entry.key}`);
       }
       chip.nameText.setText(entry.name);

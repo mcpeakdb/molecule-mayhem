@@ -29,11 +29,11 @@ depends on the ones above it.
 
 ## 3. Input + dispatch + cooldowns (`src/entities/Player.ts`, `src/scenes/GameScene.ts`, `src/types.ts`) ✓
 
-- [x] Bind Numpad `.` (punch) + `1–9`,`0` (slots) in `GameScene._setupInput()`
-- [x] `InputKeys` now carries `punchKey` + `slotKeys[]`
+- [x] Bind Numpad/number-row `1–9`,`0` slots in `GameScene._setupInput()`
+- [x] `InputKeys` carries `slotKeys[][]` (numpad + number-row mirror per slot)
 - [x] `_fireSlot(i)` → resolve i-th available attack → `_dispatchAttack(id, level, dir)`
 - [x] Per-attack cooldown `Map`; ticked each frame; press ignored while on cooldown
-- [x] `X` retired; punch on numpad `.` (O2)
+- [x] `X` retired; slot `1` is the basic Punch until an attack unlocks, then becomes the first attack (O2)
 - [x] `arsenal-update` emitted each frame + on atom pickup
 
 ---
