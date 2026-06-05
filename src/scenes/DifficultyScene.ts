@@ -48,6 +48,11 @@ export default class DifficultyScene extends Phaser.Scene {
   create(): void {
     const cx = GAME_WIDTH / 2;
 
+    // The scene instance is reused across restarts — clear stale card refs from a prior visit
+    this.cardBgs = [];
+    this.cardBorders = [];
+    this.cursor = 1;
+
     // Background
     this.add.rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x060e06).setScrollFactor(0);
 

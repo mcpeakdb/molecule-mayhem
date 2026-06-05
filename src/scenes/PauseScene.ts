@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../constants';
 
 const MONO = 'monospace';
-const OPTIONS = ['RESUME', 'RESTART SECTOR', 'QUIT TO SECTOR 1'] as const;
+const OPTIONS = ['RESUME', 'RESTART SECTOR', 'DIFFICULTY SELECT', 'RESTART GAME'] as const;
 
 export default class PauseScene extends Phaser.Scene {
   private cursor = 0;
@@ -46,12 +46,12 @@ export default class PauseScene extends Phaser.Scene {
     // Separator lines
     const g = this.add.graphics().setScrollFactor(0).setDepth(501);
     g.lineStyle(1, 0x1a3a1a, 0.7);
-    g.lineBetween(cx - 130, cy - 48, cx + 130, cy - 48);
-    g.lineBetween(cx - 130, cy + 58, cx + 130, cy + 58);
+    g.lineBetween(cx - 130, cy - 50, cx + 130, cy - 50);
+    g.lineBetween(cx - 130, cy + 96, cx + 130, cy + 96);
 
     // Cursor marker
     this.cursorText = this.add
-      .text(cx - 108, cy - 20, '›', {
+      .text(cx - 108, cy - 30, '›', {
         fontSize: '20px',
         color: '#aaffaa',
         fontFamily: MONO,
@@ -63,7 +63,7 @@ export default class PauseScene extends Phaser.Scene {
     // Menu options
     this.optionTexts = OPTIONS.map((label, i) =>
       this.add
-        .text(cx - 88, cy - 20 + i * 34, label, {
+        .text(cx - 88, cy - 30 + i * 34, label, {
           fontSize: '18px',
           color: '#669966',
           fontFamily: MONO,
@@ -99,7 +99,7 @@ export default class PauseScene extends Phaser.Scene {
 
   private _refreshCursor(): void {
     const cy = GAME_HEIGHT / 2;
-    this.cursorText.setY(cy - 20 + this.cursor * 34);
+    this.cursorText.setY(cy - 30 + this.cursor * 34);
     this.optionTexts.forEach((t, i) => {
       t.setStyle({ color: i === this.cursor ? '#ccffcc' : '#669966', fontFamily: MONO });
     });
@@ -116,9 +116,17 @@ export default class PauseScene extends Phaser.Scene {
         this.scene.start('GameScene', { stage: this.stage });
         break;
       case 2:
+        // GameScene renders above DifficultyScene, so it must be stopped or it hides the menu
+        this.scene.stop('HUDScene');
+        this.scene.stop('GameScene');
+        this.scene.start('DifficultyScene');
+        this.scene.stop('PauseScene');
+        break;
+      case 3:
+        // Restart the whole game from the tutorial
         this.scene.stop('HUDScene');
         this.scene.stop('PauseScene');
-        this.scene.start('DifficultyScene');
+        this.scene.start('GameScene', { tutorial: true });
         break;
     }
   }

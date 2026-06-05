@@ -79,6 +79,11 @@ export default class Player {
     return this.isJumping && this.jumpOffset > 30;
   }
 
+  /** True whenever the player is off the ground (used by the tutorial gap). */
+  get airborne(): boolean {
+    return this.isJumping;
+  }
+
   update(time: number, delta: number, keys: InputKeys): void {
     if (!this.alive) return;
 

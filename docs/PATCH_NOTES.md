@@ -1,5 +1,35 @@
 # Patch Notes
 
+## v0.7.0 — 2026-06-04
+
+### Tutorial level with M.E.G., the Main Element Guide
+
+- New **M.E.G. (Main Element Guide)** — a friendly floating atom-bot that narrates a short training
+  sector, now the first thing you play on boot (`BootScene → tutorial → DifficultyScene → game`).
+- **Story setup:** M.E.G. explains you've been shrunk to the molecular scale by a misfired shrink-ray
+  and must gather elements and fight your way out to grow back to normal size.
+- **One of each core mechanic**, each with a context tip as you approach it:
+  - one **element** atom — M.E.G. explains collecting + arming an attack (then a follow-up "press 1" tip)
+  - one **bad guy** (weakened bacterium) — M.E.G. explains attacking
+  - one **gap** in the floor — M.E.G. explains jumping / double-jumping; you can't walk across it
+- Dialogue system: blocking story lines (advance with Space/Z) + non-blocking proximity tips, with a
+  M.E.G. portrait box. **ESC skips** the tutorial. Reaching the end hands off to difficulty select.
+- M.E.G. hovers and bobs alongside the player throughout. (`GameScene` tutorial mode; `meg` texture)
+
+### Gaps in every sector
+
+- Each sector now has **two gaps** in the floor you must jump (or double-jump) across — a chasm is
+  drawn into the ground and blocks you at its near edge while grounded. Enemies that would have
+  spawned on a gap are skipped. Shared `_addGap()` / `_updateGaps()` (also powers the tutorial gap).
+
+### Pause menu
+
+- Added **RESTART GAME** — restarts the whole game from the M.E.G. tutorial.
+- Renamed "QUIT TO SECTOR 1" → **DIFFICULTY SELECT**.
+- **Fixed:** choosing difficulty select from the pause menu showed nothing — GameScene renders above
+  DifficultyScene in the scene list, so it was drawing over the menu. The pause menu now stops
+  GameScene before opening difficulty select.
+
 ## v0.6.1 — 2026-06-04
 
 ### Player death — crying close-up

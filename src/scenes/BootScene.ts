@@ -7,6 +7,7 @@ export default class BootScene extends Phaser.Scene {
 
   create(): void {
     this._makePlayer();
+    this._makeMeg();
     this._makeBacterium();
     this._makeVirus();
     this._makeDustBunny();
@@ -16,7 +17,41 @@ export default class BootScene extends Phaser.Scene {
     this._makeEffects();
     this._makeParticle();
     this._makeBackground();
-    this.scene.start('DifficultyScene');
+    this.scene.start('GameScene', { tutorial: true });
+  }
+
+  // M.E.G. — Main Element Guide: a friendly glowing atom-bot that narrates the tutorial
+  private _makeMeg(): void {
+    const g = this._g();
+    g.fillStyle(0x66ddff, 0.18);
+    g.fillCircle(24, 27, 23);
+    g.fillStyle(0x2299dd);
+    g.fillCircle(24, 27, 16);
+    g.fillStyle(0x44bbf0);
+    g.fillCircle(24, 25, 13);
+    // orbital ring + electron
+    g.lineStyle(2, 0xaaf0ff, 0.85);
+    g.strokeEllipse(24, 27, 42, 16);
+    g.fillStyle(0xffffff);
+    g.fillCircle(45, 27, 3);
+    // antenna
+    g.lineStyle(2, 0xaaf0ff, 0.9);
+    g.lineBetween(24, 12, 24, 4);
+    g.fillStyle(0xffee66);
+    g.fillCircle(24, 4, 3.5);
+    // big friendly eyes
+    g.fillStyle(0xffffff);
+    g.fillCircle(19, 25, 5);
+    g.fillCircle(29, 25, 5);
+    g.fillStyle(0x113355);
+    g.fillCircle(20, 26, 2.6);
+    g.fillCircle(30, 26, 2.6);
+    // smile
+    g.lineStyle(2, 0x113355, 0.9);
+    g.beginPath();
+    g.arc(24, 31, 5, 0.15 * Math.PI, 0.85 * Math.PI);
+    g.strokePath();
+    g._done('meg', 50, 54);
   }
 
   // Phaser's Graphics doesn't expose bezierCurveTo — we attach _done as a helper

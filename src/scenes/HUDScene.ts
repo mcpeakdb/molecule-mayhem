@@ -190,18 +190,6 @@ export default class HUDScene extends Phaser.Scene {
       .setOrigin(1, 0)
       .setAlpha(0);
 
-    // ── CONTROLS HINT ─────────────────────────────────────────────────────────
-    this.add
-      .text(
-        GAME_WIDTH / 2,
-        GAME_HEIGHT - 14,
-        'WASD/Arrows: Move   Space: Jump   Numpad/Row 1-9,0: Attacks  (1 = Punch until armed)',
-        { fontSize: '12px', color: '#88aa88', fontFamily: MONO, stroke: '#000000', strokeThickness: 2 },
-      )
-      .setScrollFactor(0)
-      .setDepth(200)
-      .setOrigin(0.5, 1);
-
     // ── EVENTS ───────────────────────────────────────────────────────────────
     const gameScene = this.scene.get('GameScene');
     gameScene.events.on('hud-update', this._onUpdate, this);

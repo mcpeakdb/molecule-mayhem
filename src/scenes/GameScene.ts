@@ -94,14 +94,54 @@ export default class GameScene extends Phaser.Scene {
   private isPaused = false;
   private stageCleared = false;
 
+  // ── Tutorial mode (M.E.G.-guided intro level) ──────────────────────────────
+  private isTutorial = false;
+  private _meg?: Phaser.GameObjects.Sprite;
+  private _dlgBg?: Phaser.GameObjects.Rectangle;
+  private _dlgName?: Phaser.GameObjects.Text;
+  private _dlgText?: Phaser.GameObjects.Text;
+  private _dlgPortrait?: Phaser.GameObjects.Sprite;
+  private _dlgHint?: Phaser.GameObjects.Text;
+  private _dlgQueue: string[] = [];
+  private _dlgOnDone?: () => void;
+  private _dlgBlocking = false;
+  private _dlgAdvance?: () => void;
+  private _firedTips = new Set<string>();
+  private _activeTip?: string;
+  private _tutAtom?: AtomSprite;
+  private _tutEnemy?: Enemy;
+  private _gapBumped = false;
+  private _tutDone = false;
+  private _gaps: { x1: number; x2: number }[] = [];
+  private readonly _tutAtomX = 900;
+  private readonly _tutEnemyX = 1500;
+  private readonly _gapX1 = 2080;
+  private readonly _gapX2 = 2210;
+  private readonly _tutEndX = 2720;
+
   constructor() {
     super('GameScene');
   }
 
-  init(data?: { stage?: number; difficulty?: Difficulty }): void {
-    this.currentStage = data?.stage ?? 1;
+  init(data?: { stage?: number; difficulty?: Difficulty; tutorial?: boolean }): void {
+    this.isTutorial = data?.tutorial ?? false;
+    // Tutorial reuses Sector 1 art/theme but runs its own content + flow
+    this.currentStage = this.isTutorial ? 1 : (data?.stage ?? 1);
     this.score = 0;
-    this.difficulty = data?.difficulty ?? (this.registry.get('difficulty') as Difficulty | undefined) ?? 'normal';
+    this.difficulty = this.isTutorial
+      ? 'easy'
+      : (data?.difficulty ?? (this.registry.get('difficulty') as Difficulty | undefined) ?? 'normal');
+
+    // Reset per-run state (the scene instance is reused across restarts)
+    this.isPaused = false;
+    this.stageCleared = false;
+    this._gaps = [];
+    this._gapBumped = false;
+    this._tutDone = false;
+    this._dlgBlocking = false;
+    this._dlgQueue = [];
+    this._firedTips.clear();
+    this._activeTip = undefined;
   }
 
   create(): void {
@@ -116,7 +156,8 @@ export default class GameScene extends Phaser.Scene {
     this.projectileGroup = this.physics.add.group({ allowGravity: false });
     this.enemyProjectileGroup = this.physics.add.group({ allowGravity: false });
 
-    this._spawnStage();
+    if (this.isTutorial) this._spawnTutorial();
+    else this._spawnStage();
 
     this.player = new Player(this, 120, FLOOR_CENTER_Y);
     this.player.invincibilityMs = DIFFICULTY_SCALE[this.difficulty].invincMs;
@@ -151,10 +192,15 @@ export default class GameScene extends Phaser.Scene {
     this.isPaused = true;
     this.physics.pause();
     this.stageCleared = false;
-    this._playStageIntro(() => {
-      this.isPaused = false;
-      this.physics.resume();
-    });
+
+    if (this.isTutorial) {
+      this._startTutorial();
+    } else {
+      this._playStageIntro(() => {
+        this.isPaused = false;
+        this.physics.resume();
+      });
+    }
   }
 
   private _playStageIntro(onComplete: () => void): void {
@@ -277,11 +323,16 @@ export default class GameScene extends Phaser.Scene {
     }
 
     this.add
-      .text(300, FLOOR_MIN_Y - 50, `— PETRI DISH SECTOR ${this.currentStage} —`, {
-        fontSize: '18px',
-        color: theme.label,
-        fontStyle: 'italic',
-      })
+      .text(
+        300,
+        FLOOR_MIN_Y - 50,
+        this.isTutorial ? '— TRAINING SECTOR —' : `— PETRI DISH SECTOR ${this.currentStage} —`,
+        {
+          fontSize: '18px',
+          color: theme.label,
+          fontStyle: 'italic',
+        },
+      )
       .setDepth(5)
       .setAlpha(0.65);
   }
@@ -416,9 +467,31 @@ export default class GameScene extends Phaser.Scene {
               { x: 4360, y: rY(), type: 'virus' },
             ];
 
+    // Gaps to jump — placed in clearings; enemies that would spawn on a gap are skipped
+    const gapDefs: [number, number][] =
+      this.currentStage === 1
+        ? [
+            [1900, 2030],
+            [3000, 3130],
+          ]
+        : this.currentStage === 2
+          ? [
+              [1450, 1580],
+              [3150, 3280],
+            ]
+          : [
+              [1300, 1430],
+              [2650, 2780],
+            ];
+    gapDefs.forEach(([a, b]) => {
+      this._addGap(a, b);
+    });
+    const inGap = (x: number) => this._gaps.some((g) => x > g.x1 - 30 && x < g.x2 + 30);
+
     const scale = DIFFICULTY_SCALE[this.difficulty];
 
     enemyDefs.forEach((def) => {
+      if (inGap(def.x)) return;
       const e = new Enemy(this, def.x, def.y, def.type);
       e.hp = Math.round(e.hp * scale.enemyHp);
       e.maxHp = Math.round(e.maxHp * scale.enemyHp);
@@ -441,6 +514,284 @@ export default class GameScene extends Phaser.Scene {
     this.boss.maxHp = Math.round(this.boss.maxHp * scale.enemyHp);
     this.boss.speed *= scale.enemySpeed;
     this.enemyGroup.add(this.boss.sprite);
+  }
+
+  // ── Tutorial ────────────────────────────────────────────────────────────────
+
+  private _spawnTutorial(): void {
+    // One element to collect
+    const atom = new Atom(this, this._tutAtomX, FLOOR_CENTER_Y - 80, ['hydrogen', 'oxygen']);
+    this.atomGroup.add(atom.sprite);
+    this._tutAtom = atom.sprite;
+
+    // One weakened bad guy
+    const e = new Enemy(this, this._tutEnemyX, FLOOR_CENTER_Y, 'bacterium');
+    e.hp = 18;
+    e.maxHp = 18;
+    e.speed *= 0.7;
+    this.enemyGroup.add(e.sprite);
+    this._tutEnemy = e;
+
+    // One gap to jump over
+    this._addGap(this._gapX1, this._gapX2);
+  }
+
+  /** Draw a chasm in the floor and register it as a no-walk gap (must be jumped). */
+  private _addGap(x1: number, x2: number): void {
+    this._gaps.push({ x1, x2 });
+    const g = this.add.graphics().setDepth(-2);
+    const w = x2 - x1;
+    g.fillStyle(0x05080a, 1);
+    g.fillRect(x1, FLOOR_MIN_Y - 8, w, GAME_HEIGHT - (FLOOR_MIN_Y - 8));
+    g.lineStyle(2, 0x2a3a2a, 0.7);
+    g.lineBetween(x1, FLOOR_MIN_Y - 8, x1, GAME_HEIGHT);
+    g.lineBetween(x2, FLOOR_MIN_Y - 8, x2, GAME_HEIGHT);
+    g.fillStyle(0x0d1a12, 0.6);
+    for (let yy = FLOOR_MIN_Y + 14; yy < GAME_HEIGHT; yy += 22) g.fillRect(x1 + 4, yy, w - 8, 3);
+  }
+
+  /** Block the player at a gap's near edge unless they're airborne (so gaps must be jumped). */
+  private _updateGaps(): void {
+    if (this._gaps.length === 0) return;
+    const p = this.player;
+    if (!p.alive || p.airborne) return;
+    const px = p.sprite.x;
+    for (const gap of this._gaps) {
+      if (px > gap.x1 && px < gap.x2) {
+        p.sprite.x = gap.x1;
+        if (!this._gapBumped) {
+          this._gapBumped = true;
+          this.cameras.main.shake(120, 0.004);
+          this.time.delayedCall(450, () => {
+            this._gapBumped = false;
+          });
+        }
+        break;
+      }
+    }
+  }
+
+  private _startTutorial(): void {
+    this._buildDialogue();
+    this._createMeg();
+
+    // Skip-tutorial shortcut + hint
+    this.add
+      .text(14, GAME_HEIGHT - 32, 'ESC — skip tutorial', {
+        fontSize: '12px',
+        color: '#668899',
+        fontFamily: 'monospace',
+        stroke: '#000000',
+        strokeThickness: 2,
+      })
+      .setScrollFactor(0)
+      .setDepth(481);
+    this.input.keyboard?.once('keydown-ESC', () => {
+      this._tutDone = true;
+      this._exitToDifficulty();
+    });
+
+    this._say(
+      [
+        "Whoa — the shrink-ray backfired! You've been shrunk to the molecular scale!",
+        "I'm M.E.G., your Main Element Guide. Deep breaths — we'll get you home.",
+        'To grow back to normal size you must gather elements and fight your way out.',
+        "Let's run a quick drill. Head right (D / →) and I'll explain as we go.",
+      ],
+      () => {
+        this.isPaused = false;
+        this.physics.resume();
+      },
+    );
+  }
+
+  private _createMeg(): void {
+    const px = this.player.sprite.x;
+    this._meg = this.add.sprite(px - 70, FLOOR_MIN_Y - 46, 'meg').setDepth(305);
+    this.tweens.add({
+      targets: this._meg,
+      scaleX: 1.06,
+      scaleY: 0.94,
+      duration: 700,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
+  }
+
+  private _buildDialogue(): void {
+    const cx = GAME_WIDTH / 2;
+    const cy = 158;
+    const pw = 620;
+    const ph = 104;
+    this._dlgBg = this.add
+      .rectangle(cx, cy, pw, ph, 0x081018, 0.93)
+      .setScrollFactor(0)
+      .setDepth(480)
+      .setStrokeStyle(2, 0x3aa0d0)
+      .setVisible(false);
+    this._dlgPortrait = this.add
+      .sprite(cx - pw / 2 + 42, cy, 'meg')
+      .setScrollFactor(0)
+      .setDepth(481)
+      .setVisible(false);
+    this._dlgName = this.add
+      .text(cx - pw / 2 + 84, cy - 36, 'M.E.G.', {
+        fontSize: '16px',
+        color: '#66ddff',
+        fontFamily: 'monospace',
+        fontStyle: 'bold',
+      })
+      .setScrollFactor(0)
+      .setDepth(481)
+      .setVisible(false);
+    this._dlgText = this.add
+      .text(cx - pw / 2 + 84, cy - 12, '', {
+        fontSize: '15px',
+        color: '#eef6ff',
+        fontFamily: 'monospace',
+        wordWrap: { width: pw - 118 },
+        lineSpacing: 5,
+      })
+      .setScrollFactor(0)
+      .setDepth(481)
+      .setVisible(false);
+    this._dlgHint = this.add
+      .text(cx + pw / 2 - 16, cy + ph / 2 - 14, '▸ Space', {
+        fontSize: '12px',
+        color: '#6699aa',
+        fontFamily: 'monospace',
+      })
+      .setScrollFactor(0)
+      .setDepth(481)
+      .setOrigin(1, 0.5)
+      .setVisible(false);
+  }
+
+  private _showDlg(): void {
+    this._dlgBg?.setVisible(true);
+    this._dlgPortrait?.setVisible(true);
+    this._dlgName?.setVisible(true);
+    this._dlgText?.setVisible(true);
+  }
+
+  private _hideDlg(): void {
+    this._dlgBg?.setVisible(false);
+    this._dlgPortrait?.setVisible(false);
+    this._dlgName?.setVisible(false);
+    this._dlgText?.setVisible(false);
+    this._dlgHint?.setVisible(false);
+  }
+
+  private _popPortrait(): void {
+    if (!this._dlgPortrait) return;
+    this.tweens.killTweensOf(this._dlgPortrait);
+    this._dlgPortrait.setScale(1);
+    this.tweens.add({ targets: this._dlgPortrait, scaleX: 1.14, scaleY: 1.14, duration: 100, yoyo: true });
+  }
+
+  /** Blocking story dialogue — pauses the game, advanced with Space/Z. */
+  private _say(lines: string[], onDone?: () => void): void {
+    this._dlgQueue = [...lines];
+    this._dlgOnDone = onDone;
+    this._dlgBlocking = true;
+    this.isPaused = true;
+    this.physics.pause();
+    this._showDlg();
+    this._dlgHint?.setVisible(true);
+    this._nextLine();
+    this._dlgAdvance = () => this._nextLine();
+    this.input.keyboard?.on('keydown-SPACE', this._dlgAdvance);
+    this.input.keyboard?.on('keydown-Z', this._dlgAdvance);
+  }
+
+  private _nextLine(): void {
+    const line = this._dlgQueue.shift();
+    if (line === undefined) {
+      this._endDlg();
+      return;
+    }
+    this._dlgText?.setText(line);
+    this._popPortrait();
+  }
+
+  private _endDlg(): void {
+    if (this._dlgAdvance) {
+      this.input.keyboard?.off('keydown-SPACE', this._dlgAdvance);
+      this.input.keyboard?.off('keydown-Z', this._dlgAdvance);
+      this._dlgAdvance = undefined;
+    }
+    this._hideDlg();
+    this._dlgBlocking = false;
+    const cb = this._dlgOnDone;
+    this._dlgOnDone = undefined;
+    this.isPaused = false;
+    this.physics.resume();
+    cb?.();
+  }
+
+  /** Non-blocking proximity tip — shows once, auto-dismisses, doesn't pause. */
+  private _tip(id: string, text: string): void {
+    if (this._dlgBlocking || this._firedTips.has(id)) return;
+    this._firedTips.add(id);
+    this._activeTip = id;
+    this._showDlg();
+    this._dlgHint?.setVisible(false);
+    this._dlgText?.setText(text);
+    this._popPortrait();
+    this.time.delayedCall(5500, () => {
+      // Only auto-hide if this is still the tip on screen (a newer tip may have replaced it)
+      if (!this._dlgBlocking && this._activeTip === id) this._hideDlg();
+    });
+  }
+
+  private _tutorialUpdate(time: number): void {
+    const p = this.player;
+    if (!p.alive) return;
+    const px = p.sprite.x;
+
+    // M.E.G. hovers just behind the player, bobbing
+    if (this._meg) {
+      const tx = px - 74;
+      const ty = FLOOR_MIN_Y - 48 + Math.sin(time * 0.004) * 8;
+      this._meg.x += (tx - this._meg.x) * 0.08;
+      this._meg.y += (ty - this._meg.y) * 0.08;
+      this._meg.setDepth(p.sprite.depth + 6);
+    }
+
+    // Proximity tips
+    if (this._tutAtom?.active && Math.abs(px - this._tutAtomX) < 230) {
+      this._tip('element', 'See that glowing atom? Walk into it, then pick an element to ARM an attack.');
+    }
+    if (this._tutEnemy?.sprite.active && Math.abs(px - this._tutEnemyX) < 300) {
+      this._tip('enemy', 'A germ ahead! Press [1] to attack — a punch, or your element once it is armed.');
+    }
+    if (px > this._gapX1 - 240 && px < this._gapX1) {
+      this._tip(
+        'gap',
+        "A gap in the floor! You can't walk it — press SPACE to JUMP. Tap again mid-air to double-jump.",
+      );
+    }
+    if (px > this._tutEndX && !this._tutDone) this._completeTutorial();
+  }
+
+  private _completeTutorial(): void {
+    this._tutDone = true;
+    this.stageCleared = true;
+    this._say(
+      [
+        'Outstanding! Collect, fight, jump — you have the essentials down.',
+        'Now go find the elements and grow back to full size. Good luck out there!',
+      ],
+      () => this._exitToDifficulty(),
+    );
+  }
+
+  /** Leave the tutorial for difficulty select. GameScene renders above DifficultyScene, so stop it. */
+  private _exitToDifficulty(): void {
+    this.scene.stop('HUDScene');
+    this.scene.start('DifficultyScene');
+    this.scene.stop('GameScene');
   }
 
   private _setupInput(): void {
@@ -472,7 +823,8 @@ export default class GameScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     if (
       (Phaser.Input.Keyboard.JustDown(this.pauseKey) || Phaser.Input.Keyboard.JustDown(this.pauseKeyAlt)) &&
-      !this.stageCleared
+      !this.stageCleared &&
+      !this.isTutorial
     ) {
       if (!this.isPaused) {
         this.isPaused = true;
@@ -507,6 +859,9 @@ export default class GameScene extends Phaser.Scene {
       const p = go as Phaser.Physics.Arcade.Sprite;
       if (p.active && (p.x < 0 || p.x > WORLD_WIDTH || p.y < 0 || p.y > GAME_HEIGHT)) p.destroy();
     });
+
+    this._updateGaps();
+    if (this.isTutorial) this._tutorialUpdate(_time);
 
     this.events.emit('hud-update', { hp: this.player.hp, element: this.player.elementSystem });
   }
@@ -955,6 +1310,9 @@ export default class GameScene extends Phaser.Scene {
         if (upgraded) SoundSystem.play(this.audioCtx, 'element_upgrade');
         this.events.emit('arsenal-update', this.player.getArsenalUpdate());
         this.scene.stop('ElementChoiceScene');
+        if (this.isTutorial) {
+          this._tip('armed', 'Armed! Press [1] to unleash your attack. Go smash that germ ahead!');
+        }
       },
     });
   }
@@ -1033,7 +1391,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.input.keyboard?.once('keydown-Z', () => {
       this.scene.stop('HUDScene');
-      this.scene.start('GameScene', { stage: this.currentStage });
+      this.scene.start('GameScene', this.isTutorial ? { tutorial: true } : { stage: this.currentStage });
     });
   }
 

@@ -10,6 +10,8 @@
   mirrors), each with its own cooldown; slot `1` is the basic punch until you unlock an attack;
   HUD shows atom badges + a numpad attack bar
 - All graphics procedural (no external assets) · **Phaser 4.1.0**
+- **Tutorial**: M.E.G.-guided training sector on boot — story setup (you've been shrunk), one element,
+  one bad guy, one gap, with proximity tips; ESC to skip
 - **Jump**: velocity-based arc with double jump (front-roll on the second leap); a clean leap over an enemy dodges its contact attack (timing dodge, not blanket airborne immunity)
 
 See [PLAN_PHASE6.md](PLAN_PHASE6.md) and [tasks/PHASE6_TASKS.md](tasks/PHASE6_TASKS.md) for details.
