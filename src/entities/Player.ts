@@ -902,11 +902,13 @@ export default class Player {
     this.alive = false;
     this._endRoll();
     this.sprite.setScale(1, 1);
+    this.sprite.setRotation(0);
     this._jumpShadow.clear();
     this._armsGraphic.clear();
     SoundSystem.play(this.scene.audioCtx, 'player_death');
     this.sprite.setTint(0x888888);
     this.sprite.body.setVelocity(0, 0);
-    this.scene.time.delayedCall(1500, () => this.scene.onPlayerDeath());
+    // The bawling tantrum plays out on the death screen, not in the world (see GameScene._showDeathScreen)
+    this.scene.time.delayedCall(900, () => this.scene.onPlayerDeath());
   }
 }

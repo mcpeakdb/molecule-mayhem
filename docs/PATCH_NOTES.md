@@ -1,5 +1,14 @@
 # Patch Notes
 
+## v0.6.1 — 2026-06-04
+
+### Player death — crying close-up
+
+- The death screen now stars a **close-up of the scientist bawling**: the "YOU DIED" / score / retry
+  text shifts to the left, and a big, red-faced, trembling scientist appears on the right, sobbing
+  (rock + heave) with blue tears streaming from both eyes. The in-world player sprite just freezes
+  (no tantrum in the play area). (`GameScene._spawnCryingScientist()`)
+
 ## v0.6.0 — 2026-06-04
 
 ### Phase 6 — Molecular Tree & Numpad Arsenal (complete)

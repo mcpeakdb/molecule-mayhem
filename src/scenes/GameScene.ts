@@ -980,6 +980,7 @@ export default class GameScene extends Phaser.Scene {
     this.isPaused = true;
     const w = GAME_WIDTH,
       h = GAME_HEIGHT;
+    const textX = w * 0.34; // text shifted left to make room for the crying scientist
 
     const overlay = this.add
       .rectangle(w / 2, h / 2, w, h, 0x000000)
@@ -988,8 +989,10 @@ export default class GameScene extends Phaser.Scene {
       .setAlpha(0);
     this.tweens.add({ targets: overlay, alpha: 0.8, duration: 400 });
 
+    this._spawnCryingScientist(w * 0.72, h / 2 + 8);
+
     const diedText = this.add
-      .text(w / 2, h / 2 - 60, 'YOU DIED', {
+      .text(textX, h / 2 - 60, 'YOU DIED', {
         fontSize: '72px',
         color: '#cc1111',
         fontStyle: 'bold',
@@ -1003,7 +1006,7 @@ export default class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: diedText, scale: 1, duration: 400, ease: 'Back.Out' });
 
     this.add
-      .text(w / 2, h / 2 + 20, `Score: ${this.score}`, {
+      .text(textX, h / 2 + 20, `Score: ${this.score}`, {
         fontSize: '32px',
         color: '#ffffff',
       })
@@ -1012,7 +1015,7 @@ export default class GameScene extends Phaser.Scene {
       .setDepth(501);
 
     const retryText = this.add
-      .text(w / 2, h / 2 + 80, 'Press Z to retry', {
+      .text(textX, h / 2 + 80, 'Press Z to retry', {
         fontSize: '26px',
         color: '#ffeeaa',
       })
@@ -1032,6 +1035,57 @@ export default class GameScene extends Phaser.Scene {
       this.scene.stop('HUDScene');
       this.scene.start('GameScene', { stage: this.currentStage });
     });
+  }
+
+  /** A close-up of the scientist sobbing on the death screen — trembling, tears streaming into a puddle. */
+  private _spawnCryingScientist(x: number, y: number): void {
+    const S = 3.4;
+    const guy = this.add.sprite(x, y, 'player_0').setScrollFactor(0).setDepth(501).setScale(S);
+
+    // pop in
+    guy.setScale(S * 0.4);
+    this.tweens.add({ targets: guy, scaleX: S, scaleY: S, duration: 350, ease: 'Back.Out' });
+    // trembling sob — rock + heave
+    this.tweens.add({
+      targets: guy,
+      angle: { from: -5, to: 5 },
+      duration: 170,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
+    this.tweens.add({ targets: guy, y: y - 8, duration: 230, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+
+    // Growing tear puddle at his feet
+    const puddleY = y + 36 * S;
+    const puddle = this.add
+      .ellipse(x, puddleY, 40, 14, 0x66ccff, 0.45)
+      .setScrollFactor(0)
+      .setDepth(500.9)
+      .setScale(0.12, 0.12);
+    this.tweens.add({ targets: puddle, scaleX: 4.4, scaleY: 1.25, duration: 5500, ease: 'Sine.Out' });
+
+    // Streaming tears from under each lens (the bottom of his goggles)
+    const eyeOffX = 6 * S;
+    const eyeOffY = -14 * S;
+    for (const ox of [-eyeOffX, eyeOffX]) {
+      const tears = this.add
+        .particles(0, 0, 'particle', {
+          lifespan: 1150,
+          speedY: { min: 70, max: 150 },
+          speedX: { min: -22, max: 22 },
+          gravityY: 650,
+          // stay full size on the way down; only shrink near the end (once well below him)
+          scale: { start: 0.95, end: 0.12, ease: 'Quint.In' },
+          alpha: { start: 0.95, end: 0, ease: 'Quint.In' },
+          tint: 0x66ccff,
+          frequency: 55,
+          quantity: 1,
+        })
+        .setScrollFactor(0)
+        .setDepth(502);
+      tears.startFollow(guy, ox, eyeOffY);
+    }
   }
 
   onBossDefeated(): void {
