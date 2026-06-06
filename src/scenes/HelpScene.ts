@@ -1,16 +1,18 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../constants';
+import { attachTap } from '../systems/touchMenu';
 
 const MONO = 'monospace';
 
 const ENTRIES: [string, string][] = [
-  ['Move', 'WASD  or  Arrow Keys'],
-  ['Jump', 'Space  (press again in the air to double-jump)'],
-  ['Attack', 'Keys 1, 2, 3  (number row or numpad)'],
+  ['Move', 'WASD / Arrow Keys  ·  or the on-screen stick'],
+  ['Jump', 'Space / ⤒ button  (again in the air to double-jump)'],
+  ['Attack', 'Keys 1, 2, 3  ·  or tap a weapon on the HUD bar'],
   ['', 'Slot 1 is a punch until you arm a compound'],
   ['Collect', 'Walk into a glowing atom, then pick an element'],
   ['Loadout', 'Pause → COMPOUND SELECTION to bind your weapons'],
-  ['Pause', 'ESC  or  Enter'],
+  ['Pause', 'ESC / Enter  ·  or the ❚❚ button'],
+  ['Touch', 'On-screen controls — toggle in Settings'],
   ['Watch out', 'Chasms hurt — jump across them, do not walk in'],
 ];
 
@@ -30,7 +32,9 @@ export default class HelpScene extends Phaser.Scene {
 
   create(): void {
     const cx = GAME_WIDTH / 2;
-    this.add.rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x060e06).setScrollFactor(0);
+    const bg = this.add.rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x060e06).setScrollFactor(0);
+    // Touch: tap anywhere to go back (mirrors ESC / Z).
+    attachTap(bg, () => this.scene.start(this.from));
 
     this.add
       .text(cx, 56, 'CONTROLS', { fontSize: '30px', color: '#88cc88', fontFamily: MONO, fontStyle: 'bold' })
@@ -52,7 +56,11 @@ export default class HelpScene extends Phaser.Scene {
     }
 
     this.add
-      .text(cx, GAME_HEIGHT - 34, 'ESC / Z to go back', { fontSize: '14px', color: '#668866', fontFamily: MONO })
+      .text(cx, GAME_HEIGHT - 34, 'ESC / Z  or tap  to go back', {
+        fontSize: '14px',
+        color: '#668866',
+        fontFamily: MONO,
+      })
       .setOrigin(0.5);
 
     // biome-ignore lint/style/noNonNullAssertion: keyboard always present

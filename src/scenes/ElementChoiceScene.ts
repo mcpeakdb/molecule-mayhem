@@ -12,6 +12,7 @@ import {
   GAME_WIDTH,
 } from '../constants';
 import ElementSystem from '../systems/ElementSystem';
+import { attachTap } from '../systems/touchMenu';
 
 const ELEMENT_SYMBOLS: Partial<Record<ElementType, string>> = {
   hydrogen: 'H',
@@ -143,6 +144,15 @@ export default class ElementChoiceScene extends Phaser.Scene {
       .setStrokeStyle(3, col)
       .setDepth(2)
       .setFillStyle(0x000000, 0);
+
+    // Touch: tap a card to select it; tap the highlighted card again to confirm the pick.
+    attachTap(bg, () => {
+      if (this.selected === index) this._confirm();
+      else {
+        this.selected = index;
+        this._highlight(index);
+      }
+    });
 
     // Title: "+1  Hydrogen" (or "+2" for a Gold pick)
     this.add

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { type Difficulty, GAME_HEIGHT, GAME_WIDTH } from '../constants';
 import Settings from '../systems/Settings';
+import { attachTap } from '../systems/touchMenu';
 
 const MONO = 'monospace';
 const ITEMS = ['START', 'STAGE SELECT', 'LEADERBOARD', 'CONTROLS', 'SETTINGS'] as const;
@@ -85,11 +86,24 @@ export default class TitleScene extends Phaser.Scene {
       .text(cx - 130, 320, '›', { fontSize: '20px', color: '#aaffaa', fontFamily: MONO })
       .setOrigin(0, 0.5);
 
-    this.itemTexts = ITEMS.map((label, i) =>
-      this.add
+    this.itemTexts = ITEMS.map((label, i) => {
+      const t = this.add
         .text(cx - 104, 320 + i * 34, label, { fontSize: '19px', color: '#88bb88', fontFamily: MONO })
-        .setOrigin(0, 0.5),
-    );
+        .setOrigin(0, 0.5);
+      attachTap(
+        t,
+        () => {
+          this.cursor = i;
+          this._refresh();
+          this._confirm();
+        },
+        () => {
+          this.cursor = i;
+          this._refresh();
+        },
+      );
+      return t;
+    });
 
     this.add
       .text(cx, GAME_HEIGHT - 24, '↑↓ select    Z / Enter confirm', {

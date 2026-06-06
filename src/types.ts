@@ -17,6 +17,17 @@ export type WasdKeys = {
   D: Phaser.Input.Keyboard.Key;
 };
 
+/** Per-frame on-screen touch input, merged with the keyboard in Player.update. */
+export type TouchInputState = {
+  /** Analog movement from the floating thumbstick, each axis in [-1, 1] (0 = centred/idle). */
+  moveX: number;
+  moveY: number;
+  /** Jump was tapped this frame (edge-triggered, already consumed). */
+  jump: boolean;
+  /** Weapon-slot indices tapped this frame (edge-triggered, already drained). */
+  slots: number[];
+};
+
 export type InputKeys = {
   cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   wasd: WasdKeys;
@@ -24,6 +35,8 @@ export type InputKeys = {
    *  equivalent keys (numpad + number-row mirror) — any of them fires that slot.
    *  Slot 1 punches while no attacks are unlocked, then becomes the first attack. */
   slotKeys: Phaser.Input.Keyboard.Key[][];
+  /** On-screen controls state for the current frame; absent when touch controls are off. */
+  touch?: TouchInputState;
 };
 
 export type ElementState = { type: ElementType; level: number };

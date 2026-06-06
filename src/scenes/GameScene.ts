@@ -26,6 +26,7 @@ import SaveSystem, { type RunRecord } from '../systems/SaveSystem';
 import Settings from '../systems/Settings';
 import SoundSystem from '../systems/SoundSystem';
 import type { AtomSprite, EnemySprite, WasdKeys } from '../types';
+import type HUDScene from './HUDScene';
 
 type ProjectileSprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody & {
   damage: number;
@@ -239,6 +240,8 @@ export default class GameScene extends Phaser.Scene {
       this.isPaused = false;
       this.physics.resume();
     });
+    // On-screen pause button (touch) routes through the same path as the keyboard pause.
+    this.events.on('request-pause', () => this._openPause());
     this.scene.launch('HUDScene');
     this.isPaused = true;
     this.physics.pause();
@@ -881,21 +884,25 @@ export default class GameScene extends Phaser.Scene {
     this.pauseKeyAlt = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
   }
 
+  /** Pause the stage and open the pause menu — shared by the keyboard pause keys and the touch button. */
+  private _openPause(): void {
+    if (this.isPaused || this.stageCleared || this.isTutorial) return;
+    this.isPaused = true;
+    this.physics.pause();
+    this.scene.launch('PauseScene', {
+      stage: this.currentStage,
+      canSelectCompounds: this.player.elementSystem.getAvailableAttacks().length > 0,
+    });
+  }
+
   update(_time: number, delta: number): void {
-    if (
-      (Phaser.Input.Keyboard.JustDown(this.pauseKey) || Phaser.Input.Keyboard.JustDown(this.pauseKeyAlt)) &&
-      !this.stageCleared &&
-      !this.isTutorial
-    ) {
-      if (!this.isPaused) {
-        this.isPaused = true;
-        this.physics.pause();
-        this.scene.launch('PauseScene', {
-          stage: this.currentStage,
-          canSelectCompounds: this.player.elementSystem.getAvailableAttacks().length > 0,
-        });
-      }
+    if (Phaser.Input.Keyboard.JustDown(this.pauseKey) || Phaser.Input.Keyboard.JustDown(this.pauseKeyAlt)) {
+      this._openPause();
     }
+
+    // On-screen controls are only live while the player is actually playing this stage.
+    const touchControls = (this.scene.get('HUDScene') as HUDScene)?.touch ?? null;
+    touchControls?.setEnabled(!this.isPaused && !this.stageCleared);
 
     if (this.isPaused || this.stageCleared) return;
 
@@ -903,6 +910,7 @@ export default class GameScene extends Phaser.Scene {
       cursors: this.cursors,
       wasd: this.wasd,
       slotKeys: this.slotKeys,
+      touch: touchControls?.snapshot(),
     });
 
     const clampMin = this._bossArena ? this._bossArena.left + 30 : 40;

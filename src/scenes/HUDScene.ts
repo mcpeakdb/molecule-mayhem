@@ -9,6 +9,8 @@ import {
   MAX_ELEMENT_LEVEL,
   PLAYER_MAX_HP,
 } from '../constants';
+import Settings from '../systems/Settings';
+import TouchControls from '../systems/TouchControls';
 import type { ArsenalUpdate } from '../types';
 
 const PAD = 14;
@@ -58,6 +60,9 @@ export default class HUDScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Text;
   private comboText!: Phaser.GameObjects.Text;
   private comboSub!: Phaser.GameObjects.Text;
+
+  /** On-screen touch controls, polled by GameScene each frame. Null when touch controls are off. */
+  touch: TouchControls | null = null;
 
   constructor() {
     super('HUDScene');
@@ -161,7 +166,17 @@ export default class HUDScene extends Phaser.Scene {
       const cooldown = this.add.rectangle(0, -CHIP_H / 2, CHIP_W, 0, 0x000000, 0.55).setOrigin(0.5, 0);
 
       container.add([bg, cooldown, keyText, symbolText, nameText, ...pips]);
-      this.chips.push({ container, bg, keyText, symbolText, nameText, pips, cooldown, id: null });
+      const chip = { container, bg, keyText, symbolText, nameText, pips, cooldown, id: null };
+      this.chips.push(chip);
+
+      // Touch: tapping a visible weapon chip fires that slot (routed through the player like a key press).
+      bg.setInteractive({ useHandCursor: true });
+      bg.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev?: Phaser.Types.Input.EventData) => {
+        if (!this.touch || !chip.container.visible) return;
+        ev?.stopPropagation();
+        this.touch.queueSlot(i);
+        this.tweens.add({ targets: chip.container, scale: 0.92, duration: 70, yoyo: true });
+      });
     }
 
     // ── SCORE ────────────────────────────────────────────────────────────────
@@ -235,6 +250,14 @@ export default class HUDScene extends Phaser.Scene {
       },
       this,
     );
+
+    // ── TOUCH CONTROLS ─────────────────────────────────────────────────────────
+    this.touch = null;
+    if (Settings.touchActive()) {
+      const touch = new TouchControls(this);
+      touch.onPause = () => gameScene.events.emit('request-pause');
+      this.touch = touch;
+    }
   }
 
   private _onUpdate({ hp }: { hp: number }): void {

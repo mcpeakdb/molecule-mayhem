@@ -150,6 +150,32 @@ progress hints toward locked compounds.
 
 ---
 
+## Phase 10 — Mobile / Touch Support ✅ COMPLETE (v0.15.0)
+
+Shipped 2026-06-06. Makes the game fully playable by touch alongside the keyboard.
+
+- **`TouchControls` system** ([../src/systems/TouchControls.ts](../src/systems/TouchControls.ts)):
+  a floating left-half thumbstick (analog `moveX`/`moveY`), plus jump (⤒) and pause (❚❚) buttons.
+  Hosted by `HUDScene`; multi-touch enabled. Polled each frame by `GameScene.update` and merged into
+  the player via the new optional `InputKeys.touch` (`Player.update` reads stick + jump/slot edges).
+- **Tappable HUD weapon chips** queue a slot fire through the same path as a key press; the on-screen
+  pause button routes through a `request-pause` event into the shared `GameScene._openPause()`.
+  Controls auto-hide during intros/pause via `TouchControls.setEnabled`.
+- **`Settings.touchControls`** (`auto` | `on` | `off`, default `auto`) with `Settings.touchActive()`
+  resolving `auto` against `isTouchDevice()`. New Touch Controls row in `SettingsScene`.
+- **All menus tappable** via the shared `attachTap` helper
+  ([../src/systems/touchMenu.ts](../src/systems/touchMenu.ts)) — Title, Difficulty, Stage Select
+  (+ ‹ BACK / LEADERBOARD ›), Leaderboard, Settings, Help, Pause + Compound Selection, and the
+  element picker. Card menus use tap-to-select → tap-again-to-confirm.
+- **`index.html`** viewport hardened for mobile (no pinch/double-tap zoom, `touch-action: none`).
+
+## Phase 9 — Stationary Boss Duels ✅ COMPLETE (v0.14.0)
+
+Shipped 2026-06-06. Bosses no longer chase the player; they enter the arena, hold station, and use
+telegraphed attack patterns to dodge while the player whittles their HP. The camera locks to a
+single screen-wide arena on activation (`GameScene._lockBossArena`). See
+[../src/entities/Boss.ts](../src/entities/Boss.ts) (hover + `volley`/`radial`/`barrage`/`sweep`).
+
 ## Phase 8 — Weapon Loadouts & Compound Selection ✅ COMPLETE (v0.13.0)
 
 Shipped 2026-06-06. Replaces the "auto-wield your strongest" arsenal with a player-chosen loadout.

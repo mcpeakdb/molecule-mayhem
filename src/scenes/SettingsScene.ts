@@ -2,9 +2,10 @@ import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../constants';
 import Settings from '../systems/Settings';
 import SoundSystem from '../systems/SoundSystem';
+import { attachTap } from '../systems/touchMenu';
 
 const MONO = 'monospace';
-const ROWS = ['Volume', 'Mute', 'Sound FX', 'Screen Shake', 'BACK'] as const;
+const ROWS = ['Volume', 'Mute', 'Sound FX', 'Screen Shake', 'Touch Controls', 'BACK'] as const;
 
 export default class SettingsScene extends Phaser.Scene {
   private cursor = 0;
@@ -48,11 +49,24 @@ export default class SettingsScene extends Phaser.Scene {
       .text(cx - 200, 160, '›', { fontSize: '22px', color: '#aaffaa', fontFamily: MONO })
       .setOrigin(0, 0.5);
 
-    this.rowTexts = ROWS.map((_, i) =>
-      this.add
+    this.rowTexts = ROWS.map((_, i) => {
+      const t = this.add
         .text(cx - 174, 160 + i * 48, '', { fontSize: '18px', color: '#88bb88', fontFamily: MONO })
-        .setOrigin(0, 0.5),
-    );
+        .setOrigin(0, 0.5);
+      // Touch: tap a row to select it and apply it (toggle / cycle / BACK), like pressing Z on it.
+      attachTap(
+        t,
+        () => {
+          this.cursor = i;
+          this._confirm();
+        },
+        () => {
+          this.cursor = i;
+          this._refresh();
+        },
+      );
+      return t;
+    });
 
     this.add
       .text(cx, GAME_HEIGHT - 30, '↑↓ select    ←→ adjust    Z/Enter toggle    ESC back', {
@@ -111,6 +125,9 @@ export default class SettingsScene extends Phaser.Scene {
       case 3:
         Settings.set({ screenShake: dir > 0 });
         break;
+      case 4:
+        Settings.cycleTouchControls(dir);
+        break;
     }
     this._refresh();
   }
@@ -138,6 +155,9 @@ export default class SettingsScene extends Phaser.Scene {
       case 3:
         Settings.set({ screenShake: !s.screenShake });
         break;
+      case 4:
+        Settings.cycleTouchControls(1);
+        break;
     }
     this._refresh();
   }
@@ -155,11 +175,13 @@ export default class SettingsScene extends Phaser.Scene {
     const s = Settings.get();
     const bars = Math.round(s.volume * 10);
     const onOff = (v: boolean) => (v ? 'ON' : 'OFF');
+    const touchLabel = { auto: 'AUTO', on: 'ON', off: 'OFF' }[s.touchControls];
     const values = [
-      `Volume        [${'█'.repeat(bars)}${'░'.repeat(10 - bars)}] ${Math.round(s.volume * 100)}%`,
-      `Mute          ${onOff(s.muted)}`,
-      `Sound FX      ${onOff(s.sfx)}`,
-      `Screen Shake  ${onOff(s.screenShake)}`,
+      `Volume         [${'█'.repeat(bars)}${'░'.repeat(10 - bars)}] ${Math.round(s.volume * 100)}%`,
+      `Mute           ${onOff(s.muted)}`,
+      `Sound FX       ${onOff(s.sfx)}`,
+      `Screen Shake   ${onOff(s.screenShake)}`,
+      `Touch Controls ${touchLabel}`,
       'BACK',
     ];
     this.rowTexts.forEach((t, i) => {

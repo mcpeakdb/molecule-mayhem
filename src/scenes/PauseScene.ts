@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { type AttackId, ELEMENT_NAMES, GAME_HEIGHT, GAME_WIDTH } from '../constants';
+import { attachTap } from '../systems/touchMenu';
 import type GameScene from './GameScene';
 
 const MONO = 'monospace';
@@ -101,13 +102,26 @@ export default class PauseScene extends Phaser.Scene {
       .setDepth(502);
     this.menuObjs.push(this.cursorText);
 
-    this.optionTexts = this.options.map((label, i) =>
-      this.add
+    this.optionTexts = this.options.map((label, i) => {
+      const t = this.add
         .text(cx - 100, cy - 30 + i * 34, label, { fontSize: '18px', color: '#669966', fontFamily: MONO })
         .setOrigin(0, 0.5)
         .setScrollFactor(0)
-        .setDepth(502),
-    );
+        .setDepth(502);
+      attachTap(
+        t,
+        () => {
+          this.cursor = i;
+          this._refreshCursor();
+          this._confirm();
+        },
+        () => {
+          this.cursor = i;
+          this._refreshCursor();
+        },
+      );
+      return t;
+    });
     this.menuObjs.push(...this.optionTexts);
 
     this._refreshCursor();
@@ -184,9 +198,22 @@ export default class PauseScene extends Phaser.Scene {
         .setOrigin(0, 0.5)
         .setScrollFactor(0)
         .setDepth(502);
+      // Touch: tapping a row selects it and cycles to the next compound (← / → still work on keyboard).
+      attachTap(row, () => {
+        this.compoundCursor = i;
+        this._cycle(1);
+      });
       this.slotRows.push(row);
       this.compoundObjs.push(row);
     }
+
+    const back = this.add
+      .text(cx, cy + slotCount * 34 + 14, '‹ BACK', { fontSize: '15px', color: '#88bb88', fontFamily: MONO })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(502);
+    attachTap(back, () => this._setMode('menu'));
+    this.compoundObjs.push(back);
   }
 
   /** Candidate compounds for a slot: "empty" plus every available weapon not bound to another slot. */

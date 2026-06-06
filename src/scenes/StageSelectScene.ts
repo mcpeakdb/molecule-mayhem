@@ -11,6 +11,7 @@ import {
 } from '../constants';
 import { STAGES } from '../stages';
 import SaveSystem from '../systems/SaveSystem';
+import { attachTap } from '../systems/touchMenu';
 
 const MONO = 'monospace';
 const COL_X = [200, 480, 760] as const; // one column per sector
@@ -90,6 +91,27 @@ export default class StageSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    // Tappable corner buttons (mirror the ESC / L keyboard shortcuts) for touch.
+    const back = this.add
+      .text(20, 30, '‹ BACK', { fontSize: '15px', color: '#88bb88', fontFamily: MONO })
+      .setOrigin(0, 0.5);
+    attachTap(
+      back,
+      () => this.scene.start('DifficultyScene'),
+      () => back.setColor('#ccffcc'),
+    );
+    back.on('pointerout', () => back.setColor('#88bb88'));
+
+    const board = this.add
+      .text(GAME_WIDTH - 20, 30, 'LEADERBOARD ›', { fontSize: '15px', color: '#88bb88', fontFamily: MONO })
+      .setOrigin(1, 0.5);
+    attachTap(
+      board,
+      () => this.scene.start('LeaderboardScene', { from: 'StageSelectScene', difficulty: this.difficulty }),
+      () => board.setColor('#ccffcc'),
+    );
+    board.on('pointerout', () => board.setColor('#88bb88'));
+
     this._refresh();
 
     // biome-ignore lint/style/noNonNullAssertion: keyboard always present
@@ -120,6 +142,16 @@ export default class StageSelectScene extends Phaser.Scene {
 
     const border = this.add.graphics();
     this.cards.push(border); // index = stage - 1
+
+    // Touch: a transparent hit zone over the card. Tap to select; tap the selected card to play.
+    const zone = this.add.rectangle(x, y, CARD_W, CARD_H, 0x000000, 0).setOrigin(0.5);
+    attachTap(zone, () => {
+      if (this.cursor === stage - 1) this._confirm();
+      else {
+        this.cursor = stage - 1;
+        this._refresh();
+      }
+    });
 
     const titleColor = locked ? '#555f55' : `#${accent.toString(16).padStart(6, '0')}`;
     this.add

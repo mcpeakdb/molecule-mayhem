@@ -4,11 +4,15 @@
 // preferences read on hot paths (every sound, every screen shake), so access must
 // be cheap and never throw.
 
+/** On-screen touch controls: always on, always off, or shown only on touch-capable devices. */
+export type TouchMode = 'auto' | 'on' | 'off';
+
 export interface GameSettings {
   volume: number; // 0..1 master volume
   muted: boolean;
   sfx: boolean; // sound effects enabled
   screenShake: boolean;
+  touchControls: TouchMode; // on-screen joystick + buttons for mobile
   tutorialDone: boolean; // set once the M.E.G. tutorial has been completed/skipped
   compoundIntroSeen: boolean; // set once M.E.G. has explained the Compound Selection menu
 }
@@ -20,9 +24,12 @@ const DEFAULTS: GameSettings = {
   muted: false,
   sfx: true,
   screenShake: true,
+  touchControls: 'auto',
   tutorialDone: false,
   compoundIntroSeen: false,
 };
+
+const TOUCH_MODES: readonly TouchMode[] = ['auto', 'on', 'off'];
 
 let cache: GameSettings | null = null;
 
@@ -42,6 +49,28 @@ export default class Settings {
     }
   }
 
+  /** Whether on-screen touch controls should be shown, resolving the `auto` mode against the device. */
+  static touchActive(): boolean {
+    const mode = Settings.get().touchControls;
+    if (mode === 'on') return true;
+    if (mode === 'off') return false;
+    return Settings.isTouchDevice();
+  }
+
+  /** Best-effort touch-capability sniff (used to resolve the `auto` touch-controls mode). */
+  static isTouchDevice(): boolean {
+    if (typeof window === 'undefined') return false;
+    return 'ontouchstart' in window || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
+  }
+
+  /** Cycle the touch-controls mode (auto → on → off → auto). Returns the new mode. */
+  static cycleTouchControls(dir = 1): TouchMode {
+    const i = TOUCH_MODES.indexOf(Settings.get().touchControls);
+    const next = TOUCH_MODES[(i + dir + TOUCH_MODES.length) % TOUCH_MODES.length];
+    Settings.set({ touchControls: next });
+    return next;
+  }
+
   /** Volume actually applied to audio: 0 when muted or SFX are off. */
   static effectiveVolume(): number {
     const s = Settings.get();
@@ -59,6 +88,9 @@ export default class Settings {
         muted: parsed.muted ?? DEFAULTS.muted,
         sfx: parsed.sfx ?? DEFAULTS.sfx,
         screenShake: parsed.screenShake ?? DEFAULTS.screenShake,
+        touchControls: TOUCH_MODES.includes(parsed.touchControls as TouchMode)
+          ? (parsed.touchControls as TouchMode)
+          : DEFAULTS.touchControls,
         tutorialDone: parsed.tutorialDone ?? DEFAULTS.tutorialDone,
         compoundIntroSeen: parsed.compoundIntroSeen ?? DEFAULTS.compoundIntroSeen,
       };

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { type Difficulty, GAME_HEIGHT, GAME_WIDTH } from '../constants';
 import SaveSystem from '../systems/SaveSystem';
+import { attachTap } from '../systems/touchMenu';
 
 const MONO = 'monospace';
 const DIFFS: Difficulty[] = ['normal', 'hard', 'extreme'];
@@ -38,11 +39,16 @@ export default class LeaderboardScene extends Phaser.Scene {
 
     // Difficulty tabs
     const tabW = 150;
-    this.tabTexts = DIFFS.map((d, i) =>
-      this.add
+    this.tabTexts = DIFFS.map((d, i) => {
+      const t = this.add
         .text(cx + (i - 1) * tabW, 96, d.toUpperCase(), { fontSize: '16px', color: '#557755', fontFamily: MONO })
-        .setOrigin(0.5),
-    );
+        .setOrigin(0.5);
+      attachTap(t, () => {
+        this.diffIndex = i;
+        this._refresh();
+      });
+      return t;
+    });
 
     const g = this.add.graphics();
     g.lineStyle(1, 0x1a3a1a, 0.7);
@@ -59,6 +65,16 @@ export default class LeaderboardScene extends Phaser.Scene {
         fontFamily: MONO,
       })
       .setOrigin(0.5);
+
+    const back = this.add
+      .text(20, 30, '‹ BACK', { fontSize: '15px', color: '#88bb88', fontFamily: MONO })
+      .setOrigin(0, 0.5);
+    attachTap(
+      back,
+      () => this.scene.start(this.from),
+      () => back.setColor('#ccffcc'),
+    );
+    back.on('pointerout', () => back.setColor('#88bb88'));
 
     this._refresh();
 

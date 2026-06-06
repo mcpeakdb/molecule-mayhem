@@ -108,7 +108,7 @@ export default class Player {
     this.sprite.setAlpha(flickerAlpha);
     this._armsGraphic.setAlpha(flickerAlpha);
 
-    const { cursors, wasd, slotKeys } = keys;
+    const { cursors, wasd, slotKeys, touch } = keys;
     const left = cursors.left.isDown || wasd.A.isDown;
     const right = cursors.right.isDown || wasd.D.isDown;
     const up = cursors.up.isDown || wasd.W.isDown;
@@ -128,19 +128,27 @@ export default class Player {
     const spd = PLAYER_SPEED * this._speedBoost;
     let vx = 0,
       vy = 0;
-    if (left) {
-      vx = -spd;
-      this.facingRight = false;
-    }
-    if (right) {
-      vx = spd;
-      this.facingRight = true;
-    }
-    if (up) vy = -spd * 0.65;
-    if (down) vy = spd * 0.65;
-    if (vx !== 0 && vy !== 0) {
-      vx *= Math.SQRT1_2;
-      vy *= Math.SQRT1_2;
+    if (touch && (touch.moveX !== 0 || touch.moveY !== 0)) {
+      // Analog thumbstick: magnitude is already clamped to 1, so scale straight to speed.
+      vx = touch.moveX * spd;
+      vy = touch.moveY * spd * 0.65;
+      if (touch.moveX < -0.05) this.facingRight = false;
+      else if (touch.moveX > 0.05) this.facingRight = true;
+    } else {
+      if (left) {
+        vx = -spd;
+        this.facingRight = false;
+      }
+      if (right) {
+        vx = spd;
+        this.facingRight = true;
+      }
+      if (up) vy = -spd * 0.65;
+      if (down) vy = spd * 0.65;
+      if (vx !== 0 && vy !== 0) {
+        vx *= Math.SQRT1_2;
+        vy *= Math.SQRT1_2;
+      }
     }
 
     // X via physics; Y integrated manually so jumpOffset can offset the visual independently
@@ -192,10 +200,11 @@ export default class Player {
       this._speedBoostAura.setPosition(this.sprite.x, this._groundY).setDepth(this._groundY - 2);
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this._jumpKey)) this._doJump();
+    if (Phaser.Input.Keyboard.JustDown(this._jumpKey) || touch?.jump) this._doJump();
     const bindings = this.elementSystem.getBindings();
     for (let i = 0; i < slotKeys.length; i++) {
-      if (!slotKeys[i].some((k) => Phaser.Input.Keyboard.JustDown(k))) continue;
+      const pressed = slotKeys[i].some((k) => Phaser.Input.Keyboard.JustDown(k)) || (touch?.slots.includes(i) ?? false);
+      if (!pressed) continue;
       const id = i < bindings.length ? bindings[i] : null;
       if (id) this._fireAttack(id);
       else if (i === 0 && this.attackCooldown === 0) this._doMeleeAttack(); // "1" = punch while slot 1 is empty

@@ -1,5 +1,21 @@
 # Patch Notes
 
+## v0.15.0 — 2026-06-06
+
+### Mobile / touch support
+
+- **On-screen controls.** A floating thumbstick (touch the left half of the screen) drives
+  movement, with a **jump button (⤒)** and **pause button (❚❚)** on the right. Tapping a weapon
+  chip on the HUD bar fires that slot — no keyboard required.
+- **Auto-detection + toggle.** Touch controls appear automatically on touch-capable devices. A new
+  **Touch Controls** row in Settings (AUTO / ON / OFF) lets you force them on or off.
+- **Every menu is now tappable.** Title, Difficulty, Stage Select (with ‹ BACK / LEADERBOARD ›
+  buttons), Leaderboard, Settings, Controls, Pause + Compound Selection, and the level-up element
+  picker all respond to taps as well as the keyboard. Card menus use tap-to-select then
+  tap-again-to-confirm.
+- **Mobile viewport.** Pinch/double-tap zoom is disabled and the canvas swallows pan gestures, so
+  dragging the stick won't scroll the page. The game still scales to fit any screen.
+
 ## v0.14.0 — 2026-06-06
 
 ### Boss fights are now dodge-and-whittle duels

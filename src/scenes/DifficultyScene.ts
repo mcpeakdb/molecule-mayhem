@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { type Difficulty, GAME_HEIGHT, GAME_WIDTH } from '../constants';
+import { attachTap } from '../systems/touchMenu';
 
 const MONO = 'monospace';
 
@@ -80,6 +81,21 @@ export default class DifficultyScene extends Phaser.Scene {
       // Background
       const bg = this.add.rectangle(x, CARD_CY, CARD_W, CARD_H, opt.color, 0.06).setOrigin(0.5);
       this.cardBgs.push(bg);
+      // Touch: tap a card to highlight it; tap the highlighted card again to confirm.
+      attachTap(
+        bg,
+        () => {
+          if (this.cursor === i) this._confirm();
+          else {
+            this.cursor = i;
+            this._refreshCards();
+          }
+        },
+        () => {
+          this.cursor = i;
+          this._refreshCards();
+        },
+      );
 
       // Border (separate Graphics per card so we can redraw individually)
       const border = this.add.graphics();
