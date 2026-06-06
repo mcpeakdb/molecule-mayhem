@@ -193,19 +193,20 @@ export default class Player {
     }
 
     if (Phaser.Input.Keyboard.JustDown(this._jumpKey)) this._doJump();
-    const attackCount = this.elementSystem.getAvailableAttacks().length;
+    const bindings = this.elementSystem.getBindings();
     for (let i = 0; i < slotKeys.length; i++) {
       if (!slotKeys[i].some((k) => Phaser.Input.Keyboard.JustDown(k))) continue;
-      if (i < attackCount) this._fireSlot(i);
-      else if (i === 0 && this.attackCooldown === 0) this._doMeleeAttack(); // "1" = punch until armed
+      const id = i < bindings.length ? bindings[i] : null;
+      if (id) this._fireAttack(id);
+      else if (i === 0 && this.attackCooldown === 0) this._doMeleeAttack(); // "1" = punch while slot 1 is empty
     }
 
     this.scene.events.emit('arsenal-update', this.getArsenalUpdate());
   }
 
-  /** Full HUD snapshot: arsenal + owned-atom counts. */
+  /** Full HUD snapshot: bound weapon slots + owned-atom counts. */
   getArsenalUpdate() {
-    return { attacks: this.getArsenal(), counts: this.elementSystem.getCounts() };
+    return { slots: this.getSlots(), counts: this.elementSystem.getCounts() };
   }
 
   private _tickCooldowns(delta: number): void {
@@ -216,26 +217,29 @@ export default class Player {
     }
   }
 
-  /** Current arsenal with live cooldown state, for the HUD. */
-  getArsenal(): ArsenalEntry[] {
-    return this.elementSystem.getAvailableAttacks().map((s) => {
-      const def = ATTACKS[s.id];
+  /** One HUD entry per bound weapon slot (null = empty), with live cooldown state. */
+  getSlots(): (ArsenalEntry | null)[] {
+    return this.elementSystem.getBindings().map((id, i) => {
+      if (id === null) return null;
+      const level = this.elementSystem.getAttackLevel(id);
+      const def = ATTACKS[id];
       return {
-        ...s,
-        name: def.tierNames[s.level - 1],
+        id,
+        level,
+        key: i + 1,
+        name: def.tierNames[Math.max(0, level - 1)],
         color: def.color,
-        cooldownRemaining: this._cooldowns.get(s.id) ?? 0,
-        cooldownMs: this._cooldownFor(s.id, s.level),
+        cooldownRemaining: this._cooldowns.get(id) ?? 0,
+        cooldownMs: this._cooldownFor(id, level),
       };
     });
   }
 
-  /** Fire the i-th available attack (i = numpad position, 0-based). */
-  private _fireSlot(i: number): void {
+  /** Fire a specific bound attack. */
+  private _fireAttack(id: AttackId): void {
     if (!this.alive) return;
-    const attacks = this.elementSystem.getAvailableAttacks();
-    if (i >= attacks.length) return;
-    const { id, level } = attacks[i];
+    const level = this.elementSystem.getAttackLevel(id);
+    if (level <= 0) return;
     if ((this._cooldowns.get(id) ?? 0) > 0) return;
     this._cooldowns.set(id, this._cooldownFor(id, level));
     const dir = this.facingRight ? 1 : -1;

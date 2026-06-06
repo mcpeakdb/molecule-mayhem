@@ -37,7 +37,7 @@ export type AttackSlot = {
   key: number;
 };
 
-/** HUD payload: an available attack plus its live cooldown state. */
+/** HUD payload: a bound attack plus its live cooldown state. */
 export type ArsenalEntry = AttackSlot & {
   name: string;
   color: number;
@@ -45,8 +45,8 @@ export type ArsenalEntry = AttackSlot & {
   cooldownMs: number;
 };
 
-/** Full HUD arsenal snapshot: available attacks + owned-atom counts (the molecular tree). */
+/** Full HUD arsenal snapshot: one entry per weapon slot (null = empty) + owned-atom counts. */
 export type ArsenalUpdate = {
-  attacks: ArsenalEntry[];
+  slots: (ArsenalEntry | null)[];
   counts: Record<BaseAtom, number>;
 };

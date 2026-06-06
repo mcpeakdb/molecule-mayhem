@@ -8,22 +8,22 @@ const OPTIONS: { key: Difficulty; label: string; color: number; desc: string; st
     key: 'normal',
     label: 'NORMAL',
     color: 0x44cc66,
-    desc: 'TWO-BUTTON\nFIELD KIT',
-    stats: 'ENEMY HP     ×0.70\nENEMY SPEED  ×0.75\nINVINCIBILITY 1.4s\nARSENAL      2 WEAPONS',
+    desc: 'PICK-3\nFIELD KIT',
+    stats: 'ENEMY HP     ×0.70\nENEMY SPEED  ×0.75\nINVINCIBILITY 1.4s\nARSENAL      3 WEAPONS',
   },
   {
     key: 'hard',
     label: 'HARD',
     color: 0x88bb44,
     desc: 'STANDARD CULTURE\nCONDITIONS',
-    stats: 'ENEMY HP     ×1.00\nENEMY SPEED  ×1.00\nINVINCIBILITY 0.8s\nARSENAL      FULL',
+    stats: 'ENEMY HP     ×1.00\nENEMY SPEED  ×1.00\nINVINCIBILITY 0.8s\nARSENAL      3 WEAPONS',
   },
   {
     key: 'extreme',
     label: 'EXTREME',
     color: 0xcc4422,
     desc: 'AGGRESSIVE STRAIN\nCONDITIONS',
-    stats: 'ENEMY HP     ×1.40\nENEMY SPEED  ×1.25\nINVINCIBILITY 0.5s\nARSENAL      FULL',
+    stats: 'ENEMY HP     ×1.40\nENEMY SPEED  ×1.25\nINVINCIBILITY 0.5s\nARSENAL      2 WEAPONS',
   },
 ];
 

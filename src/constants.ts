@@ -3,15 +3,16 @@ export interface DifficultyScale {
   enemyHp: number;
   enemySpeed: number;
   invincMs: number;
-  /** When true, the player wields only their two strongest attacks on keys 1 & 2 (simplified arsenal). */
-  simplifiedArsenal: boolean;
+  /** Number of bindable weapon slots (keys 1..weaponSlots). The player assigns compounds to these
+   *  via the Compound Selection menu; the first unlocks auto-fill them. */
+  weaponSlots: number;
 }
-// Tiers shifted up a notch from the old Easy/Normal/Hard: the gentle tuning is now the baseline
-// "Normal" (and collapses the arsenal to the two strongest buttons), with Hard/Extreme above it.
+// Tiers shifted up a notch from the old Easy/Normal/Hard: the gentle tuning is the baseline
+// "Normal", with Hard/Extreme above it. Normal/Hard carry three weapon slots; Extreme only two.
 export const DIFFICULTY_SCALE: Record<Difficulty, DifficultyScale> = {
-  normal: { enemyHp: 0.7, enemySpeed: 0.75, invincMs: 1400, simplifiedArsenal: true },
-  hard: { enemyHp: 1.0, enemySpeed: 1.0, invincMs: 800, simplifiedArsenal: false },
-  extreme: { enemyHp: 1.4, enemySpeed: 1.25, invincMs: 500, simplifiedArsenal: false },
+  normal: { enemyHp: 0.7, enemySpeed: 0.75, invincMs: 1400, weaponSlots: 3 },
+  hard: { enemyHp: 1.0, enemySpeed: 1.0, invincMs: 800, weaponSlots: 3 },
+  extreme: { enemyHp: 1.4, enemySpeed: 1.25, invincMs: 500, weaponSlots: 2 },
 };
 
 export const GAME_WIDTH = 960;

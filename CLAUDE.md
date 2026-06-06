@@ -51,9 +51,9 @@ src/
     LeaderboardScene.ts    # Top-5 runs per difficulty
     SettingsScene.ts       # Volume / mute / SFX / screen-shake options
     HelpScene.ts           # Controls reference
-    PauseScene.ts          # In-game pause menu
+    PauseScene.ts          # In-game pause menu + Compound Selection loadout sub-menu
   systems/
-    ElementSystem.ts       # Element combo resolution, level tracking
+    ElementSystem.ts       # Atom counts → available attacks, level tracking, weapon-slot bindings
     SoundSystem.ts         # Procedural Web Audio SFX (routed through a settings-aware master gain)
     SaveSystem.ts          # localStorage meta: unlocks, best scores, leaderboard (per difficulty)
     Settings.ts            # localStorage global prefs: volume, mute, sfx, screenShake, tutorialDone

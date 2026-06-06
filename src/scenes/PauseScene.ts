@@ -1,16 +1,35 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH } from '../constants';
+import { type AttackId, ELEMENT_NAMES, GAME_HEIGHT, GAME_WIDTH } from '../constants';
+import type GameScene from './GameScene';
 
 const MONO = 'monospace';
-const OPTIONS = ['RESUME', 'RESTART STAGE', 'DIFFICULTY SELECT', 'RESTART GAME'] as const;
 
 export default class PauseScene extends Phaser.Scene {
-  private cursor = 0;
   private stage = 1;
+  private canSelectCompounds = false;
+  private gameScene!: GameScene;
+
+  /** Top-level pause menu vs. the Compound Selection loadout sub-screen. */
+  private mode: 'menu' | 'compound' = 'menu';
+
+  // ── Top-level menu ──
+  private options: string[] = [];
+  private cursor = 0;
   private optionTexts: Phaser.GameObjects.Text[] = [];
   private cursorText!: Phaser.GameObjects.Text;
+  private title!: Phaser.GameObjects.Text;
+  private menuObjs: (Phaser.GameObjects.Text | Phaser.GameObjects.Graphics)[] = [];
+
+  // ── Compound Selection ──
+  private compoundCursor = 0;
+  private compoundObjs: Phaser.GameObjects.Text[] = [];
+  private slotRows: Phaser.GameObjects.Text[] = [];
+  private compoundCursorText!: Phaser.GameObjects.Text;
+
   private upKey!: Phaser.Input.Keyboard.Key;
   private downKey!: Phaser.Input.Keyboard.Key;
+  private leftKey!: Phaser.Input.Keyboard.Key;
+  private rightKey!: Phaser.Input.Keyboard.Key;
   private confirmKey!: Phaser.Input.Keyboard.Key;
   private confirmKey2!: Phaser.Input.Keyboard.Key;
   private escKey!: Phaser.Input.Keyboard.Key;
@@ -19,81 +38,83 @@ export default class PauseScene extends Phaser.Scene {
     super('PauseScene');
   }
 
-  init(data: { stage?: number }): void {
+  init(data: { stage?: number; canSelectCompounds?: boolean }): void {
     this.stage = data.stage ?? 1;
+    this.canSelectCompounds = data.canSelectCompounds ?? false;
     this.cursor = 0;
+    this.compoundCursor = 0;
+    this.mode = 'menu';
   }
 
   create(): void {
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
+    this.gameScene = this.scene.get('GameScene') as GameScene;
 
     // Overlay
     this.add.rectangle(cx, cy, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.78).setScrollFactor(0).setDepth(500);
 
-    // Title
-    this.add
-      .text(cx, cy - 72, 'PAUSED', {
-        fontSize: '30px',
-        color: '#88cc88',
-        fontFamily: MONO,
-        fontStyle: 'bold',
-      })
+    // Title (text swaps between modes)
+    this.title = this.add
+      .text(cx, cy - 84, 'PAUSED', { fontSize: '30px', color: '#88cc88', fontFamily: MONO, fontStyle: 'bold' })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(501);
 
-    // Separator lines
-    const g = this.add.graphics().setScrollFactor(0).setDepth(501);
-    g.lineStyle(1, 0x1a3a1a, 0.7);
-    g.lineBetween(cx - 130, cy - 50, cx + 130, cy - 50);
-    g.lineBetween(cx - 130, cy + 96, cx + 130, cy + 96);
-
-    // Cursor marker
-    this.cursorText = this.add
-      .text(cx - 108, cy - 30, '›', {
-        fontSize: '20px',
-        color: '#aaffaa',
-        fontFamily: MONO,
-      })
-      .setOrigin(0, 0.5)
-      .setScrollFactor(0)
-      .setDepth(502);
-
-    // Menu options
-    this.optionTexts = OPTIONS.map((label, i) =>
-      this.add
-        .text(cx - 88, cy - 30 + i * 34, label, {
-          fontSize: '18px',
-          color: '#669966',
-          fontFamily: MONO,
-        })
-        .setOrigin(0, 0.5)
-        .setScrollFactor(0)
-        .setDepth(502),
-    );
-
-    this._refreshCursor();
+    this._buildMenu(cx, cy);
+    this._buildCompound(cx, cy);
+    this._setMode('menu');
 
     // biome-ignore lint/style/noNonNullAssertion: keyboard always present
     const kb = this.input.keyboard!;
     this.upKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
     this.downKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
+    this.leftKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
+    this.rightKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
     this.confirmKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
     this.confirmKey2 = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
     this.escKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
   }
 
-  update(): void {
-    if (Phaser.Input.Keyboard.JustDown(this.upKey)) this._moveCursor(-1);
-    if (Phaser.Input.Keyboard.JustDown(this.downKey)) this._moveCursor(1);
-    if (Phaser.Input.Keyboard.JustDown(this.confirmKey) || Phaser.Input.Keyboard.JustDown(this.confirmKey2))
-      this._confirm();
-    if (Phaser.Input.Keyboard.JustDown(this.escKey)) this._resume();
+  // ── Top-level menu ──────────────────────────────────────────────────────────
+
+  private _buildMenu(cx: number, cy: number): void {
+    this.options = [
+      'RESUME',
+      ...(this.canSelectCompounds ? ['COMPOUND SELECTION'] : []),
+      'RESTART STAGE',
+      'DIFFICULTY SELECT',
+      'RESTART GAME',
+    ];
+
+    const lastY = cy - 30 + (this.options.length - 1) * 34;
+    const g = this.add.graphics().setScrollFactor(0).setDepth(501);
+    g.lineStyle(1, 0x1a3a1a, 0.7);
+    g.lineBetween(cx - 140, cy - 50, cx + 140, cy - 50);
+    g.lineBetween(cx - 140, lastY + 24, cx + 140, lastY + 24);
+    this.menuObjs.push(g);
+
+    this.cursorText = this.add
+      .text(cx - 122, cy - 30, '›', { fontSize: '20px', color: '#aaffaa', fontFamily: MONO })
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(502);
+    this.menuObjs.push(this.cursorText);
+
+    this.optionTexts = this.options.map((label, i) =>
+      this.add
+        .text(cx - 100, cy - 30 + i * 34, label, { fontSize: '18px', color: '#669966', fontFamily: MONO })
+        .setOrigin(0, 0.5)
+        .setScrollFactor(0)
+        .setDepth(502),
+    );
+    this.menuObjs.push(...this.optionTexts);
+
+    this._refreshCursor();
   }
 
   private _moveCursor(dir: number): void {
-    this.cursor = (this.cursor + dir + OPTIONS.length) % OPTIONS.length;
+    this.cursor = (this.cursor + dir + this.options.length) % this.options.length;
     this._refreshCursor();
   }
 
@@ -101,33 +122,151 @@ export default class PauseScene extends Phaser.Scene {
     const cy = GAME_HEIGHT / 2;
     this.cursorText.setY(cy - 30 + this.cursor * 34);
     this.optionTexts.forEach((t, i) => {
-      t.setStyle({ color: i === this.cursor ? '#ccffcc' : '#669966', fontFamily: MONO });
+      t.setColor(i === this.cursor ? '#ccffcc' : '#669966');
     });
   }
 
   private _confirm(): void {
-    switch (this.cursor) {
-      case 0:
+    switch (this.options[this.cursor]) {
+      case 'RESUME':
         this._resume();
         break;
-      case 1:
+      case 'COMPOUND SELECTION':
+        this._setMode('compound');
+        break;
+      case 'RESTART STAGE':
         this.scene.stop('HUDScene');
         this.scene.stop('PauseScene');
         this.scene.start('GameScene', { stage: this.stage });
         break;
-      case 2:
+      case 'DIFFICULTY SELECT':
         // GameScene renders above DifficultyScene, so it must be stopped or it hides the menu
         this.scene.stop('HUDScene');
         this.scene.stop('GameScene');
         this.scene.start('DifficultyScene');
         this.scene.stop('PauseScene');
         break;
-      case 3:
-        // Restart the whole game from the tutorial
+      case 'RESTART GAME':
         this.scene.stop('HUDScene');
         this.scene.stop('PauseScene');
         this.scene.start('GameScene', { tutorial: true });
         break;
+    }
+  }
+
+  // ── Compound Selection ───────────────────────────────────────────────────────
+
+  private _buildCompound(cx: number, cy: number): void {
+    const slotCount = this.gameScene.player.elementSystem.getSlotCount();
+
+    const help = this.add
+      .text(cx, cy - 50, '←/→ change compound    ↑/↓ pick key    Esc back', {
+        fontSize: '12px',
+        color: '#6699aa',
+        fontFamily: MONO,
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(502);
+    this.compoundObjs.push(help);
+
+    this.compoundCursorText = this.add
+      .text(cx - 168, cy - 10, '›', { fontSize: '20px', color: '#aaffaa', fontFamily: MONO })
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(502);
+    this.compoundObjs.push(this.compoundCursorText);
+
+    this.slotRows = [];
+    for (let i = 0; i < slotCount; i++) {
+      const row = this.add
+        .text(cx - 146, cy - 10 + i * 34, '', { fontSize: '17px', color: '#669966', fontFamily: MONO })
+        .setOrigin(0, 0.5)
+        .setScrollFactor(0)
+        .setDepth(502);
+      this.slotRows.push(row);
+      this.compoundObjs.push(row);
+    }
+  }
+
+  /** Candidate compounds for a slot: "empty" plus every available weapon not bound to another slot. */
+  private _candidates(slot: number): (AttackId | null)[] {
+    const es = this.gameScene.player.elementSystem;
+    const taken = new Set<AttackId>();
+    es.getBindings().forEach((id, j) => {
+      if (id && j !== slot) taken.add(id);
+    });
+    const avail = es
+      .getAvailableAttacks()
+      .map((a) => a.id)
+      .filter((id) => !taken.has(id));
+    return [null, ...avail];
+  }
+
+  private _moveCompound(dir: number): void {
+    this.compoundCursor = (this.compoundCursor + dir + this.slotRows.length) % this.slotRows.length;
+    this._refreshCompound();
+  }
+
+  private _cycle(dir: number): void {
+    const es = this.gameScene.player.elementSystem;
+    const slot = this.compoundCursor;
+    const cands = this._candidates(slot);
+    const cur = es.getBindings()[slot];
+    let idx = cands.findIndex((c) => c === cur);
+    if (idx < 0) idx = 0;
+    idx = (idx + dir + cands.length) % cands.length;
+    es.setBinding(slot, cands[idx]);
+    this.gameScene.events.emit('arsenal-update', this.gameScene.player.getArsenalUpdate());
+    this._refreshCompound();
+  }
+
+  private _refreshCompound(): void {
+    const es = this.gameScene.player.elementSystem;
+    const bindings = es.getBindings();
+    this.slotRows.forEach((row, i) => {
+      const id = bindings[i];
+      const label = id ? `${ELEMENT_NAMES[id]} · Lv${es.getAttackLevel(id)}` : '— empty —';
+      row.setText(`${i + 1}   ‹ ${label} ›`);
+      row.setColor(i === this.compoundCursor ? '#ccffcc' : '#669966');
+    });
+    this.compoundCursorText.setY(GAME_HEIGHT / 2 - 10 + this.compoundCursor * 34);
+  }
+
+  // ── Mode switching ───────────────────────────────────────────────────────────
+
+  private _setMode(mode: 'menu' | 'compound'): void {
+    this.mode = mode;
+    const inMenu = mode === 'menu';
+    this.menuObjs.forEach((o) => {
+      o.setVisible(inMenu);
+    });
+    this.compoundObjs.forEach((o) => {
+      o.setVisible(!inMenu);
+    });
+    this.title.setText(inMenu ? 'PAUSED' : 'COMPOUND SELECTION');
+    if (inMenu) this._refreshCursor();
+    else {
+      this.compoundCursor = 0;
+      this._refreshCompound();
+    }
+  }
+
+  // ── Input ────────────────────────────────────────────────────────────────────
+
+  update(): void {
+    if (this.mode === 'menu') {
+      if (Phaser.Input.Keyboard.JustDown(this.upKey)) this._moveCursor(-1);
+      if (Phaser.Input.Keyboard.JustDown(this.downKey)) this._moveCursor(1);
+      if (Phaser.Input.Keyboard.JustDown(this.confirmKey) || Phaser.Input.Keyboard.JustDown(this.confirmKey2))
+        this._confirm();
+      if (Phaser.Input.Keyboard.JustDown(this.escKey)) this._resume();
+    } else {
+      if (Phaser.Input.Keyboard.JustDown(this.upKey)) this._moveCompound(-1);
+      if (Phaser.Input.Keyboard.JustDown(this.downKey)) this._moveCompound(1);
+      if (Phaser.Input.Keyboard.JustDown(this.leftKey)) this._cycle(-1);
+      if (Phaser.Input.Keyboard.JustDown(this.rightKey)) this._cycle(1);
+      if (Phaser.Input.Keyboard.JustDown(this.escKey)) this._setMode('menu');
     }
   }
 

@@ -6,9 +6,10 @@ const MONO = 'monospace';
 const ENTRIES: [string, string][] = [
   ['Move', 'WASD  or  Arrow Keys'],
   ['Jump', 'Space  (press again in the air to double-jump)'],
-  ['Attack', 'Numpad 1–9, 0  (number row mirrors them)'],
-  ['', 'Slot 1 is a punch until you arm an element'],
+  ['Attack', 'Keys 1, 2, 3  (number row or numpad)'],
+  ['', 'Slot 1 is a punch until you arm a compound'],
   ['Collect', 'Walk into a glowing atom, then pick an element'],
+  ['Loadout', 'Pause → COMPOUND SELECTION to bind your weapons'],
   ['Pause', 'ESC  or  Enter'],
   ['Watch out', 'Chasms hurt — jump across them, do not walk in'],
 ];

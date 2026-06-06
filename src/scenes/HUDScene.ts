@@ -244,7 +244,7 @@ export default class HUDScene extends Phaser.Scene {
     this.hpText.setText(`HP  ${hp}`);
   }
 
-  private _onArsenal({ attacks, counts }: ArsenalUpdate): void {
+  private _onArsenal({ slots, counts }: ArsenalUpdate): void {
     // Atom badges
     this.atomBadges.forEach(({ circle, label }, i) => {
       const c = counts[BASE_ATOMS[i]];
@@ -252,42 +252,50 @@ export default class HUDScene extends Phaser.Scene {
       circle.setAlpha(c > 0 ? 1 : 0.35);
     });
 
-    // Until any attack is unlocked, slot 1 shows the basic Punch
-    const display: {
-      id: string;
-      key: number;
-      symbol: string;
-      name: string;
-      color: number;
-      level: number;
-      cooldownRemaining: number;
-      cooldownMs: number;
-    }[] =
-      attacks.length === 0
-        ? [
-            {
-              id: '__punch__',
-              key: 1,
-              symbol: '✊',
-              name: 'Punch',
-              color: 0xcfcfcf,
-              level: 0,
-              cooldownRemaining: 0,
-              cooldownMs: 0,
-            },
-          ]
-        : attacks.map((a) => ({
-            id: a.id,
-            key: a.key,
-            symbol: ATTACK_SYMBOL[a.id],
-            name: a.name,
-            color: a.color,
-            level: a.level,
-            cooldownRemaining: a.cooldownRemaining,
-            cooldownMs: a.cooldownMs,
-          }));
+    // One chip per weapon slot. A bound slot shows its compound; an empty slot 1 falls back to the
+    // basic Punch; any other empty slot shows a dim, awaiting-assignment placeholder.
+    const display = slots.map((slot, i) => {
+      if (slot) {
+        return {
+          id: slot.id as string,
+          key: slot.key,
+          symbol: ATTACK_SYMBOL[slot.id],
+          name: slot.name,
+          color: slot.color,
+          level: slot.level,
+          cooldownRemaining: slot.cooldownRemaining,
+          cooldownMs: slot.cooldownMs,
+          empty: false,
+        };
+      }
+      return i === 0
+        ? {
+            id: '__punch__',
+            key: 1,
+            symbol: '✊',
+            name: 'Punch',
+            color: 0xcfcfcf,
+            level: 0,
+            cooldownRemaining: 0,
+            cooldownMs: 0,
+            empty: false,
+          }
+        : {
+            id: '__empty__',
+            key: i + 1,
+            symbol: '·',
+            name: '— empty —',
+            color: 0x556655,
+            level: 0,
+            cooldownRemaining: 0,
+            cooldownMs: 0,
+            empty: true,
+          };
+    });
 
-    // Attack chips
+    // Attack chips — centre the bar on however many weapon slots this difficulty grants
+    const totalW = display.length * CHIP_W + (display.length - 1) * CHIP_GAP;
+    const startX = (GAME_WIDTH - totalW) / 2;
     for (let i = 0; i < CHIP_COUNT; i++) {
       const chip = this.chips[i];
       const entry = display[i];
@@ -297,6 +305,7 @@ export default class HUDScene extends Phaser.Scene {
         continue;
       }
       chip.container.setVisible(true);
+      chip.container.x = startX + i * (CHIP_W + CHIP_GAP) + CHIP_W / 2;
       const hex = `#${entry.color.toString(16).padStart(6, '0')}`;
       if (chip.id !== entry.id) {
         chip.id = entry.id;
@@ -309,10 +318,10 @@ export default class HUDScene extends Phaser.Scene {
         pip.setFillStyle(p < entry.level ? entry.color : 0x223322);
       });
 
-      // Cooldown overlay wipes down from the top; chip dims while recharging
+      // Cooldown overlay wipes down from the top; chip dims while recharging or empty
       const frac = entry.cooldownMs > 0 ? Phaser.Math.Clamp(entry.cooldownRemaining / entry.cooldownMs, 0, 1) : 0;
       chip.cooldown.height = CHIP_H * frac;
-      chip.container.setAlpha(frac > 0 ? 0.62 : 1);
+      chip.container.setAlpha(entry.empty ? 0.45 : frac > 0 ? 0.62 : 1);
     }
   }
 }

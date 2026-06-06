@@ -180,6 +180,15 @@ export default class GameScene extends Phaser.Scene {
     this._dlgQueue = [];
     this._firedTips.clear();
     this._activeTip = undefined;
+    // The scene instance is reused across restarts, so these refs would otherwise point at
+    // GameObjects destroyed in the previous lifecycle — clear them so the dialogue UI is rebuilt
+    // lazily (otherwise `_say` skips the stale-but-truthy `_dlgBg` and shows nothing, soft-locking).
+    this._dlgBg = undefined;
+    this._dlgPortrait = undefined;
+    this._dlgName = undefined;
+    this._dlgText = undefined;
+    this._dlgHint = undefined;
+    this._dlgAdvance = undefined;
   }
 
   create(): void {
@@ -199,7 +208,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.player = new Player(this, 120, FLOOR_CENTER_Y);
     this.player.invincibilityMs = DIFFICULTY_SCALE[this.difficulty].invincMs;
-    this.player.elementSystem.setSimplified(DIFFICULTY_SCALE[this.difficulty].simplifiedArsenal);
+    this.player.elementSystem.setSlotCount(DIFFICULTY_SCALE[this.difficulty].weaponSlots);
     this.cameras.main.startFollow(this.player.sprite, true, 0.08, 0.08);
 
     this.physics.add.overlap(this.player.sprite, this.atomGroup, (_p, atomSprite) =>
@@ -726,8 +735,19 @@ export default class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: this._dlgPortrait, scaleX: 1.14, scaleY: 1.14, duration: 100, yoyo: true });
   }
 
+  /** Lines M.E.G. delivers the first time the player out-synthesizes their weapon slots. */
+  private _compoundIntroLines(): string[] {
+    const n = this.player.elementSystem.getSlotCount();
+    return [
+      `Nice work — that's more compounds than your harness can hold! You've only got ${n} weapon key${n === 1 ? '' : 's'}.`,
+      `Pause anytime (Esc) and open COMPOUND SELECTION to choose which compounds ride on keys 1–${n}.`,
+      'Swap your loadout whenever you like — bring the right reactions to each fight!',
+    ];
+  }
+
   /** Blocking story dialogue — pauses the game, advanced with Space/Z. */
   private _say(lines: string[], onDone?: () => void): void {
+    if (!this._dlgBg) this._buildDialogue(); // dialogue UI is built lazily outside the tutorial
     this._dlgQueue = [...lines];
     this._dlgOnDone = onDone;
     this._dlgBlocking = true;
@@ -866,7 +886,10 @@ export default class GameScene extends Phaser.Scene {
       if (!this.isPaused) {
         this.isPaused = true;
         this.physics.pause();
-        this.scene.launch('PauseScene', { stage: this.currentStage });
+        this.scene.launch('PauseScene', {
+          stage: this.currentStage,
+          canSelectCompounds: this.player.elementSystem.getAvailableAttacks().length > 0,
+        });
       }
     }
 
@@ -1366,11 +1389,18 @@ export default class GameScene extends Phaser.Scene {
         for (let i = 0; i < grant; i++) {
           if (this.player.elementSystem.collectAtom(chosen)) upgraded = true;
         }
+        // Auto-bind newly-unlocked weapons to free slots; `overflow` means the loadout is full.
+        const { overflow } = this.player.elementSystem.reconcileBindings();
         if (upgraded) SoundSystem.play(this.audioCtx, 'element_upgrade');
         this.events.emit('arsenal-update', this.player.getArsenalUpdate());
         this.scene.stop('ElementChoiceScene');
         if (this.isTutorial) {
           this._tip('armed', 'Armed! Press [1] to unleash your attack. Go smash that germ ahead!');
+        } else if (overflow.length > 0 && !Settings.get().compoundIntroSeen) {
+          // First time the player synthesizes more compounds than they have slots — M.E.G. explains
+          // the Compound Selection menu so they know how to choose their loadout.
+          Settings.set({ compoundIntroSeen: true });
+          this._say(this._compoundIntroLines());
         }
       },
     });

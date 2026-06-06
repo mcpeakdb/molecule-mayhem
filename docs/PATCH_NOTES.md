@@ -1,5 +1,29 @@
 # Patch Notes
 
+## v0.13.0 — 2026-06-06
+
+### Phase 8 — Weapon Loadouts & Compound Selection
+
+- **Bindable weapon slots.** Instead of "wield your N strongest," every difficulty now gives you a
+  fixed set of weapon keys you assign yourself: **3 slots (keys 1-2-3) on Normal and Hard, 2 slots
+  (keys 1-2) on Extreme.**
+- **Compound Selection menu.** Pause the game and pick **COMPOUND SELECTION** to bind any compound
+  you've synthesized to keys 1–3. Use ←/→ to change a key's compound, ↑/↓ to pick the key, Esc to
+  go back. A compound can only sit on one key at a time. Changes apply instantly and persist for the
+  run.
+- **Auto-assign + M.E.G. coaching.** Your first unlocked compounds fill the empty slots
+  automatically. The first time you synthesize more compounds than you have slots, **M.E.G. pops in
+  to explain the Compound Selection menu** (once, ever).
+- HUD weapon bar now shows your bound loadout (with empty-slot placeholders), centered to your slot
+  count; the controls screen and difficulty cards were updated to match.
+
+### Fixed
+
+- **Soft-lock when M.E.G.'s Compound Selection coaching first fired.** The GameScene instance is
+  reused across restarts, so the dialogue UI references survived from the tutorial as destroyed
+  objects; `_say` then skipped rebuilding them and showed nothing while leaving the game paused.
+  The dialogue refs are now cleared on every scene `init`, so the box always rebuilds.
+
 ## v0.12.1 — 2026-06-06
 
 ### Changed

@@ -11,21 +11,35 @@ import {
 import type { AttackSlot, ElementState } from '../types';
 
 /**
- * Tracks the multiset of base atoms the player has collected and derives the
- * set of attacks that are available *simultaneously* from them (Phase 6).
+ * Tracks the multiset of base atoms the player has collected, derives the set of attacks that
+ * become available from them (Phase 6), and manages the player's weapon loadout (Phase 8).
  *
  * - A base attack (H/O/C/N) is available once its atom is owned; level = min(count, 3).
  * - A compound attack is available once all its constituent atoms are owned;
- *   level = min(sum of constituent counts, 3).
+ *   level = min(complete recipe copies, 3).
+ * - The player has a fixed number of bindable slots (keys 1..slotCount) — 3 on Normal/Hard, 2 on
+ *   Extreme. Newly-unlocked weapons auto-fill empty slots; once the slots are full the player
+ *   rebinds them by hand via the Compound Selection menu.
  */
 export default class ElementSystem {
   private counts: Record<BaseAtom, number> = { hydrogen: 0, oxygen: 0, carbon: 0, nitrogen: 0 };
-  /** Easiest difficulty: collapse the arsenal to the two strongest attacks on keys 1 & 2. */
-  private simplified = false;
+  /** Number of bindable weapon slots (keys 1..slotCount) — set from the difficulty. */
+  private slotCount = 3;
+  /** The attack bound to each slot (index 0 = key 1); null = empty. Length always === slotCount. */
+  private bindings: (AttackId | null)[] = [null, null, null];
+  /** Every attack that has ever become available — used to detect *newly* unlocked weapons. */
+  private known = new Set<AttackId>();
 
-  /** Toggle the simplified (two-strongest-weapons) arsenal — set from the difficulty. */
-  setSimplified(on: boolean): void {
-    this.simplified = on;
+  /** Set the number of weapon slots (from the difficulty), preserving existing bindings. */
+  setSlotCount(n: number): void {
+    this.slotCount = Math.max(1, n);
+    const next = this.bindings.slice(0, this.slotCount);
+    while (next.length < this.slotCount) next.push(null);
+    this.bindings = next;
+  }
+
+  getSlotCount(): number {
+    return this.slotCount;
   }
 
   /** Increment an atom's count. Returns true if this unlocked a new attack or raised a level. */
@@ -35,18 +49,44 @@ export default class ElementSystem {
     return this._signature() !== before;
   }
 
+  /**
+   * Fold any newly-unlocked weapons into the loadout: each is auto-assigned to the first empty
+   * slot. Weapons that unlock when every slot is already full are returned as `overflow` — the
+   * cue to teach the player about manual Compound Selection. Call once after a collect.
+   */
+  reconcileBindings(): { newlyUnlocked: AttackId[]; overflow: AttackId[] } {
+    const newlyUnlocked: AttackId[] = [];
+    const overflow: AttackId[] = [];
+    for (const id of ATTACK_ORDER) {
+      if (ElementSystem.levelFor(id, this.counts) <= 0 || this.known.has(id)) continue;
+      this.known.add(id);
+      newlyUnlocked.push(id);
+      const empty = this.bindings.indexOf(null);
+      if (empty >= 0) this.bindings[empty] = id;
+      else overflow.push(id);
+    }
+    return { newlyUnlocked, overflow };
+  }
+
+  /** The attack bound to each slot (index 0 = key 1); null = empty slot. */
+  getBindings(): (AttackId | null)[] {
+    return [...this.bindings];
+  }
+
+  /** Bind a weapon (or null to clear) to a slot. No-op for an out-of-range slot or unavailable id. */
+  setBinding(slot: number, id: AttackId | null): void {
+    if (slot < 0 || slot >= this.slotCount) return;
+    if (id !== null && this.getAttackLevel(id) <= 0) return;
+    this.bindings[slot] = id;
+  }
+
   getCounts(): Record<BaseAtom, number> {
     return { ...this.counts };
   }
 
-  /** Available attacks in fixed priority order, numbered for the numpad (1..9, then 0 for the 10th).
-   *  In simplified mode only the two most-advanced attacks are wielded, bound to keys 1 & 2. */
+  /** Every attack the owned atoms make available, in fixed priority order (for menus & summaries). */
   getAvailableAttacks(): AttackSlot[] {
-    const all = ElementSystem.attacksFor(this.counts);
-    if (this.simplified && all.length > 0) {
-      return all.slice(-2).map((s, i) => ({ ...s, key: i + 1 }));
-    }
-    return all;
+    return ElementSystem.attacksFor(this.counts);
   }
 
   getAttackLevel(id: AttackId): number {
@@ -84,7 +124,7 @@ export default class ElementSystem {
 
   /** Most-advanced available attack (highest slot) — used for the player tint. */
   getPrimary(): AttackId | null {
-    const available = this.getAvailableAttacks();
+    const available = ElementSystem.attacksFor(this.counts);
     return available.length ? available[available.length - 1].id : null;
   }
 

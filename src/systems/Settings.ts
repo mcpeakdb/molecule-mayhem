@@ -10,6 +10,7 @@ export interface GameSettings {
   sfx: boolean; // sound effects enabled
   screenShake: boolean;
   tutorialDone: boolean; // set once the M.E.G. tutorial has been completed/skipped
+  compoundIntroSeen: boolean; // set once M.E.G. has explained the Compound Selection menu
 }
 
 const KEY = 'mm.settings.v1';
@@ -20,6 +21,7 @@ const DEFAULTS: GameSettings = {
   sfx: true,
   screenShake: true,
   tutorialDone: false,
+  compoundIntroSeen: false,
 };
 
 let cache: GameSettings | null = null;
@@ -58,6 +60,7 @@ export default class Settings {
         sfx: parsed.sfx ?? DEFAULTS.sfx,
         screenShake: parsed.screenShake ?? DEFAULTS.screenShake,
         tutorialDone: parsed.tutorialDone ?? DEFAULTS.tutorialDone,
+        compoundIntroSeen: parsed.compoundIntroSeen ?? DEFAULTS.compoundIntroSeen,
       };
     } catch {
       return { ...DEFAULTS };

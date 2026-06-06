@@ -150,6 +150,23 @@ progress hints toward locked compounds.
 
 ---
 
+## Phase 8 — Weapon Loadouts & Compound Selection ✅ COMPLETE (v0.13.0)
+
+Shipped 2026-06-06. Replaces the "auto-wield your strongest" arsenal with a player-chosen loadout.
+
+- **Bindable slots per difficulty**: `DifficultyScale.weaponSlots` (Normal/Hard = 3, Extreme = 2)
+  drives `ElementSystem.setSlotCount`. The old `simplifiedArsenal` flag is gone.
+- **`ElementSystem` loadout model**: tracks `bindings: (AttackId | null)[]` plus a `known` set.
+  `reconcileBindings()` (called once after each atom pickup) auto-fills empty slots with
+  newly-unlocked weapons and reports `overflow` when the loadout is full. `getBindings` / `setBinding`
+  expose the loadout; firing & the HUD read bindings (not "available, sliced").
+- **Compound Selection menu**: a sub-mode inside `PauseScene` (←/→ cycle compound, ↑/↓ pick key, Esc
+  back), duplicate-free across slots, emitting `arsenal-update` so the HUD reflects edits live.
+- **M.E.G. coaching**: on the first `overflow`, `GameScene._say(_compoundIntroLines())` explains the
+  menu once (gated by `Settings.compoundIntroSeen`). `_say` now lazy-builds the dialogue UI so it
+  works outside the tutorial.
+- HUD `arsenal-update` payload changed from `attacks[]` to per-slot `slots: (ArsenalEntry|null)[]`.
+
 ## Phase 7 — Difficulty Rework, Gold Wildcard & Element Facts ✅ COMPLETE (v0.12.0)
 
 Shipped 2026-06-06. A QOL + content pass with four independent features. Work breakdown in
