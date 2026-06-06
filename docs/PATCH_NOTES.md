@@ -10,6 +10,8 @@
 - **Radical Rush (Nitric Oxide) has a point now.** For the buff's full duration the player is
   **immune to all damage** and **rams enemies for contact damage** — a fast, invulnerable battering
   charge rather than just a speed boost. Reactive Aura (Lv2) and Overclock (Lv3) scale the same way.
+  Its cooldown is now **twice the buff duration** (so higher tiers, which last longer, also wait
+  longer before recasting).
 
 ### Fixed
 

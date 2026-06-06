@@ -24,6 +24,9 @@ import ElementSystem from '../systems/ElementSystem';
 import SoundSystem from '../systems/SoundSystem';
 import type { ArsenalEntry, EnemySprite, InputKeys } from '../types';
 
+/** Nitric Oxide (Radical Rush) buff duration per tier, in ms. Its cooldown is twice this. */
+const RADICAL_DURATIONS = [3000, 5000, 8000] as const;
+
 export default class Player {
   scene: GameScene;
   hp: number = PLAYER_MAX_HP;
@@ -222,7 +225,7 @@ export default class Player {
         name: def.tierNames[s.level - 1],
         color: def.color,
         cooldownRemaining: this._cooldowns.get(s.id) ?? 0,
-        cooldownMs: def.cooldownMs,
+        cooldownMs: this._cooldownFor(s.id, s.level),
       };
     });
   }
@@ -234,9 +237,15 @@ export default class Player {
     if (i >= attacks.length) return;
     const { id, level } = attacks[i];
     if ((this._cooldowns.get(id) ?? 0) > 0) return;
-    this._cooldowns.set(id, ATTACKS[id].cooldownMs);
+    this._cooldowns.set(id, this._cooldownFor(id, level));
     const dir = this.facingRight ? 1 : -1;
     this._dispatchAttack(id, level, dir);
+  }
+
+  /** Per-attack cooldown. Radical Rush scales with its buff duration (2× duration); the rest are fixed. */
+  private _cooldownFor(id: AttackId, level: number): number {
+    if (id === ELEMENTS.NITRIC_OXIDE) return RADICAL_DURATIONS[level - 1] * 2;
+    return ATTACKS[id].cooldownMs;
   }
 
   private _dispatchAttack(id: AttackId, level: number, dir: number): void {
@@ -748,7 +757,7 @@ export default class Player {
 
   private _specialNitricOxide(level: number, _dir: number): void {
     const boosts = [1.5, 1.8, 2.0];
-    const durations = [3000, 5000, 8000];
+    const durations = RADICAL_DURATIONS;
     this._speedBoost = boosts[level - 1];
     // Setting the boost timer also flips `isRadicalActive`/`isInvincible` on (see those getters):
     // for the whole duration the player takes no damage and rams enemies for contact damage.
