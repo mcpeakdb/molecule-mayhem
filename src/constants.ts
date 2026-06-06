@@ -1,8 +1,17 @@
-export type Difficulty = 'easy' | 'normal' | 'hard';
-export const DIFFICULTY_SCALE: Record<Difficulty, { enemyHp: number; enemySpeed: number; invincMs: number }> = {
-  easy: { enemyHp: 0.7, enemySpeed: 0.75, invincMs: 1400 },
-  normal: { enemyHp: 1.0, enemySpeed: 1.0, invincMs: 800 },
-  hard: { enemyHp: 1.4, enemySpeed: 1.25, invincMs: 500 },
+export type Difficulty = 'normal' | 'hard' | 'extreme';
+export interface DifficultyScale {
+  enemyHp: number;
+  enemySpeed: number;
+  invincMs: number;
+  /** When true, the player wields only their single strongest attack on key 1 (simplified arsenal). */
+  simplifiedArsenal: boolean;
+}
+// Tiers shifted up a notch from the old Easy/Normal/Hard: the gentle tuning is now the baseline
+// "Normal" (and collapses the arsenal to one button), with Hard/Extreme above it.
+export const DIFFICULTY_SCALE: Record<Difficulty, DifficultyScale> = {
+  normal: { enemyHp: 0.7, enemySpeed: 0.75, invincMs: 1400, simplifiedArsenal: true },
+  hard: { enemyHp: 1.0, enemySpeed: 1.0, invincMs: 800, simplifiedArsenal: false },
+  extreme: { enemyHp: 1.4, enemySpeed: 1.25, invincMs: 500, simplifiedArsenal: false },
 };
 
 export const GAME_WIDTH = 960;
@@ -44,6 +53,7 @@ export const ELEMENTS = {
   METHANE: 'methane',
   NITRIC_OXIDE: 'nitric_oxide',
   CARBONIC_ACID: 'carbonic_acid',
+  GOLD: 'gold',
 } as const;
 
 export type ElementType = (typeof ELEMENTS)[keyof typeof ELEMENTS];
@@ -60,6 +70,7 @@ export const ELEMENT_COLORS: Record<ElementType, number> = {
   [ELEMENTS.METHANE]: 0xff9922,
   [ELEMENTS.NITRIC_OXIDE]: 0xdd44aa,
   [ELEMENTS.CARBONIC_ACID]: 0x33aadd,
+  [ELEMENTS.GOLD]: 0xffd700,
 };
 
 export const ELEMENT_NAMES: Record<ElementType, string> = {
@@ -74,6 +85,7 @@ export const ELEMENT_NAMES: Record<ElementType, string> = {
   [ELEMENTS.METHANE]: 'Methane (CH₄)',
   [ELEMENTS.NITRIC_OXIDE]: 'Nitric Oxide (NO)',
   [ELEMENTS.CARBONIC_ACID]: 'Carbonic Acid (H₂CO₃)',
+  [ELEMENTS.GOLD]: 'Gold (Au)',
 };
 
 export const PLAYER_MAX_HP = 100;
@@ -98,8 +110,9 @@ export const MAX_ELEMENT_LEVEL = 3;
 export type BaseAtom = 'hydrogen' | 'oxygen' | 'carbon' | 'nitrogen';
 export const BASE_ATOMS: BaseAtom[] = ['hydrogen', 'oxygen', 'carbon', 'nitrogen'];
 
-// Every attack maps 1:1 to an element/compound (i.e. every ElementType except NONE).
-export type AttackId = Exclude<ElementType, typeof ELEMENTS.NONE>;
+// Every attack maps 1:1 to an element/compound. NONE has no attack; GOLD is a wildcard
+// pickup (it grants atoms rather than firing), so it is excluded too.
+export type AttackId = Exclude<ElementType, typeof ELEMENTS.NONE | typeof ELEMENTS.GOLD>;
 
 export interface AttackDef {
   id: AttackId;
@@ -202,3 +215,64 @@ export const ATTACKS: Record<AttackId, AttackDef> = {
 export const ATTACK_ORDER: AttackId[] = Object.values(ATTACKS)
   .sort((a, b) => a.slot - b.slot)
   .map((a) => a.id);
+
+// ── Element trivia (Phase 7) ────────────────────────────────────────────────
+// Short real-world facts surfaced on the choice cards. One is picked at random per
+// card build. Keyed by ElementType so base atoms, compounds, and Gold can all carry lore.
+export const ELEMENT_FACTS: Partial<Record<ElementType, string[]>> = {
+  [ELEMENTS.HYDROGEN]: [
+    'The lightest element — and ~75% of all ordinary matter in the universe.',
+    'Fuses in the Sun’s core, releasing the energy that lights the sky.',
+    'So light it escapes Earth’s gravity and drifts off into space.',
+  ],
+  [ELEMENTS.OXYGEN]: [
+    'Makes up about 21% of the air you breathe.',
+    'The most abundant element in the Earth’s crust by mass.',
+    'Liquid oxygen is pale blue and faintly magnetic.',
+  ],
+  [ELEMENTS.CARBON]: [
+    'The backbone of all known life — every cell is built on it.',
+    'Diamond and graphite are both pure carbon, just arranged differently.',
+    'Forms more compounds than any other element.',
+  ],
+  [ELEMENTS.NITROGEN]: [
+    'About 78% of the atmosphere is nitrogen gas.',
+    'Liquid nitrogen boils at a frigid −196°C.',
+    'Essential to amino acids — the building blocks of proteins.',
+  ],
+  [ELEMENTS.WATER]: [
+    'The only common substance found naturally as solid, liquid, and gas.',
+    'Expands when it freezes — which is why ice floats.',
+    'Two parts hydrogen, one part oxygen: H₂O.',
+  ],
+  [ELEMENTS.AMMONIA]: [
+    'Its pungent smell warns you long before it harms you.',
+    'A key ingredient in fertilizer that feeds half the planet.',
+    'NH₃: one nitrogen bonded to three hydrogens.',
+  ],
+  [ELEMENTS.CARBON_DIOXIDE]: [
+    'What you exhale with every breath.',
+    'Frozen solid, it becomes “dry ice” that sublimates into fog.',
+    'Plants breathe it in and turn it into sugar.',
+  ],
+  [ELEMENTS.METHANE]: [
+    'The main component of natural gas.',
+    'A potent greenhouse gas — and cow burps are a real source.',
+    'CH₄: one carbon surrounded by four hydrogens.',
+  ],
+  [ELEMENTS.NITRIC_OXIDE]: [
+    'Your body uses it as a signal to widen blood vessels.',
+    'A free radical — reactive and short-lived.',
+    'Named “Molecule of the Year” by Science in 1992.',
+  ],
+  [ELEMENTS.CARBONIC_ACID]: [
+    'The fizz in every carbonated drink.',
+    'Forms when CO₂ dissolves in water.',
+    'A weak acid, but it slowly carves out limestone caves.',
+  ],
+  [ELEMENTS.GOLD]: [
+    'So unreactive it never tarnishes — gold stays shiny forever.',
+    'Dense and soft: a single gram can be hammered into a sheet a meter wide.',
+    'Forged in the collisions of neutron stars.',
+  ],
+};

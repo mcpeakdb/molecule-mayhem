@@ -7,8 +7,13 @@ import { STAGE_COUNT } from '../constants';
 // Atom carry between stages is *not* here — the game is arcade (atoms reset each
 // stage), so the molecular tree is run-scoped, not saved.
 
-const SAVE_KEY = 'mm.save.v1';
+const SAVE_KEY = 'mm.save.v2';
+const LEGACY_KEY_V1 = 'mm.save.v1';
 const LEADERBOARD_SIZE = 5;
+
+// Phase 7 renamed the difficulty tiers (easy/normal/hard → normal/hard/extreme). Old v1
+// saves are migrated one notch up the first time v2 is read.
+const LEGACY_DIFF_MAP: Record<string, Difficulty> = { easy: 'normal', normal: 'hard', hard: 'extreme' };
 
 /** One finished playthrough, stored on the leaderboard. */
 export interface RunRecord {
@@ -30,14 +35,14 @@ interface DifficultySave {
 
 type SaveData = Record<Difficulty, DifficultySave>;
 
-const DIFFICULTIES: Difficulty[] = ['easy', 'normal', 'hard'];
+const DIFFICULTIES: Difficulty[] = ['normal', 'hard', 'extreme'];
 
 function emptyDifficulty(): DifficultySave {
   return { unlockedStage: 1, bestScores: {}, leaderboard: [] };
 }
 
 function emptySave(): SaveData {
-  return { easy: emptyDifficulty(), normal: emptyDifficulty(), hard: emptyDifficulty() };
+  return { normal: emptyDifficulty(), hard: emptyDifficulty(), extreme: emptyDifficulty() };
 }
 
 export default class SaveSystem {
@@ -46,7 +51,7 @@ export default class SaveSystem {
     const base = emptySave();
     try {
       const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return base;
+      if (!raw) return SaveSystem._migrateV1() ?? base;
       const parsed = JSON.parse(raw) as Partial<SaveData>;
       for (const d of DIFFICULTIES) {
         const slot = parsed[d];
@@ -62,6 +67,31 @@ export default class SaveSystem {
       return emptySave();
     }
     return base;
+  }
+
+  /** One-time migration of a pre-Phase-7 (v1) save into the renamed tiers; persists & returns it. */
+  private static _migrateV1(): SaveData | null {
+    try {
+      const raw = localStorage.getItem(LEGACY_KEY_V1);
+      if (!raw) return null;
+      const old = JSON.parse(raw) as Record<string, Partial<DifficultySave>>;
+      const base = emptySave();
+      for (const oldKey of Object.keys(LEGACY_DIFF_MAP)) {
+        const newKey = LEGACY_DIFF_MAP[oldKey];
+        const slot = old[oldKey];
+        if (!slot) continue;
+        const board = Array.isArray(slot.leaderboard) ? slot.leaderboard.slice(0, LEADERBOARD_SIZE) : [];
+        base[newKey] = {
+          unlockedStage: clampStage(slot.unlockedStage ?? 1),
+          bestScores: slot.bestScores ?? {},
+          leaderboard: board.map((r) => ({ ...r, difficulty: newKey })),
+        };
+      }
+      SaveSystem._save(base);
+      return base;
+    } catch {
+      return null;
+    }
   }
 
   private static _save(data: SaveData): void {

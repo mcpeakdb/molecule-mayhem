@@ -150,9 +150,9 @@ progress hints toward locked compounds.
 
 ---
 
-## Phase 7 — Difficulty Rework, Gold Wildcard & Element Facts 🚧 PLANNED (target v0.12.0)
+## Phase 7 — Difficulty Rework, Gold Wildcard & Element Facts ✅ COMPLETE (v0.12.0)
 
-A QOL + content pass with four independent features. Work breakdown in
+Shipped 2026-06-06. A QOL + content pass with four independent features. Work breakdown in
 [tasks/PHASE7_TASKS.md](tasks/PHASE7_TASKS.md).
 
 ### 1. Element facts on the choice screen

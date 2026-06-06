@@ -5,25 +5,25 @@ const MONO = 'monospace';
 
 const OPTIONS: { key: Difficulty; label: string; color: number; desc: string; stats: string }[] = [
   {
-    key: 'easy',
-    label: 'EASY',
-    color: 0x44cc66,
-    desc: 'REDUCED PATHOGEN\nRESISTANCE',
-    stats: 'ENEMY HP     ×0.70\nENEMY SPEED  ×0.75\nINVINCIBILITY 1.4s',
-  },
-  {
     key: 'normal',
     label: 'NORMAL',
-    color: 0x88bb44,
-    desc: 'STANDARD CULTURE\nCONDITIONS',
-    stats: 'ENEMY HP     ×1.00\nENEMY SPEED  ×1.00\nINVINCIBILITY 0.8s',
+    color: 0x44cc66,
+    desc: 'ONE-BUTTON\nFIELD KIT',
+    stats: 'ENEMY HP     ×0.70\nENEMY SPEED  ×0.75\nINVINCIBILITY 1.4s\nARSENAL      1 WEAPON',
   },
   {
     key: 'hard',
     label: 'HARD',
+    color: 0x88bb44,
+    desc: 'STANDARD CULTURE\nCONDITIONS',
+    stats: 'ENEMY HP     ×1.00\nENEMY SPEED  ×1.00\nINVINCIBILITY 0.8s\nARSENAL      FULL',
+  },
+  {
+    key: 'extreme',
+    label: 'EXTREME',
     color: 0xcc4422,
     desc: 'AGGRESSIVE STRAIN\nCONDITIONS',
-    stats: 'ENEMY HP     ×1.40\nENEMY SPEED  ×1.25\nINVINCIBILITY 0.5s',
+    stats: 'ENEMY HP     ×1.40\nENEMY SPEED  ×1.25\nINVINCIBILITY 0.5s\nARSENAL      FULL',
   },
 ];
 
@@ -33,7 +33,7 @@ const CARD_H = 270;
 const CARD_CY = 278;
 
 export default class DifficultyScene extends Phaser.Scene {
-  private cursor = 1; // default Normal
+  private cursor = 0; // default Normal (the easiest, recommended entry)
   private cardBgs: Phaser.GameObjects.Rectangle[] = [];
   private cardBorders: Phaser.GameObjects.Graphics[] = [];
   private leftKey!: Phaser.Input.Keyboard.Key;
@@ -51,7 +51,7 @@ export default class DifficultyScene extends Phaser.Scene {
     // The scene instance is reused across restarts — clear stale card refs from a prior visit
     this.cardBgs = [];
     this.cardBorders = [];
-    this.cursor = 1;
+    this.cursor = 0;
 
     // Background
     this.add.rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x060e06).setScrollFactor(0);

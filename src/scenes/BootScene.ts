@@ -743,6 +743,33 @@ export default class BootScene extends Phaser.Scene {
       g.fillCircle(17, 17, 2);
       g._done('atom_node', 40, 40);
     }
+    // Gold wildcard node (Phase 7) — a rare shimmering golden atom
+    {
+      const g = this._g();
+      g.fillStyle(0xffd700, 0.28);
+      g.fillCircle(20, 20, 20);
+      g.fillStyle(0xffcc33, 0.18);
+      g.fillCircle(20, 20, 15);
+      // golden orbital rings
+      g.lineStyle(1.5, 0xffe680, 0.85);
+      g.strokeEllipse(20, 20, 36, 14);
+      g.lineStyle(1.5, 0xffd700, 0.85);
+      g.strokeEllipse(20, 20, 14, 36);
+      // bright electron dots
+      g.fillStyle(0xfff4b0);
+      g.fillCircle(38, 20, 3);
+      g.fillCircle(2, 20, 3);
+      g.fillCircle(20, 38, 3);
+      g.fillCircle(20, 2, 3);
+      // molten gold nucleus
+      g.fillStyle(0xe6a800);
+      g.fillCircle(20, 20, 9);
+      g.fillStyle(0xffd700);
+      g.fillCircle(18, 18, 5);
+      g.fillStyle(0xffffff, 0.85);
+      g.fillCircle(17, 17, 2.5);
+      g._done('atom_gold', 40, 40);
+    }
     // Carbon (C)
     {
       const g = this._g();

@@ -20,6 +20,13 @@ import type { AttackSlot, ElementState } from '../types';
  */
 export default class ElementSystem {
   private counts: Record<BaseAtom, number> = { hydrogen: 0, oxygen: 0, carbon: 0, nitrogen: 0 };
+  /** Easiest difficulty: collapse the arsenal to the single strongest attack on key 1. */
+  private simplified = false;
+
+  /** Toggle the simplified (one-strongest-weapon) arsenal — set from the difficulty. */
+  setSimplified(on: boolean): void {
+    this.simplified = on;
+  }
 
   /** Increment an atom's count. Returns true if this unlocked a new attack or raised a level. */
   collectAtom(atom: BaseAtom): boolean {
@@ -32,9 +39,14 @@ export default class ElementSystem {
     return { ...this.counts };
   }
 
-  /** Available attacks in fixed priority order, numbered for the numpad (1..9, then 0 for the 10th). */
+  /** Available attacks in fixed priority order, numbered for the numpad (1..9, then 0 for the 10th).
+   *  In simplified mode only the single most-advanced attack is wielded, bound to key 1. */
   getAvailableAttacks(): AttackSlot[] {
-    return ElementSystem.attacksFor(this.counts);
+    const all = ElementSystem.attacksFor(this.counts);
+    if (this.simplified && all.length > 0) {
+      return [{ ...all[all.length - 1], key: 1 }];
+    }
+    return all;
   }
 
   getAttackLevel(id: AttackId): number {

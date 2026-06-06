@@ -9,14 +9,17 @@ import type { AtomSprite } from '../types';
 export default class Atom {
   scene: Phaser.Scene;
   choices: BaseAtom[];
+  /** Rare wildcard pickup (Phase 7): lets the player pick any base atom and grants it +2. */
+  gold: boolean;
   collected = false;
   sprite: AtomSprite;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, choices: BaseAtom[]) {
+  constructor(scene: Phaser.Scene, x: number, y: number, choices: BaseAtom[], gold = false) {
     this.scene = scene;
     this.choices = choices;
+    this.gold = gold;
 
-    const base = scene.physics.add.sprite(x, y, 'atom_node');
+    const base = scene.physics.add.sprite(x, y, gold ? 'atom_gold' : 'atom_node');
     base.body.setAllowGravity(false);
     base.setDepth(50);
     this.sprite = base as AtomSprite;

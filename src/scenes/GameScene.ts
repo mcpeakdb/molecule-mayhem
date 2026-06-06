@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { BaseAtom, Difficulty, SectorId } from '../constants';
 import {
+  BASE_ATOMS,
   DIFFICULTY_SCALE,
   ELEMENT_NAMES,
   FLOOR_CENTER_Y,
@@ -164,7 +165,7 @@ export default class GameScene extends Phaser.Scene {
     this._lastNoHitBonus = 0;
     this._runSubmitted = false;
     this.difficulty = this.isTutorial
-      ? 'easy'
+      ? 'normal'
       : (data?.difficulty ?? (this.registry.get('difficulty') as Difficulty | undefined) ?? 'normal');
 
     // Reset per-run state (the scene instance is reused across restarts)
@@ -198,6 +199,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.player = new Player(this, 120, FLOOR_CENTER_Y);
     this.player.invincibilityMs = DIFFICULTY_SCALE[this.difficulty].invincMs;
+    this.player.elementSystem.setSimplified(DIFFICULTY_SCALE[this.difficulty].simplifiedArsenal);
     this.cameras.main.startFollow(this.player.sprite, true, 0.08, 0.08);
 
     this.physics.add.overlap(this.player.sprite, this.atomGroup, (_p, atomSprite) =>
@@ -446,9 +448,11 @@ export default class GameScene extends Phaser.Scene {
     const rY = () => Phaser.Math.Between(FLOOR_MIN_Y + 40, FLOOR_MAX_Y - 15);
     const scale = DIFFICULTY_SCALE[this.difficulty];
 
-    // Atoms — branching choice nodes (see src/stages.ts for the per-stage ramp)
+    // Atoms — branching choice nodes (see src/stages.ts for the per-stage ramp).
+    // A rare 1% roll turns a node into a Gold wildcard (pick any base atom, +2).
     def.atoms.forEach((a) => {
-      const atom = new Atom(this, a.x, FLOOR_CENTER_Y - 80, a.choices);
+      const gold = Math.random() < 0.01;
+      const atom = new Atom(this, a.x, FLOOR_CENTER_Y - 80, gold ? [...BASE_ATOMS] : a.choices, gold);
       this.atomGroup.add(atom.sprite);
     });
 
@@ -1327,6 +1331,16 @@ export default class GameScene extends Phaser.Scene {
     const { x, y } = atomSprite;
     atomSprite.destroy();
 
+    if (atom.gold) {
+      // Gold wildcard — a flashier pickup that grants +2 to a chosen base atom
+      this.spawnHitFlash(x, y, 0xffd700, 44);
+      this.spawnAtomBurst(x, y, 0xffd700);
+      this.shake(180, 0.006);
+      SoundSystem.play(this.audioCtx, 'element_upgrade');
+      this._showElementChoice(atom.choices ?? [...BASE_ATOMS], { gold: true, grant: 2 });
+      return;
+    }
+
     this.spawnHitFlash(x, y, 0xaa44ff, 28);
     this.spawnAtomBurst(x, y, 0xaa44ff);
     this.shake(120, 0.004);
@@ -1336,16 +1350,22 @@ export default class GameScene extends Phaser.Scene {
     this._showElementChoice(atom.choices ?? ['hydrogen', 'oxygen']);
   }
 
-  private _showElementChoice(choices: BaseAtom[]): void {
+  private _showElementChoice(choices: BaseAtom[], opts: { gold?: boolean; grant?: number } = {}): void {
+    const grant = opts.grant ?? 1;
     this.isPaused = true;
     this.physics.pause();
     this.scene.launch('ElementChoiceScene', {
       choices,
       counts: this.player.elementSystem.getCounts(),
+      gold: opts.gold ?? false,
+      grant,
       callback: (chosen: BaseAtom) => {
         this.isPaused = false;
         this.physics.resume();
-        const upgraded = this.player.elementSystem.collectAtom(chosen);
+        let upgraded = false;
+        for (let i = 0; i < grant; i++) {
+          if (this.player.elementSystem.collectAtom(chosen)) upgraded = true;
+        }
         if (upgraded) SoundSystem.play(this.audioCtx, 'element_upgrade');
         this.events.emit('arsenal-update', this.player.getArsenalUpdate());
         this.scene.stop('ElementChoiceScene');

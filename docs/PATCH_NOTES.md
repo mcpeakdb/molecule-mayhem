@@ -1,5 +1,22 @@
 # Patch Notes
 
+## v0.12.0 — 2026-06-06
+
+### Phase 7 — Difficulty Rework, Gold Wildcard & Element Facts
+
+- **Difficulties renamed → Normal / Hard / Extreme.** The old Easy/Normal/Hard tiers shift up one
+  notch: the gentle tuning is now the baseline **Normal**, with **Hard** and **Extreme** above it.
+  Existing saves migrate automatically (`mm.save.v1` → `mm.save.v2`), carrying unlocks, best scores,
+  and leaderboards one tier up.
+- **Normal is now one-button.** On Normal you wield only your single strongest attack, bound to key
+  `1`, instead of the full numpad arsenal — a simpler on-ramp. The molecular tree still grows
+  underneath; Hard and Extreme keep the full arsenal.
+- **Gold — the 1% wildcard atom.** Atom nodes have a rare 1% chance to spawn as a shimmering **Gold**
+  atom. Collecting one lets you pick any base element and grants it **+2** (worth two level-ups),
+  with its own gold flourish and fanfare.
+- **Element facts on the choice screen.** Each atom card now shows a random real-world fact about its
+  element at the bottom, so the choice overlay teaches a little chemistry as you build.
+
 ## v0.11.1 — 2026-06-06
 
 ### Fixed

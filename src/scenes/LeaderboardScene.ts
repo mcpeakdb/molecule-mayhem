@@ -3,11 +3,11 @@ import { type Difficulty, GAME_HEIGHT, GAME_WIDTH } from '../constants';
 import SaveSystem from '../systems/SaveSystem';
 
 const MONO = 'monospace';
-const DIFFS: Difficulty[] = ['easy', 'normal', 'hard'];
-const DIFF_COLOR: Record<Difficulty, string> = { easy: '#44cc66', normal: '#88bb44', hard: '#cc4422' };
+const DIFFS: Difficulty[] = ['normal', 'hard', 'extreme'];
+const DIFF_COLOR: Record<Difficulty, string> = { normal: '#44cc66', hard: '#88bb44', extreme: '#cc4422' };
 
 export default class LeaderboardScene extends Phaser.Scene {
-  private diffIndex = 1; // default Normal
+  private diffIndex = 0; // default Normal
   private from = 'TitleScene';
   private tabTexts: Phaser.GameObjects.Text[] = [];
   private listText!: Phaser.GameObjects.Text;
@@ -23,8 +23,8 @@ export default class LeaderboardScene extends Phaser.Scene {
 
   init(data: { from?: string; difficulty?: Difficulty }): void {
     this.from = data.from ?? 'TitleScene';
-    this.diffIndex = data.difficulty ? DIFFS.indexOf(data.difficulty) : 1;
-    if (this.diffIndex < 0) this.diffIndex = 1;
+    this.diffIndex = data.difficulty ? DIFFS.indexOf(data.difficulty) : 0;
+    if (this.diffIndex < 0) this.diffIndex = 0;
     this.tabTexts = [];
   }
 

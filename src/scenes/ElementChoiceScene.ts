@@ -5,6 +5,7 @@ import {
   type AttackId,
   type BaseAtom,
   ELEMENT_COLORS,
+  ELEMENT_FACTS,
   ELEMENT_NAMES,
   type ElementType,
   GAME_HEIGHT,
@@ -34,6 +35,10 @@ interface Card {
 interface ChoiceData {
   choices: BaseAtom[];
   counts?: Record<BaseAtom, number>;
+  /** Atoms granted per pick (Gold wildcard grants 2). */
+  grant?: number;
+  /** Render the rare Gold-wildcard framing. */
+  gold?: boolean;
   callback: (chosen: BaseAtom) => void;
 }
 
@@ -41,6 +46,8 @@ export default class ElementChoiceScene extends Phaser.Scene {
   private choices!: BaseAtom[];
   private counts!: Record<BaseAtom, number>;
   private callback!: (chosen: BaseAtom) => void;
+  private grant = 1;
+  private gold = false;
   private selected = 0;
   private cards!: Card[];
 
@@ -51,13 +58,15 @@ export default class ElementChoiceScene extends Phaser.Scene {
   init(data: ChoiceData): void {
     this.choices = data.choices;
     this.counts = data.counts ?? { hydrogen: 0, oxygen: 0, carbon: 0, nitrogen: 0 };
+    this.grant = data.grant ?? 1;
+    this.gold = data.gold ?? false;
     this.callback = data.callback;
     this.selected = 0;
   }
 
   /** Attacks that picking `element` would unlock or level, given the current molecule. */
   private _changes(element: BaseAtom): { id: AttackId; level: number; isNew: boolean }[] {
-    const after = { ...this.counts, [element]: this.counts[element] + 1 };
+    const after = { ...this.counts, [element]: this.counts[element] + this.grant };
     const out: { id: AttackId; level: number; isNew: boolean }[] = [];
     for (const id of ATTACK_ORDER) {
       const before = ElementSystem.levelFor(id, this.counts);
@@ -71,22 +80,29 @@ export default class ElementChoiceScene extends Phaser.Scene {
     const w = GAME_WIDTH,
       h = GAME_HEIGHT;
 
-    this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.72).setDepth(0);
+    this.add.rectangle(w / 2, h / 2, w, h, 0x000000, this.gold ? 0.78 : 0.72).setDepth(0);
     this.add
-      .text(w / 2, 78, '⚛  ADD AN ATOM  ⚛', {
+      .text(w / 2, 78, this.gold ? '★  GOLD ATOM  ★' : '⚛  ADD AN ATOM  ⚛', {
         fontSize: '32px',
-        color: '#cc88ff',
+        color: this.gold ? '#ffd700' : '#cc88ff',
         fontStyle: 'bold',
-        stroke: '#440066',
+        stroke: this.gold ? '#553300' : '#440066',
         strokeThickness: 5,
       })
       .setOrigin(0.5)
       .setDepth(2);
     this.add
-      .text(w / 2, 122, 'Grow your molecule — each pick unlocks & levels attacks:', {
-        fontSize: '18px',
-        color: '#aaaacc',
-      })
+      .text(
+        w / 2,
+        122,
+        this.gold
+          ? `A rare find! Pick any element — it counts as +${this.grant} (two level-ups):`
+          : 'Grow your molecule — each pick unlocks & levels attacks:',
+        {
+          fontSize: '18px',
+          color: this.gold ? '#ffe680' : '#aaaacc',
+        },
+      )
       .setOrigin(0.5)
       .setDepth(2);
 
@@ -111,13 +127,13 @@ export default class ElementChoiceScene extends Phaser.Scene {
   }
 
   private _buildCard(element: BaseAtom, index: number): Card {
-    const col = ELEMENT_COLORS[element];
+    const col = this.gold ? 0xffd700 : ELEMENT_COLORS[element];
     const hex = `#${col.toString(16).padStart(6, '0')}`;
     const cardW = 240,
-      cardH = 286;
+      cardH = 336;
     const totalW = this.choices.length * (cardW + 28) - 28;
     const startX = (GAME_WIDTH - totalW) / 2 + index * (cardW + 28) + cardW / 2;
-    const cardY = GAME_HEIGHT / 2 + 28;
+    const cardY = GAME_HEIGHT / 2 + 36;
 
     const bg = this.add
       .rectangle(startX, cardY, cardW, cardH, Phaser.Display.Color.IntegerToColor(col).darken(65).color, 0.95)
@@ -128,10 +144,10 @@ export default class ElementChoiceScene extends Phaser.Scene {
       .setDepth(2)
       .setFillStyle(0x000000, 0);
 
-    // Title: "+1  Hydrogen"
+    // Title: "+1  Hydrogen" (or "+2" for a Gold pick)
     this.add
-      .text(startX, cardY - 112, `+1  ${ELEMENT_NAMES[element]}`, {
-        fontSize: '22px',
+      .text(startX, cardY - 142, `+${this.grant}  ${ELEMENT_NAMES[element]}`, {
+        fontSize: '21px',
         color: hex,
         fontStyle: 'bold',
       })
@@ -140,20 +156,20 @@ export default class ElementChoiceScene extends Phaser.Scene {
 
     // Big atom symbol watermark
     this.add
-      .text(startX, cardY - 74, ELEMENT_SYMBOLS[element] ?? '?', { fontSize: '40px', color: hex, fontStyle: 'bold' })
+      .text(startX, cardY - 104, ELEMENT_SYMBOLS[element] ?? '?', { fontSize: '40px', color: hex, fontStyle: 'bold' })
       .setOrigin(0.5)
       .setDepth(3)
       .setAlpha(0.55);
 
     this.add
-      .text(startX, cardY - 38, 'UNLOCKS / LEVELS', { fontSize: '11px', color: '#8899aa', fontStyle: 'bold' })
+      .text(startX, cardY - 64, 'UNLOCKS / LEVELS', { fontSize: '11px', color: '#8899aa', fontStyle: 'bold' })
       .setOrigin(0.5)
       .setDepth(3);
 
     const changes = this._changes(element);
     if (changes.length === 0) {
       this.add
-        .text(startX, cardY + 10, 'All maxed', { fontSize: '14px', color: '#888899' })
+        .text(startX, cardY - 40, 'All maxed', { fontSize: '14px', color: '#888899' })
         .setOrigin(0.5)
         .setDepth(3);
     } else {
@@ -162,7 +178,7 @@ export default class ElementChoiceScene extends Phaser.Scene {
         const marker = c.isNew ? '★ NEW' : `▲ Lv${c.level}`;
         const sym = ELEMENT_SYMBOLS[c.id] ?? '?';
         this.add
-          .text(startX, cardY - 16 + li * 26, `${marker}  ${sym}  ${ATTACKS[c.id].tierNames[c.level - 1]}`, {
+          .text(startX, cardY - 44 + li * 24, `${marker}  ${sym}  ${ATTACKS[c.id].tierNames[c.level - 1]}`, {
             fontSize: '13px',
             color: cHex,
             fontStyle: c.isNew ? 'bold' : 'normal',
@@ -171,6 +187,28 @@ export default class ElementChoiceScene extends Phaser.Scene {
           .setOrigin(0.5, 0)
           .setDepth(3);
       });
+    }
+
+    // Fun fact footer — a thin rule plus one random fact about the element
+    const factY = cardY + cardH / 2 - 64;
+    const rule = this.add.graphics().setDepth(3);
+    rule.lineStyle(1, col, 0.3);
+    rule.lineBetween(startX - cardW / 2 + 16, factY - 8, startX + cardW / 2 - 16, factY - 8);
+
+    const facts = ELEMENT_FACTS[element];
+    if (facts && facts.length > 0) {
+      const fact = facts[Math.floor(Math.random() * facts.length)];
+      this.add
+        .text(startX, factY, `💡 ${fact}`, {
+          fontSize: '11px',
+          color: '#99a3b8',
+          fontStyle: 'italic',
+          align: 'center',
+          wordWrap: { width: cardW - 24 },
+          lineSpacing: 2,
+        })
+        .setOrigin(0.5, 0)
+        .setDepth(3);
     }
 
     return { bg, border, element };
