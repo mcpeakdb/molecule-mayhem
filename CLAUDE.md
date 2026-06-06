@@ -42,18 +42,24 @@ src/
     Atom.ts                # Collectible atom sprite
   scenes/
     BootScene.ts           # Procedural texture generation for all sprites
-    GameScene.ts           # Main game loop, spawning, physics, overlaps
+    GameScene.ts           # Main game loop, spawning, physics, overlaps, scoring
     HUDScene.ts            # Score, HP, element, combo UI (runs in parallel)
     ElementChoiceScene.ts  # Level-up choice overlay
+    DifficultyScene.ts     # Easy/Normal/Hard select → StageSelectScene
+    StageSelectScene.ts    # Stage picker (9 stages by sector, per-stage unlocks, best scores)
+    PauseScene.ts          # In-game pause menu
   systems/
     ElementSystem.ts       # Element combo resolution, level tracking
     SoundSystem.ts         # Procedural Web Audio sound effects
+    SaveSystem.ts          # localStorage meta: unlocks, best scores, leaderboard (per difficulty)
 docs/
   PLAN.md                  # Living design doc — phases, architecture notes
   PATCH_NOTES.md           # Version history (must stay current)
   tasks/
     PHASE1_TASKS.md        # Detailed task list for Phase 1 (complete)
     PHASE2_TASKS.md        # Detailed task list for Phase 2 (complete)
+    PHASE3_TASKS.md        # Detailed task list for Phase 3 — 9 stages / 3 sectors (complete)
+    PHASE4_TASKS.md        # Detailed task list for Phase 4 — progression & meta (complete)
 ```
 
 ## After Making Changes

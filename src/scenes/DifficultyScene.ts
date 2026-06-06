@@ -170,6 +170,7 @@ export default class DifficultyScene extends Phaser.Scene {
   private _confirm(): void {
     const chosen = OPTIONS[this.cursor];
     this.registry.set('difficulty', chosen.key);
-    this.scene.start('GameScene', { stage: 1, difficulty: chosen.key });
+    // Pick a stage next (sequential unlocks live in StageSelectScene).
+    this.scene.start('StageSelectScene');
   }
 }

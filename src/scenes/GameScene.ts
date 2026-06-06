@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { BaseAtom, Difficulty, SectorId } from '../constants';
 import {
   DIFFICULTY_SCALE,
+  ELEMENT_NAMES,
   FLOOR_CENTER_Y,
   FLOOR_MAX_Y,
   FLOOR_MIN_Y,
@@ -9,6 +10,7 @@ import {
   GAME_WIDTH,
   GAP_FALL_DAMAGE,
   isFinaleStage,
+  PLAYER_MAX_HP,
   SECTORS,
   STAGE_COUNT,
   sectorOf,
@@ -19,6 +21,7 @@ import Boss from '../entities/Boss';
 import Enemy from '../entities/Enemy';
 import Player from '../entities/Player';
 import { STAGES, type StageDef } from '../stages';
+import SaveSystem, { type RunRecord } from '../systems/SaveSystem';
 import SoundSystem from '../systems/SoundSystem';
 import type { AtomSprite, EnemySprite, WasdKeys } from '../types';
 
@@ -93,6 +96,13 @@ export default class GameScene extends Phaser.Scene {
   private stageDef!: StageDef;
   private worldWidth = WORLD_WIDTH;
 
+  // ── Scoring (score is the cumulative run total, carried between stages) ──
+  private _stageStartMs = 0;
+  private _stageBaseScore = 0; // run score at the moment this stage began
+  private _lastTimeBonus = 0;
+  private _lastNoHitBonus = 0;
+  private _runSubmitted = false;
+
   /** Biome/theme group this stage belongs to (1–3). */
   get sector(): SectorId {
     return sectorOf(this.currentStage);
@@ -146,7 +156,12 @@ export default class GameScene extends Phaser.Scene {
     this.currentStage = this.isTutorial ? 1 : Phaser.Math.Clamp(data?.stage ?? 1, 1, STAGE_COUNT);
     this.stageDef = STAGES[this.currentStage - 1];
     this.worldWidth = this.isTutorial ? WORLD_WIDTH : this.stageDef.width;
-    this.score = 0;
+    // Score is the cumulative run total, carried across stages via the registry (reset on a fresh run).
+    this.score = this.isTutorial ? 0 : ((this.registry.get('runScore') as number | undefined) ?? 0);
+    this._stageBaseScore = this.score;
+    this._lastTimeBonus = 0;
+    this._lastNoHitBonus = 0;
+    this._runSubmitted = false;
     this.difficulty = this.isTutorial
       ? 'easy'
       : (data?.difficulty ?? (this.registry.get('difficulty') as Difficulty | undefined) ?? 'normal');
@@ -220,6 +235,10 @@ export default class GameScene extends Phaser.Scene {
       this._playStageIntro(() => {
         this.isPaused = false;
         this.physics.resume();
+        // Start the clear timer once the intro is over and the player can actually move.
+        this._stageStartMs = this.time.now;
+        // Sync the HUD to the carried run score (it defaults to 0 until an event arrives).
+        this.events.emit('score-update', this.score);
       });
     }
   }
@@ -1297,8 +1316,8 @@ export default class GameScene extends Phaser.Scene {
     this._spawnCryingScientist(w * 0.72, h / 2 + 8);
 
     const diedText = this.add
-      .text(textX, h / 2 - 60, 'YOU DIED', {
-        fontSize: '72px',
+      .text(textX, h / 2 - 96, 'YOU DIED', {
+        fontSize: '64px',
         color: '#cc1111',
         fontStyle: 'bold',
         stroke: '#330000',
@@ -1310,18 +1329,44 @@ export default class GameScene extends Phaser.Scene {
       .setScale(2.5);
     this.tweens.add({ targets: diedText, scale: 1, duration: 400, ease: 'Back.Out' });
 
+    // Record the run (skip the tutorial) and show a compact summary on the left column.
+    const rank = this.isTutorial ? -1 : this._submitRun();
+    if (!this.isTutorial) this.registry.set('runScore', 0); // the run is over; retry starts fresh
+
     this.add
-      .text(textX, h / 2 + 20, `Score: ${this.score}`, {
-        fontSize: '32px',
+      .text(textX, h / 2 - 36, `Run score: ${this.score.toLocaleString()}`, {
+        fontSize: '28px',
         color: '#ffffff',
       })
       .setScrollFactor(0)
       .setOrigin(0.5)
       .setDepth(501);
 
+    if (!this.isTutorial) {
+      const sum = this._runSummaryLines();
+      const placed = rank >= 0 ? `Leaderboard:  #${rank + 1} on ${this.difficulty.toUpperCase()}` : '';
+      this.add
+        .text(
+          textX,
+          h / 2 + 6,
+          `Reached Stage ${this.currentStage} of ${STAGE_COUNT}\n${sum.atoms}\n${sum.molecules}\n${placed}`.trimEnd(),
+          {
+            fontSize: '14px',
+            color: '#cdd8e6',
+            fontFamily: 'monospace',
+            align: 'center',
+            lineSpacing: 5,
+            wordWrap: { width: w * 0.5 },
+          },
+        )
+        .setScrollFactor(0)
+        .setOrigin(0.5, 0)
+        .setDepth(501);
+    }
+
     const retryText = this.add
-      .text(textX, h / 2 + 80, 'Press Z to retry', {
-        fontSize: '26px',
+      .text(textX, h - 46, 'Press Z to retry', {
+        fontSize: '24px',
         color: '#ffeeaa',
       })
       .setScrollFactor(0)
@@ -1346,25 +1391,18 @@ export default class GameScene extends Phaser.Scene {
   private _spawnCryingScientist(x: number, y: number): void {
     const S = 3.4;
     // The in-world player draws its arms as a separate Graphics overlay (Player._armsGraphic),
-    // so the bare 'player_0' texture has none. Here he's buried his face in his hands sobbing:
-    // gloves cover the goggles (local face is ~y -24..-14) with sleeves angling out to the elbows.
-    // Group everything in a container so every sob tween moves it together.
+    // so the bare 'player_0' texture has none. Re-create the idle arms at his sides and group them
+    // with the sprite in a container so every sob tween moves it together.
     const sprite = this.add.sprite(0, 0, 'player_0');
     const arms = this.add.graphics();
-    // Forearms — white lab-coat sleeves, elbow out at the side, wrist up at the face
     arms.fillStyle(0xe8e8f2);
-    arms.fillTriangle(-12.4, 4.6, -17.6, 1.4, -9.6, -14.6); // left sleeve
-    arms.fillTriangle(-12.4, 4.6, -9.6, -14.6, -4.4, -11.4);
-    arms.fillTriangle(12.4, 4.6, 17.6, 1.4, 9.6, -14.6); // right sleeve
-    arms.fillTriangle(12.4, 4.6, 9.6, -14.6, 4.4, -11.4);
-    // Gloves — a hand pressed over each eye
+    arms.fillRect(-16, -7, 5, 15); // left sleeve
     arms.fillStyle(0x88ccdd);
-    arms.fillCircle(-7, -13, 6);
-    arms.fillCircle(7, -13, 6);
-    // Knuckle highlights
-    arms.fillStyle(0xffffff, 0.4);
-    arms.fillCircle(-9, -15, 2);
-    arms.fillCircle(5, -15, 2);
+    arms.fillRect(-16, 6, 5, 5); // left glove
+    arms.fillStyle(0xe8e8f2);
+    arms.fillRect(11, -7, 5, 15); // right sleeve
+    arms.fillStyle(0x88ccdd);
+    arms.fillRect(11, 6, 5, 5); // right glove
     const guy = this.add.container(x, y, [sprite, arms]).setScrollFactor(0).setDepth(501).setScale(S);
 
     // pop in
@@ -1436,6 +1474,7 @@ export default class GameScene extends Phaser.Scene {
   private _completeStage(): void {
     if (this.stageCleared) return;
     this.stageCleared = true;
+    this._finalizeStageScore();
     const theme = SECTOR_THEMES[this.sector];
     this.cameras.main.flash(500, theme.flashR, theme.flashG, theme.flashB);
     SoundSystem.play(this.audioCtx, 'element_upgrade');
@@ -1445,9 +1484,54 @@ export default class GameScene extends Phaser.Scene {
   /** Called by the Boss on a finale stage once it dies. */
   onBossDefeated(): void {
     this.stageCleared = true;
+    this._finalizeStageScore();
     const theme = SECTOR_THEMES[this.sector];
     this.cameras.main.flash(600, theme.flashR, theme.flashG, theme.flashB);
     this.time.delayedCall(700, () => this._showClearBanner());
+  }
+
+  /** Award clear bonuses, fold them into the run score, and persist best-score + unlock. */
+  private _finalizeStageScore(): void {
+    const elapsed = (this.time.now - this._stageStartMs) / 1000;
+    // Par scales with stage length; clearing under par gives a decaying time bonus.
+    const par = this.worldWidth / 160 + 25;
+    this._lastTimeBonus = Math.max(0, Math.round((par - elapsed) * 8));
+    this._lastNoHitBonus = this.player.hp >= PLAYER_MAX_HP ? 750 : 0;
+    this.score += this._lastTimeBonus + this._lastNoHitBonus;
+    this.events.emit('score-update', this.score);
+
+    const stageScore = this.score - this._stageBaseScore; // this stage's own contribution
+    SaveSystem.recordBestScore(this.difficulty, this.currentStage, stageScore);
+    SaveSystem.markStageCleared(this.difficulty, this.currentStage);
+  }
+
+  /** Insert the finished run onto the leaderboard. Returns 0-based rank, or -1 if it didn't place. */
+  private _submitRun(): number {
+    if (this._runSubmitted) return -1;
+    this._runSubmitted = true;
+    const es = this.player.elementSystem;
+    const record: RunRecord = {
+      score: this.score,
+      stageReached: this.currentStage,
+      difficulty: this.difficulty,
+      atoms: es.getCounts(),
+      molecules: es.getAvailableAttacks().map((a) => a.id),
+      date: Date.now(),
+    };
+    return SaveSystem.submitRun(record);
+  }
+
+  /** "H2 O1 C0 N0" + assembled molecule names — used by the clear/death summaries. */
+  private _runSummaryLines(): { atoms: string; molecules: string } {
+    const es = this.player.elementSystem;
+    const c = es.getCounts();
+    const attacks = es.getAvailableAttacks();
+    return {
+      atoms: `Atoms:  H${c.hydrogen}  O${c.oxygen}  C${c.carbon}  N${c.nitrogen}`,
+      molecules: attacks.length
+        ? `Built:  ${attacks.map((a) => ELEMENT_NAMES[a.id]).join(', ')}`
+        : 'Built:  nothing this stage',
+    };
   }
 
   /** Shared victory overlay: STAGE / SECTOR / EXPERIMENT-COMPLETE depending on where we are. */
@@ -1463,8 +1547,9 @@ export default class GameScene extends Phaser.Scene {
     const isFinal = this.currentStage >= STAGE_COUNT;
     const isSectorFinale = isFinaleStage(this.currentStage);
     const title = isFinal ? 'EXPERIMENT COMPLETE!' : isSectorFinale ? 'SECTOR CLEAR!' : 'STAGE CLEAR!';
+    const titleY = isFinal ? h / 2 - 120 : h / 2 - 70;
     this.add
-      .text(w / 2, h / 2 - 40, title, {
+      .text(w / 2, titleY, title, {
         fontSize: isFinal ? '40px' : isSectorFinale ? '48px' : '44px',
         color: theme.clearColor,
         fontStyle: 'bold',
@@ -1475,27 +1560,52 @@ export default class GameScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(301);
 
+    // Score breakdown
+    const breakdown: string[] = [];
+    if (this._lastTimeBonus > 0) breakdown.push(`Time bonus   +${this._lastTimeBonus.toLocaleString()}`);
+    if (this._lastNoHitBonus > 0) breakdown.push(`Flawless     +${this._lastNoHitBonus.toLocaleString()}`);
+    breakdown.push(`Run score    ${this.score.toLocaleString()}`);
+    this.add
+      .text(w / 2, titleY + 48, breakdown.join('\n'), {
+        fontSize: '20px',
+        color: '#ffffff',
+        fontFamily: 'monospace',
+        align: 'center',
+        lineSpacing: 6,
+      })
+      .setScrollFactor(0)
+      .setOrigin(0.5, 0)
+      .setDepth(301);
+
     if (isFinal) {
+      // Run is over — record it and show a summary + leaderboard placement.
+      const rank = this._submitRun();
+      const sum = this._runSummaryLines();
+      const placed = rank >= 0 ? `Leaderboard:  #${rank + 1} on ${this.difficulty.toUpperCase()}` : '';
       this.add
-        .text(w / 2, h / 2 + 10, `Final Score: ${this.score.toLocaleString()}`, {
-          fontSize: '26px',
-          color: '#ffffff',
+        .text(w / 2, titleY + 150, `${sum.atoms}\n${sum.molecules}\n${placed}`.trimEnd(), {
+          fontSize: '15px',
+          color: '#bfe6ff',
+          fontFamily: 'monospace',
+          align: 'center',
+          lineSpacing: 5,
+          wordWrap: { width: w - 120 },
         })
         .setScrollFactor(0)
-        .setOrigin(0.5)
+        .setOrigin(0.5, 0)
         .setDepth(301);
     }
 
     const next = this.currentStage + 1;
     const entersNewSector = !isFinal && sectorOf(next) !== this.sector;
     const promptText = isFinal
-      ? 'Press Z to play again'
+      ? 'Press Z to return to stage select'
       : entersNewSector
         ? `Press Z to enter ${SECTORS[sectorOf(next)].name}`
         : 'Press Z for the next stage';
     const prompt = this.add
-      .text(w / 2, h / 2 + (isFinal ? 55 : 30), promptText, {
-        fontSize: '26px',
+      .text(w / 2, h - 60, promptText, {
+        fontSize: '24px',
         color: '#ffeeaa',
       })
       .setScrollFactor(0)
@@ -1505,8 +1615,13 @@ export default class GameScene extends Phaser.Scene {
 
     this.input.keyboard?.once('keydown-Z', () => {
       this.scene.stop('HUDScene');
-      if (isFinal) this.scene.start('DifficultyScene');
-      else this.scene.start('GameScene', { stage: next });
+      if (isFinal) {
+        this.registry.set('runScore', 0); // run finished — next run starts fresh
+        this.scene.start('StageSelectScene');
+      } else {
+        this.registry.set('runScore', this.score); // carry the cumulative score into the next stage
+        this.scene.start('GameScene', { stage: next });
+      }
     });
   }
 }

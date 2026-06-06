@@ -1,5 +1,28 @@
 # Patch Notes
 
+## v0.10.0 — 2026-06-06
+
+### Phase 4 — Progression & Meta
+
+A meta layer around the 9-stage campaign: choose where to play, score your run, and reflect on it.
+Decisions for this pass: **arcade** atom model (the molecular tree resets each stage), **per-stage**
+unlocks, and records tracked **per difficulty**.
+
+- **Stage select screen** (`StageSelectScene`) — a 3×3 grid of the nine stages, one column per
+  sector, with boss-finale stages marked. Stages unlock sequentially (clear N → N+1 opens); locked
+  stages show a lock and can't be entered. Each card shows your **best score** for that stage. The
+  flow is now Difficulty → **Stage Select** → play.
+- **Local save** (`SaveSystem`, `localStorage` key `mm.save.v1`) — persists unlocks, per-stage best
+  scores, and a **top-5 leaderboard**, all kept separately per difficulty. Robust to missing/corrupt
+  data (falls back to a fresh save).
+- **Run scoring** — score is now a **cumulative run total** carried across stages (reset on a fresh
+  run or death). Stage clears award a **time bonus** (decays with how long you took, scaled to stage
+  length) and a **flawless/no-hit bonus** (finish a stage at full HP). The clear banner shows the
+  breakdown.
+- **Run summary** — the death screen and the EXPERIMENT COMPLETE screen now show the stage reached,
+  your atom path (H/O/C/N), the molecules you assembled, total score, and your leaderboard placement.
+- Pause menu's restart wording stays "RESTART STAGE"; difficulty persists across the new flow.
+
 ## v0.9.0 — 2026-06-06
 
 ### Phase 3 — Nine stages across three sectors

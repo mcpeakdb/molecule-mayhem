@@ -1,10 +1,15 @@
 # Molecule Mayhem — Development Plan
 
-## Current State (v0.9 — Phase 3 Sector Content: 9 stages)
+## Current State (v0.10 — Phase 4 Progression & Meta)
 
 - **9 stages across 3 sectors** (Petri Dish / Blood Agar / MacConkey), 3 stages each, plus the
   tutorial. Sector = `ceil(stage/3)` drives biome/theme; all level content is data-driven in
   [../src/stages.ts](../src/stages.ts) (`STAGES[9]`), consumed by `GameScene`.
+- **Progression & meta** (Phase 4): `StageSelectScene` with per-stage sequential unlocks + best
+  scores; `SaveSystem` persists unlocks / best scores / a top-5 leaderboard to `localStorage`, keyed
+  per difficulty. Score is a **cumulative run total** (carried across stages, reset on death) with
+  **time** + **no-hit** clear bonuses; death and completion show a run summary. Atom model is
+  **arcade** (tree resets each stage).
 - **Sector finales** (stages 3/6/9) are boss fights; the other six clear by reaching an **exit
   portal** that opens once all enemies are defeated. Banners: STAGE / SECTOR / EXPERIMENT COMPLETE.
 - **7 enemy types**: bacterium, virus, dustbunny, pollen + new amoeba (tank), spore (fast hover),
@@ -90,16 +95,21 @@ enemies, unique bosses, and a stage mechanic.
 
 ---
 
-## Phase 4 — Progression & Meta
+## Phase 4 — Progression & Meta ✅ COMPLETE (v0.10.0)
 
-- [ ] **Sector select screen** — unlock sectors sequentially; show high score per sector
-- [ ] **Atom persistence across sectors** — carry the molecular tree over a run (reset on death) so
-      complex molecules gate on progression. This is the Phase 6 deferred follow-up; decide
-      roguelite (persist) vs arcade (reset each sector). Atoms currently reset per sector.
-- [~] **Score system** — per-enemy kill values + combo multiplier already exist; still want a
-      time bonus and a no-hit bonus
-- [ ] **Leaderboard** (local) — store top 5 runs with the molecule/atom path taken
-- [ ] **Run summary** — at sector clear / death, show the molecules assembled and the atom path chosen
+Shipped 2026-06-06. Decisions: **arcade** atom model, **per-stage** unlocks, records **per
+difficulty**. Work breakdown in [tasks/PHASE4_TASKS.md](tasks/PHASE4_TASKS.md).
+
+- [x] **Stage select screen** (`StageSelectScene`) — 9 stages grouped by sector, sequential per-stage
+      unlocks, best score per stage shown
+- [x] **Atom persistence** — resolved as **arcade** (tree resets each stage); no carry. Closes the
+      Phase 6 deferred follow-up.
+- [x] **Score system** — per-enemy kills + combo (Phase 1) now plus a cumulative run score with
+      **time bonus** and **no-hit bonus** on clear
+- [x] **Leaderboard** (local) — `SaveSystem` stores top 5 runs per difficulty with the atom/molecule
+      path (`localStorage` `mm.save.v1`)
+- [x] **Run summary** — death + EXPERIMENT COMPLETE show molecules assembled, atom path, stage
+      reached, score, and leaderboard placement
 
 ---
 

@@ -6,6 +6,7 @@ import ElementChoiceScene from './scenes/ElementChoiceScene.js';
 import GameScene from './scenes/GameScene.js';
 import HUDScene from './scenes/HUDScene.js';
 import PauseScene from './scenes/PauseScene.js';
+import StageSelectScene from './scenes/StageSelectScene.js';
 
 new Phaser.Game({
   type: Phaser.AUTO,
@@ -16,7 +17,7 @@ new Phaser.Game({
     default: 'arcade',
     arcade: { debug: false, gravity: { x: 0, y: 0 } },
   },
-  scene: [BootScene, DifficultyScene, GameScene, HUDScene, ElementChoiceScene, PauseScene],
+  scene: [BootScene, DifficultyScene, StageSelectScene, GameScene, HUDScene, ElementChoiceScene, PauseScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

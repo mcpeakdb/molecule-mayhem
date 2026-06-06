@@ -1,6 +1,6 @@
 {
   "name": "molecular-mayhem",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "A molecular-scale beat 'em up — mad scientist vs. the microscopic world",
   "scripts": {
     "dev": "vite",
