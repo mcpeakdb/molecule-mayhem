@@ -1,5 +1,21 @@
 # Patch Notes
 
+## v0.14.0 — 2026-06-06
+
+### Boss fights are now dodge-and-whittle duels
+
+- **Bosses no longer chase you.** Every boss now makes a dramatic entrance — sweeping in from the
+  edge of the arena — then holds station near its anchor, hovering and bobbing instead of charging
+  the player. You whittle its health bar down while reading and dodging its attacks.
+- **Telegraphed attack patterns.** Each attack winds up with a readable tint-pulse flash, then
+  fires one of four patterns: an **aimed spread** (sidestep it), a **radial ring** (slip through a
+  gap), a re-aiming **barrage** (keep moving to break its lead), or a **raking sweep** (run with it
+  to stay in a safe lane). Variety, projectile speed, and aggression ramp up as the boss loses HP.
+- **Arena lock.** When a boss activates, the camera pins to a single screen-wide arena and you're
+  confined to it for the fight — no running away mid-duel.
+- Touching the boss still hurts (a light, cooldown-gated contact tap), so melee builds trade a bit
+  of HP for damage rather than standing inside it with impunity.
+
 ## v0.13.0 — 2026-06-06
 
 ### Phase 8 — Weapon Loadouts & Compound Selection

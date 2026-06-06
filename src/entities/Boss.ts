@@ -1,16 +1,23 @@
 import Phaser from 'phaser';
-import { FLOOR_MAX_Y, FLOOR_MIN_Y } from '../constants';
+import { FLOOR_CENTER_Y, FLOOR_MAX_Y, FLOOR_MIN_Y } from '../constants';
 import type GameScene from '../scenes/GameScene';
 import SoundSystem from '../systems/SoundSystem';
 import type { EnemySprite } from '../types';
 
 const PHASES = {
-  IDLE: 'idle',
-  CHARGE: 'charge',
+  ENTER: 'enter', // sliding into the arena — no attacks yet
+  IDLE: 'idle', // hovering near its anchor, picking the next attack
+  TELEGRAPH: 'telegraph', // winding up a telegraphed attack the player can read
   HURT: 'hurt',
   DEAD: 'dead',
 } as const;
 type BossPhase = (typeof PHASES)[keyof typeof PHASES];
+
+type AttackKind = 'volley' | 'radial' | 'barrage' | 'sweep';
+
+// Boss hovers around its anchor at this height — inside the walkable band so melee builds
+// can still reach it, but high enough to read as "looming" over the player.
+const HOVER_Y = FLOOR_CENTER_Y - 15;
 
 export type BossVariant = 'bacterium' | 'amoeba' | 'phage';
 
@@ -103,6 +110,11 @@ export default class Boss {
   actionTimer = 0;
   activated = false;
 
+  /** Horizontal spot the boss holds station around — it never pursues the player. */
+  readonly anchorX: number;
+  private pendingAttack: AttackKind | null = null;
+  private contactCd = 0;
+
   private hpBarBg: Phaser.GameObjects.Rectangle;
   private hpBar: Phaser.GameObjects.Rectangle;
   private hpLabel: Phaser.GameObjects.Text;
@@ -120,6 +132,7 @@ export default class Boss {
     this.projectileSpread = cfg.projectileSpread;
     this.fireTint = cfg.fireTint;
     this.activateTint = cfg.activateTint;
+    this.anchorX = x;
 
     const base = scene.physics.add.sprite(x, y, cfg.texture) as Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     base.setScale(cfg.scale);
@@ -152,7 +165,27 @@ export default class Boss {
     this.scene.shake(600, 0.018);
     this.sprite.setTint(this.activateTint);
     this.scene.time.delayedCall(500, () => this.sprite.clearTint());
-    this.scene.events.emit('boss-activated');
+    // The scene locks the camera to the arena before the boss makes its entrance.
+    this.scene.events.emit('boss-activated', this.anchorX);
+
+    // Sweep in from off the right edge of the arena to its hover anchor — no chasing,
+    // just a dramatic arrival, then it settles into the attack loop.
+    this.phase = PHASES.ENTER;
+    this.sprite.body.setVelocity(0, 0);
+    this.sprite.setPosition(this.anchorX + 360, HOVER_Y);
+    this.scene.tweens.add({
+      targets: this.sprite,
+      x: this.anchorX,
+      y: HOVER_Y,
+      duration: 750,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        if (this.phase === PHASES.ENTER) {
+          this.phase = PHASES.IDLE;
+          this.actionTimer = 600;
+        }
+      },
+    });
   }
 
   update(time: number, delta: number, playerSprite: Phaser.Physics.Arcade.Sprite): void {
@@ -166,6 +199,11 @@ export default class Boss {
 
     this.hurtTimer = Math.max(0, this.hurtTimer - delta);
     this.actionTimer = Math.max(0, this.actionTimer - delta);
+    this.contactCd = Math.max(0, this.contactCd - delta);
+
+    const dx = playerSprite.x - this.sprite.x;
+
+    if (this.phase === PHASES.DEAD) return;
 
     if (this.phase === PHASES.HURT) {
       if (this.hurtTimer <= 0) this.phase = PHASES.IDLE;
@@ -173,26 +211,26 @@ export default class Boss {
       this._updateHPBar();
       return;
     }
-    if (this.phase === PHASES.DEAD) return;
 
-    if (this.actionTimer <= 0) this._chooseNextAction();
+    if (this.phase === PHASES.ENTER) {
+      // Entrance tween owns position; just keep the facing/HP bar in sync.
+      this.sprite.setFlipX(dx < 0);
+      this._updateHPBar();
+      return;
+    }
 
-    const dx = playerSprite.x - this.sprite.x;
-    const dy = playerSprite.y - this.sprite.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    // IDLE / TELEGRAPH: hold station near the anchor and bob — never pursue the player.
+    this._hover(time);
 
-    if (this.phase === PHASES.IDLE) {
-      this.sprite.body.setVelocity(0, 0);
-    } else if (this.phase === PHASES.CHARGE) {
-      if (dist > 1) {
-        this.sprite.body.setVelocity((dx / dist) * this.speed * 1.6, (dy / dist) * this.speed * 0.6);
-      }
-      if (dist < 70) {
-        // A clean leap over the boss dodges the charge impact
-        if (!this.scene.player.isClearingEnemy) this.scene.player.takeDamage(this.damage);
-        this.phase = PHASES.IDLE;
-        this.actionTimer = 800;
-        this.sprite.body.setVelocity(-(dx / dist) * 150, 0);
+    if (this.phase === PHASES.IDLE && this.actionTimer <= 0 && this.pendingAttack === null) this._beginAttack();
+
+    // Light contact deterrent so the player can't simply stand inside the boss and mash melee.
+    if (this.contactCd <= 0 && !this.scene.player.isClearingEnemy) {
+      const pdx = playerSprite.x - this.sprite.x;
+      const pdy = playerSprite.y - this.sprite.y;
+      if (Math.abs(pdx) < 56 && Math.abs(pdy) < 56) {
+        this.scene.player.takeDamage(Math.round(this.damage * 0.5));
+        this.contactCd = 800;
       }
     }
 
@@ -205,43 +243,134 @@ export default class Boss {
     this._updateHPBar();
   }
 
-  private _chooseNextAction(): void {
+  /** Gentle float around the anchor: horizontal sway + vertical bob, easing via velocity. */
+  private _hover(time: number): void {
+    const targetX = this.anchorX + Math.sin(time * 0.0008) * 70;
+    const targetY = HOVER_Y + Math.sin(time * 0.0012) * 34;
+    this.sprite.body.setVelocity((targetX - this.sprite.x) * 2, (targetY - this.sprite.y) * 2);
+  }
+
+  /** Pick the next attack, telegraph it, then fire — recovery scales with how hurt the boss is. */
+  private _beginAttack(): void {
     const hpPct = this.hp / this.maxHp;
-    if (hpPct > 0.6) {
-      this.phase = PHASES.CHARGE;
-      this.actionTimer = 2200;
-    } else if (hpPct > 0.3) {
-      if (Math.random() < 0.5) {
-        this.phase = PHASES.CHARGE;
-        this.actionTimer = 1800;
-      } else {
-        this._fireFlagella();
-        this.phase = PHASES.IDLE;
-        this.actionTimer = 1000;
+    const kind = this._pickAttack(hpPct);
+    this.pendingAttack = kind;
+    this.phase = PHASES.TELEGRAPH;
+
+    // Aggression ramps as HP drops: shorter telegraphs and recovery windows.
+    const tighten = hpPct > 0.6 ? 1 : hpPct > 0.3 ? 0.8 : 0.62;
+    const telegraph = Math.round((kind === 'radial' ? 480 : 360) * tighten);
+
+    // Telegraph: a pulsing tint flash so the player can read the wind-up and start dodging.
+    this.sprite.setTint(this.fireTint);
+    this.scene.tweens.killTweensOf(this.sprite);
+    this.scene.tweens.add({
+      targets: this.sprite,
+      scaleX: this.scale * 1.12,
+      scaleY: this.scale * 1.12,
+      duration: telegraph / 2,
+      yoyo: true,
+    });
+
+    this.scene.time.delayedCall(telegraph, () => {
+      if (!this.alive || this.phase === PHASES.DEAD || this.phase === PHASES.HURT) {
+        // Interrupted mid-wind-up — drop this attack and let the boss re-choose once it recovers.
+        this.sprite.clearTint();
+        this.pendingAttack = null;
+        return;
       }
-    } else {
-      if (Math.random() < 0.4) {
-        this._fireFlagella();
-        this.phase = PHASES.IDLE;
-        this.actionTimer = 700;
-      } else {
-        this.phase = PHASES.CHARGE;
-        this.actionTimer = 1200;
-      }
+      this.sprite.clearTint();
+      const recovery = this._fireAttack(kind);
+      this.pendingAttack = null;
+      this.phase = PHASES.IDLE;
+      this.actionTimer = Math.round(recovery * tighten);
+    });
+  }
+
+  private _pickAttack(hpPct: number): AttackKind {
+    const pool: AttackKind[] =
+      hpPct > 0.6
+        ? ['volley', 'volley', 'sweep']
+        : hpPct > 0.3
+          ? ['volley', 'sweep', 'radial', 'barrage']
+          : ['radial', 'barrage', 'sweep', 'volley', 'radial'];
+    return pool[Phaser.Math.Between(0, pool.length - 1)];
+  }
+
+  /** Spawn an attack's projectiles. Returns the post-attack recovery in ms (before HP scaling). */
+  private _fireAttack(kind: AttackKind): number {
+    switch (kind) {
+      case 'volley':
+        this._aimedSpread();
+        return 950;
+      case 'radial':
+        this._radialBurst();
+        return 1150;
+      case 'barrage':
+        this._barrage();
+        return 1300;
+      case 'sweep':
+        this._sweep();
+        return 1000;
     }
   }
 
-  private _fireFlagella(): void {
+  private _muzzle(): { x: number; y: number } {
+    return { x: this.sprite.x, y: this.sprite.y };
+  }
+
+  /** Symmetric spread aimed at the player — sidestep to dodge. Count/spread vary per variant. */
+  private _aimedSpread(): void {
     const player = this.scene.player.sprite;
-    const baseAngle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, player.x, player.y);
-    // Symmetric volley centred on the player; count/spread vary per boss variant.
+    const { x, y } = this._muzzle();
+    const baseAngle = Phaser.Math.Angle.Between(x, y, player.x, player.y);
     const half = (this.projectileCount - 1) / 2;
     for (let i = 0; i < this.projectileCount; i++) {
       const angle = baseAngle + (i - half) * this.projectileSpread;
-      this.scene.spawnEnemyProjectile(this.sprite.x, this.sprite.y, angle, this.damage * 0.6);
+      this.scene.spawnEnemyProjectile(x, y, angle, this.damage * 0.55, 320);
     }
-    this.sprite.setTint(this.fireTint);
-    this.scene.time.delayedCall(200, () => this.sprite.clearTint());
+  }
+
+  /** A full ring of slower shots — find a gap and move through it. */
+  private _radialBurst(): void {
+    const { x, y } = this._muzzle();
+    const count = this.projectileCount * 2 + 4;
+    const offset = Math.random() * Math.PI;
+    for (let i = 0; i < count; i++) {
+      const angle = offset + (i / count) * Math.PI * 2;
+      this.scene.spawnEnemyProjectile(x, y, angle, this.damage * 0.5, 200);
+    }
+  }
+
+  /** A burst of single shots that re-aim at the player — keep moving to break the lead. */
+  private _barrage(): void {
+    const shots = 5;
+    for (let i = 0; i < shots; i++) {
+      this.scene.time.delayedCall(i * 140, () => {
+        if (!this.alive || this.phase === PHASES.DEAD) return;
+        const player = this.scene.player.sprite;
+        const { x, y } = this._muzzle();
+        const angle = Phaser.Math.Angle.Between(x, y, player.x, player.y);
+        this.scene.spawnEnemyProjectile(x, y, angle, this.damage * 0.5, 360);
+      });
+    }
+  }
+
+  /** A fan of shots that rakes across the arena — run with the sweep to stay in a safe lane. */
+  private _sweep(): void {
+    const player = this.scene.player.sprite;
+    const dir = player.x < this.sprite.x ? -1 : 1; // sweep toward the player's side
+    const steps = 9;
+    const arc = Math.PI * 0.6;
+    for (let i = 0; i < steps; i++) {
+      this.scene.time.delayedCall(i * 70, () => {
+        if (!this.alive || this.phase === PHASES.DEAD) return;
+        const { x, y } = this._muzzle();
+        // Sweep from straight-down toward the player's flank.
+        const angle = Math.PI / 2 + dir * (-arc / 2 + (i / (steps - 1)) * arc);
+        this.scene.spawnEnemyProjectile(x, y, angle, this.damage * 0.5, 240);
+      });
+    }
   }
 
   private _updateHPBar(): void {

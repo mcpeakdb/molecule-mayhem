@@ -116,6 +116,9 @@ export default class GameScene extends Phaser.Scene {
   private _exitPortal?: Phaser.GameObjects.Container;
   private _exitHint?: Phaser.GameObjects.Text;
 
+  // ── Boss arena (camera locks to one screen once the boss activates) ──
+  private _bossArena: { left: number; right: number } | null = null;
+
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: WasdKeys;
   private slotKeys!: Phaser.Input.Keyboard.Key[][];
@@ -488,6 +491,7 @@ export default class GameScene extends Phaser.Scene {
       boss.speed *= scale.enemySpeed;
       this.boss = boss;
       this.enemyGroup.add(boss.sprite);
+      this.events.once('boss-activated', (anchorX: number) => this._lockBossArena(anchorX));
     } else if (def.exitX !== undefined) {
       // Regular stage — clear it by reaching the exit once the area is cleared
       this._exitX = def.exitX;
@@ -901,7 +905,9 @@ export default class GameScene extends Phaser.Scene {
       slotKeys: this.slotKeys,
     });
 
-    this.player.sprite.x = Phaser.Math.Clamp(this.player.sprite.x, 40, this.worldWidth - 40);
+    const clampMin = this._bossArena ? this._bossArena.left + 30 : 40;
+    const clampMax = this._bossArena ? this._bossArena.right - 30 : this.worldWidth - 40;
+    this.player.sprite.x = Phaser.Math.Clamp(this.player.sprite.x, clampMin, clampMax);
 
     this.enemyGroup.getChildren().forEach((go) => {
       const s = go as EnemySprite;
@@ -1214,8 +1220,7 @@ export default class GameScene extends Phaser.Scene {
     p.body.setVelocity(dir * speed, 0);
   }
 
-  spawnEnemyProjectile(x: number, y: number, angle: number, damage: number): void {
-    const speed = 280;
+  spawnEnemyProjectile(x: number, y: number, angle: number, damage: number, speed = 280): void {
     const p = this.enemyProjectileGroup.create(x, y, 'projectile') as ProjectileSprite;
     p.setTint(0xff6600).setDepth(80);
     p.damage = damage;
@@ -1605,6 +1610,19 @@ export default class GameScene extends Phaser.Scene {
     this.cameras.main.flash(500, theme.flashR, theme.flashG, theme.flashB);
     SoundSystem.play(this.audioCtx, 'element_upgrade');
     this.time.delayedCall(550, () => this._showClearBanner());
+  }
+
+  /**
+   * Boss just activated — frame the fight as a fixed arena. The boss holds station near
+   * `anchorX` and the player dodges its attacks within this one screen, so we pin the camera
+   * to a single screen-wide window and confine the player to it (no running away mid-fight).
+   */
+  private _lockBossArena(anchorX: number): void {
+    const right = Math.min(this.worldWidth, anchorX + 220);
+    const left = Math.max(0, right - GAME_WIDTH);
+    this._bossArena = { left, right };
+    // Bounds exactly one screen wide → the follow camera has nothing left to scroll, so it locks.
+    this.cameras.main.setBounds(left, 0, GAME_WIDTH, GAME_HEIGHT);
   }
 
   /** Called by the Boss on a finale stage once it dies. */
