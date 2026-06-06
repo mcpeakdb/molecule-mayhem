@@ -1,5 +1,30 @@
 # Patch Notes
 
+## v0.11.0 — 2026-06-06
+
+### Renamed: Molecule Mayhem → **Molecular Meltdown**
+
+The game has a new name, reflected on the title screen, the browser tab, `package.json`, and the docs.
+
+### Phase 5 — Content & QOL
+
+Mobile/gamepad support was skipped this pass; the art/terrain items were kept **procedural** (no
+external assets), in keeping with the project's identity.
+
+- **Title screen** (`TitleScene`) — boot now opens to a main menu (Start, Stage Select, Leaderboard,
+  Controls, Settings) with a decorative orbiting atom, instead of dropping straight into the tutorial.
+  The tutorial only auto-runs once (until you complete or skip it).
+- **Settings** (`SettingsScene` + new `Settings` system) — master **volume**, **mute**, **SFX** toggle,
+  and **screen-shake** toggle, persisted to `localStorage`. All sound now routes through a master gain
+  that honors these; every camera shake honors the screen-shake setting.
+- **Leaderboard viewer** (`LeaderboardScene`) — browse the top-5 runs per difficulty (we already
+  stored them); reachable from the title and from stage select (`L`).
+- **Controls screen** (`HelpScene`) — a quick reference for movement, jumping, the numpad attacks,
+  collecting, and the gap hazard.
+- **Procedural art pass** — each sector now has distinct decorative scenery (colonies / blood cells /
+  crystal shards) on a parallax background plus a horizon prop row, and a **vignette** darkens the
+  screen edges for mood. All generated in code — still no external asset files.
+
 ## v0.10.0 — 2026-06-06
 
 ### Phase 4 — Progression & Meta

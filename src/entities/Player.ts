@@ -319,7 +319,7 @@ export default class Player {
     const cy = this.sprite.y;
 
     this._spawnPunchArm(dir);
-    this.scene.cameras.main.shake(80, 0.003);
+    this.scene.shake(80, 0.003);
 
     let hitSomething = false;
     this.scene.enemyGroup.getChildren().forEach((go) => {
@@ -432,13 +432,13 @@ export default class Player {
       SoundSystem.play(this.scene.audioCtx, 'punch');
       this._spawnPunchArm(dir, { fistColor: 0x3366ee, glow: 0x88aaff, fistRadius: 13, sleeveLen: 50, sleeveH: 11 });
       this.scene.spawnHitFlash(x + dir * 62, y, 0x4499ff, 55);
-      this.scene.cameras.main.shake(120, 0.006);
+      this.scene.shake(120, 0.006);
       if (this._damageArc(x + dir * 50, y, 130, 70, PLAYER_MELEE_DAMAGE * 2, dir, false, 4)) this._registerHit();
     } else if (level === 2) {
       // Plasma Arc — crackling hydrogen-blue energy bolt
       SoundSystem.play(this.scene.audioCtx, 'punch');
       this.scene.spawnHitFlash(x + dir * 40, y, 0xaaddff, 40);
-      this.scene.cameras.main.shake(80, 0.004);
+      this.scene.shake(80, 0.004);
       this.scene.spawnPlasmaBolt(x + dir * 30, y, dir, PLAYER_MELEE_DAMAGE * 3);
     } else {
       // Fusion Burst — white-hot detonation with hydrogen-blue shockwave rings
@@ -447,7 +447,7 @@ export default class Player {
       this.scene.spawnHitFlash(x, y, 0x4499ff, 150);
       this.scene.spawnNova(x, y, 0x66bbff, 200, { rings: 3, life: 30, lineWidth: 4, fill: true });
       this.scene.spawnBurst(x, y, 0x88bbff, { count: 26, speed: [120, 320], lifespan: 550, scale: 1.3 });
-      this.scene.cameras.main.shake(280, 0.012);
+      this.scene.shake(280, 0.012);
       if (this._damageRadius(x, y, 190, PLAYER_MELEE_DAMAGE * 4)) this._registerHit();
     }
   }
@@ -477,7 +477,7 @@ export default class Player {
       this.scene.spawnHitFlash(x, y, 0xff5533, 200);
       this.scene.spawnNova(x, y, 0xff7744, 280, { rings: 3, life: 32, lineWidth: 4, fill: true });
       this.scene.spawnBurst(x, y, 0xff8855, { count: 28, speed: [120, 340], lifespan: 600, scale: 1.3 });
-      this.scene.cameras.main.shake(300, 0.012);
+      this.scene.shake(300, 0.012);
       if (this._damageRadius(x, y, 280, PLAYER_MELEE_DAMAGE * 3.5, true)) this._registerHit();
     }
   }
@@ -506,10 +506,10 @@ export default class Player {
         lifespan: 480,
         scale: 1.1,
       });
-      this.scene.cameras.main.shake(180, 0.007);
+      this.scene.shake(180, 0.007);
       if (this._damageArc(x + dir * 80, y, 220, 120, PLAYER_MELEE_DAMAGE * 2.5, dir, false, 5)) this._registerHit();
     } else {
-      this.scene.cameras.main.shake(500, 0.015);
+      this.scene.shake(500, 0.015);
       this.scene.spawnTidalWave(x, y, dir);
     }
   }
@@ -545,7 +545,7 @@ export default class Player {
       });
     } else {
       // Graphene Shockwave — expanding crack + flung debris
-      this.scene.cameras.main.shake(300, 0.012);
+      this.scene.shake(300, 0.012);
       this.scene.spawnHitFlash(x, y, 0x777777, 100);
       this.scene.spawnNova(x, y, 0x999999, 180, { rings: 2, life: 28 });
       this.scene.spawnBurst(x, y + 16, 0x888888, {
@@ -588,11 +588,11 @@ export default class Player {
       this.scene.spawnHitFlash(x, y, 0x66ddff, 80);
       this.scene.spawnNova(x, y, 0x88eeff, 160, { rings: 2, life: 26, fill: true });
       this.scene.spawnBurst(x, y, 0xbbf6ff, { count: 22, speed: [120, 300], lifespan: 520, scale: 1.2 });
-      this.scene.cameras.main.shake(150, 0.006);
+      this.scene.shake(150, 0.006);
       if (this._damageRadius(x, y, 160, PLAYER_MELEE_DAMAGE * 2.5, true)) this._registerHit();
     } else {
       // Absolute Zero — the whole screen flash-freezes
-      this.scene.cameras.main.shake(500, 0.015);
+      this.scene.shake(500, 0.015);
       this.scene.cameras.main.flash(220, 180, 230, 255);
       this.scene.spawnNova(x, this._groundY, 0x88eeff, 420, { rings: 3, life: 34, lineWidth: 4 });
       let hit = false;
@@ -676,7 +676,7 @@ export default class Player {
       if (this._damageRadius(x, y, radii[level - 1], PLAYER_MELEE_DAMAGE * 2)) this._registerHit();
     } else {
       // Blackout — choking smog across the whole screen
-      this.scene.cameras.main.shake(400, 0.012);
+      this.scene.shake(400, 0.012);
       let hit = false;
       this.scene.enemyGroup.getChildren().forEach((go) => {
         const s = go as EnemySprite;
@@ -722,7 +722,7 @@ export default class Player {
         lifespan: 560,
         scale: 1.3,
       });
-      this.scene.cameras.main.shake(200, 0.008);
+      this.scene.shake(200, 0.008);
       const dmg =
         level === 1 ? PLAYER_MELEE_DAMAGE * 3 : level === 2 ? PLAYER_MELEE_DAMAGE * 3.5 : PLAYER_MELEE_DAMAGE * 6;
       if (this._damageRadius(ex, ey, r, dmg)) this._registerHit();
@@ -821,7 +821,7 @@ export default class Player {
       this._registerHit();
     } else {
       // Acid Rain — one drop per enemy
-      this.scene.cameras.main.shake(300, 0.01);
+      this.scene.shake(300, 0.01);
       this.scene.enemyGroup.getChildren().forEach((go, i) => {
         const s = go as EnemySprite;
         if (!s.active || !s.enemyRef) return;

@@ -22,7 +22,8 @@ export default class BootScene extends Phaser.Scene {
     this._makeEffects();
     this._makeParticle();
     this._makeBackground();
-    this.scene.start('GameScene', { tutorial: true });
+    this._makeVignette();
+    this.scene.start('TitleScene');
   }
 
   // M.E.G. — Main Element Guide: a friendly glowing atom-bot that narrates the tutorial
@@ -816,6 +817,21 @@ export default class BootScene extends Phaser.Scene {
     g.fillStyle(0xffffff);
     g.fillRect(0, 0, 6, 6);
     g._done('particle', 6, 6);
+  }
+
+  // Radial vignette overlay — a screen-fixed darkening of the edges for depth/mood.
+  private _makeVignette(): void {
+    const w = 960;
+    const h = 540;
+    const tex = this.textures.createCanvas('vignette', w, h);
+    if (!tex) return;
+    const ctx = tex.getContext();
+    const grad = ctx.createRadialGradient(w / 2, h / 2, h * 0.42, w / 2, h / 2, h * 0.95);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.6)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+    tex.refresh();
   }
 
   private _makeBackground(): void {

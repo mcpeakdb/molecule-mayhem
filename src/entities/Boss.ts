@@ -149,7 +149,7 @@ export default class Boss {
     this.hpBar.setVisible(true);
     this.hpLabel.setVisible(true);
     SoundSystem.play(this.scene.audioCtx, 'boss_roar');
-    this.scene.cameras.main.shake(600, 0.018);
+    this.scene.shake(600, 0.018);
     this.sprite.setTint(this.activateTint);
     this.scene.time.delayedCall(500, () => this.sprite.clearTint());
     this.scene.events.emit('boss-activated');
@@ -299,7 +299,7 @@ export default class Boss {
     this.hpBarBg.destroy();
     this.hpBar.destroy();
     this.hpLabel.destroy();
-    this.scene.cameras.main.shake(800, 0.02);
+    this.scene.shake(800, 0.02);
 
     for (let i = 0; i < 8; i++) {
       this.scene.time.delayedCall(i * 180, () => {

@@ -1,8 +1,26 @@
+import Settings from './Settings';
+
 export type SoundKey = 'punch' | 'atom_collect' | 'element_upgrade' | 'boss_roar' | 'player_death';
 
 export default class SoundSystem {
+  // One master gain per AudioContext; every note routes through it so volume/mute apply globally.
+  private static _masters = new WeakMap<AudioContext, GainNode>();
+
+  private static _master(ctx: AudioContext): GainNode {
+    let master = SoundSystem._masters.get(ctx);
+    if (!master) {
+      master = ctx.createGain();
+      master.connect(ctx.destination);
+      SoundSystem._masters.set(ctx, master);
+    }
+    master.gain.value = Settings.effectiveVolume();
+    return master;
+  }
+
   static play(ctx: AudioContext, key: SoundKey): void {
+    if (Settings.effectiveVolume() <= 0) return; // muted or SFX disabled
     if (ctx.state === 'suspended') ctx.resume();
+    SoundSystem._master(ctx).gain.value = Settings.effectiveVolume();
     const now = ctx.currentTime;
     switch (key) {
       case 'punch':
@@ -40,7 +58,7 @@ export default class SoundSystem {
     gain.gain.setValueAtTime(volume, at);
     gain.gain.exponentialRampToValueAtTime(0.001, at + duration);
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(SoundSystem._master(ctx));
     osc.start(at);
     osc.stop(at + duration);
   }

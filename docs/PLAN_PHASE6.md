@@ -1,4 +1,4 @@
-# Molecule Mayhem — Phase 6 Plan: Molecular Tree & Numpad Arsenal
+# Molecular Meltdown — Phase 6 Plan: Molecular Tree & Numpad Arsenal
 
 > **Status: ✅ COMPLETE — shipped in v0.6.0 (2026-06-04).**
 >

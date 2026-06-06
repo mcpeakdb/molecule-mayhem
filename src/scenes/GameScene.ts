@@ -22,6 +22,7 @@ import Enemy from '../entities/Enemy';
 import Player from '../entities/Player';
 import { STAGES, type StageDef } from '../stages';
 import SaveSystem, { type RunRecord } from '../systems/SaveSystem';
+import Settings from '../systems/Settings';
 import SoundSystem from '../systems/SoundSystem';
 import type { AtomSprite, EnemySprite, WasdKeys } from '../types';
 
@@ -360,6 +361,14 @@ export default class GameScene extends Phaser.Scene {
       }
     }
 
+    // Per-sector decorative scenery + horizon props, then a screen-fixed vignette for mood.
+    this._buildBiomeProps(sector, w);
+    this.add
+      .image(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'vignette')
+      .setScrollFactor(0)
+      .setDepth(250)
+      .setAlpha(0.9);
+
     const label = this.isTutorial ? '— TRAINING SECTOR —' : `— ${SECTORS[sector].name} · ${this.stageDef.name} —`;
     this.add
       .text(300, FLOOR_MIN_Y - 50, label, {
@@ -369,6 +378,67 @@ export default class GameScene extends Phaser.Scene {
       })
       .setDepth(5)
       .setAlpha(0.65);
+  }
+
+  /** Decorative, per-sector procedural scenery: faint background structures + a horizon prop row. */
+  private _buildBiomeProps(sector: SectorId, w: number): void {
+    const palette = SECTOR_THEMES[sector].particles;
+    const rand = (a: number, b: number) => Phaser.Math.FloatBetween(a, b);
+
+    // ── Background structures (above the floor, slow parallax) ──
+    const bgCount = Math.round(w / 360);
+    for (let i = 0; i < bgCount; i++) {
+      const g = this.add.graphics().setScrollFactor(0.6).setDepth(-8);
+      const x = (i + 0.5) * (w / bgCount) + rand(-120, 120);
+      const y = rand(60, FLOOR_MIN_Y - 70);
+      const color = palette[i % palette.length];
+      const s = rand(0.8, 1.6);
+      if (sector === 1) {
+        // Petri — colony blobs with a halo ring
+        g.fillStyle(color, 0.1);
+        g.fillCircle(x, y, 34 * s);
+        g.lineStyle(1.5, color, 0.16);
+        g.strokeCircle(x, y, 34 * s);
+        g.fillStyle(color, 0.13);
+        for (let k = 0; k < 5; k++) g.fillCircle(x + rand(-18, 18) * s, y + rand(-18, 18) * s, rand(4, 9) * s);
+      } else if (sector === 2) {
+        // Blood agar — biconcave red cells
+        g.fillStyle(color, 0.14);
+        g.fillEllipse(x, y, 60 * s, 40 * s);
+        g.fillStyle(0x300808, 0.1);
+        g.fillEllipse(x, y, 26 * s, 18 * s);
+      } else {
+        // MacConkey — crystal shards
+        g.fillStyle(color, 0.12);
+        g.fillTriangle(x, y - 36 * s, x - 14 * s, y + 22 * s, x + 14 * s, y + 22 * s);
+        g.lineStyle(1, color, 0.2);
+        g.strokeTriangle(x, y - 36 * s, x - 14 * s, y + 22 * s, x + 14 * s, y + 22 * s);
+      }
+    }
+
+    // ── Horizon props sitting on the back edge of the floor (behind characters) ──
+    const propCount = Math.round(w / 150);
+    for (let i = 0; i < propCount; i++) {
+      const g = this.add.graphics().setDepth(-3.5);
+      const x = (i + 0.5) * (w / propCount) + rand(-40, 40);
+      const y = FLOOR_MIN_Y + rand(-2, 8);
+      const color = palette[(i + 1) % palette.length];
+      const s = rand(0.7, 1.3);
+      if (sector === 1) {
+        // little cilia tufts
+        g.lineStyle(2, color, 0.5);
+        for (let k = -1; k <= 1; k++)
+          g.lineBetween(x + k * 4 * s, y, x + k * 4 * s + rand(-3, 3), y - rand(10, 20) * s);
+      } else if (sector === 2) {
+        // squat cell mounds
+        g.fillStyle(color, 0.4);
+        g.fillEllipse(x, y, 26 * s, 12 * s);
+      } else {
+        // upright crystal spikes
+        g.fillStyle(color, 0.45);
+        g.fillTriangle(x - 5 * s, y, x + 5 * s, y, x, y - rand(16, 28) * s);
+      }
+    }
   }
 
   private _spawnStage(): void {
@@ -526,7 +596,7 @@ export default class GameScene extends Phaser.Scene {
         if (!p.isInvincible) {
           p.takeDamage(GAP_FALL_DAMAGE);
           SoundSystem.play(this.audioCtx, 'punch');
-          this.cameras.main.shake(260, 0.012);
+          this.shake(260, 0.012);
         }
         break;
       }
@@ -751,6 +821,7 @@ export default class GameScene extends Phaser.Scene {
 
   /** Leave the tutorial for difficulty select. GameScene renders above DifficultyScene, so stop it. */
   private _exitToDifficulty(): void {
+    Settings.set({ tutorialDone: true }); // never auto-run the tutorial again after this
     this.scene.stop('HUDScene');
     this.scene.start('DifficultyScene');
     this.scene.stop('GameScene');
@@ -830,6 +901,11 @@ export default class GameScene extends Phaser.Scene {
   }
 
   // ── Helpers called by entities ──────────────────────────────────────────────
+
+  /** Camera shake that honors the screen-shake setting. Entities call this.scene.shake(...). */
+  shake(duration: number, intensity: number): void {
+    if (Settings.get().screenShake) this.shake(duration, intensity);
+  }
 
   spawnHitFlash(x: number, y: number, color = 0xffffff, size = 32): void {
     const g = this.add.graphics();
@@ -1029,7 +1105,7 @@ export default class GameScene extends Phaser.Scene {
         if (!p.active) {
           const last = trail[trail.length - 1] ?? { x, y };
           this.spawnHitFlash(last.x, last.y, 0x66bbff, 60);
-          this.cameras.main.shake(120, 0.006);
+          this.shake(120, 0.006);
           const ring = this.add.graphics().setDepth(82);
           let rt = 0;
           this.time.addEvent({
@@ -1134,7 +1210,7 @@ export default class GameScene extends Phaser.Scene {
     let waveX = x - d * 70;
     let step = 0;
 
-    this.cameras.main.shake(500, 0.009);
+    this.shake(500, 0.009);
     // A brief blue wash over the screen as it casts
     const wash = this.add
       .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x2299ee, 0)
@@ -1253,7 +1329,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.spawnHitFlash(x, y, 0xaa44ff, 28);
     this.spawnAtomBurst(x, y, 0xaa44ff);
-    this.cameras.main.shake(120, 0.004);
+    this.shake(120, 0.004);
     SoundSystem.play(this.audioCtx, 'atom_collect');
 
     // Every atom is now a choice node — pick a base atom to grow the molecular tree

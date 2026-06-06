@@ -1,6 +1,14 @@
-# Molecule Mayhem — Development Plan
+# Molecular Meltdown — Development Plan
 
-## Current State (v0.10 — Phase 4 Progression & Meta)
+## Current State (v0.11 — Phase 5 Content & QOL)
+
+- **Front-end & QOL** (Phase 5): boots to a `TitleScene` main menu (Start / Stage Select /
+  Leaderboard / Controls / Settings); `SettingsScene` + `Settings` system persist volume, mute, SFX,
+  and screen-shake to `localStorage` (sound routes through a master gain, shakes honor the toggle);
+  `LeaderboardScene` browses top-5 runs per difficulty; `HelpScene` shows controls. Procedural art
+  pass adds per-sector decorative scenery, parallax props, and a vignette (still no external assets).
+  Renamed **Molecule Mayhem → Molecular Meltdown**.
+
 
 - **9 stages across 3 sectors** (Petri Dish / Blood Agar / MacConkey), 3 stages each, plus the
   tutorial. Sector = `ceil(stage/3)` drives biome/theme; all level content is data-driven in
@@ -113,13 +121,19 @@ difficulty**. Work breakdown in [tasks/PHASE4_TASKS.md](tasks/PHASE4_TASKS.md).
 
 ---
 
-## Phase 5 — Content & QOL
+## Phase 5 — Content & QOL ✅ COMPLETE (v0.11.0)
+
+Front-end & QOL pass, shipped 2026-06-06. Work breakdown in [tasks/PHASE5_TASKS.md](tasks/PHASE5_TASKS.md).
 
 - [x] **Difficulty modes** — Easy / Normal / Hard (`DifficultyScene`, scales enemy HP/speed + i-frames) — v0.4.0
 - [x] **Pause menu** — in-game pause (ESC/Enter) with resume / restart / quit (`PauseScene`) — v0.4.0
-- [ ] **Mobile/gamepad support** — Phaser gamepad API, on-screen buttons for mobile (also covers numpad-less play)
-- [ ] **Sprite art pass** — replace procedural graphics with hand-drawn pixel art (keep BootScene as fallback)
-- [ ] **Tilemap stages** — replace flat ground with Tiled JSON tilemaps for varied terrain
+- [x] **Title screen + menu** (`TitleScene`) — Start / Stage Select / Leaderboard / Controls / Settings
+- [x] **Settings** (`SettingsScene` + `Settings`) — volume, mute, SFX, screen-shake, persisted
+- [x] **Leaderboard viewer** (`LeaderboardScene`) + **Controls screen** (`HelpScene`)
+- [x] **Procedural art pass** — per-sector decorative scenery, parallax props, vignette (no external assets)
+- [ ] **Mobile/gamepad support** — deferred (Phaser gamepad API, on-screen buttons)
+- [~] **Sprite art pass / Tilemap stages** — the external-asset items; reinterpreted as the procedural
+      art/terrain pass to keep the no-external-assets rule. Literal external-asset versions not pursued.
 
 ---
 

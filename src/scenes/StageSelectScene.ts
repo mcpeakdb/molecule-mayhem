@@ -37,6 +37,7 @@ export default class StageSelectScene extends Phaser.Scene {
   private confirmKey!: Phaser.Input.Keyboard.Key;
   private confirmKey2!: Phaser.Input.Keyboard.Key;
   private backKey!: Phaser.Input.Keyboard.Key;
+  private boardKey!: Phaser.Input.Keyboard.Key;
 
   constructor() {
     super('StageSelectScene');
@@ -82,7 +83,7 @@ export default class StageSelectScene extends Phaser.Scene {
     }
 
     this.add
-      .text(cx, GAME_HEIGHT - 24, '← → ↑ ↓ to navigate     Z/Enter to play     ESC to go back', {
+      .text(cx, GAME_HEIGHT - 24, '← → ↑ ↓ navigate    Z/Enter play    L leaderboard    ESC back', {
         fontSize: '13px',
         color: '#668866',
         fontFamily: MONO,
@@ -100,6 +101,7 @@ export default class StageSelectScene extends Phaser.Scene {
     this.confirmKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
     this.confirmKey2 = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
     this.backKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this.boardKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.L);
   }
 
   private _cardPos(stage: number): { x: number; y: number } {
@@ -157,6 +159,9 @@ export default class StageSelectScene extends Phaser.Scene {
       this._confirm();
     }
     if (Phaser.Input.Keyboard.JustDown(this.backKey)) this.scene.start('DifficultyScene');
+    if (Phaser.Input.Keyboard.JustDown(this.boardKey)) {
+      this.scene.start('LeaderboardScene', { from: 'StageSelectScene', difficulty: this.difficulty });
+    }
   }
 
   private _move(delta: number): void {

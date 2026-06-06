@@ -1,4 +1,4 @@
-# Molecule Mayhem — CLAUDE.md
+# Molecular Meltdown — CLAUDE.md
 
 ## Project Overview
 
@@ -41,17 +41,22 @@ src/
     Boss.ts                # Boss variants (bacterium/amoeba/phage), phases, projectiles, activation
     Atom.ts                # Collectible atom sprite
   scenes/
-    BootScene.ts           # Procedural texture generation for all sprites
+    BootScene.ts           # Procedural texture generation for all sprites → TitleScene
+    TitleScene.ts          # Main menu (Start / Stage Select / Leaderboard / Controls / Settings)
     GameScene.ts           # Main game loop, spawning, physics, overlaps, scoring
     HUDScene.ts            # Score, HP, element, combo UI (runs in parallel)
     ElementChoiceScene.ts  # Level-up choice overlay
     DifficultyScene.ts     # Easy/Normal/Hard select → StageSelectScene
     StageSelectScene.ts    # Stage picker (9 stages by sector, per-stage unlocks, best scores)
+    LeaderboardScene.ts    # Top-5 runs per difficulty
+    SettingsScene.ts       # Volume / mute / SFX / screen-shake options
+    HelpScene.ts           # Controls reference
     PauseScene.ts          # In-game pause menu
   systems/
     ElementSystem.ts       # Element combo resolution, level tracking
-    SoundSystem.ts         # Procedural Web Audio sound effects
+    SoundSystem.ts         # Procedural Web Audio SFX (routed through a settings-aware master gain)
     SaveSystem.ts          # localStorage meta: unlocks, best scores, leaderboard (per difficulty)
+    Settings.ts            # localStorage global prefs: volume, mute, sfx, screenShake, tutorialDone
 docs/
   PLAN.md                  # Living design doc — phases, architecture notes
   PATCH_NOTES.md           # Version history (must stay current)
@@ -60,6 +65,7 @@ docs/
     PHASE2_TASKS.md        # Detailed task list for Phase 2 (complete)
     PHASE3_TASKS.md        # Detailed task list for Phase 3 — 9 stages / 3 sectors (complete)
     PHASE4_TASKS.md        # Detailed task list for Phase 4 — progression & meta (complete)
+    PHASE5_TASKS.md        # Detailed task list for Phase 5 — content & QOL (complete)
 ```
 
 ## After Making Changes
