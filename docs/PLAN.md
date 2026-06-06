@@ -1,8 +1,10 @@
 # Molecule Mayhem — Development Plan
 
-## Current State (v0.6 — Phase 6 Molecular Tree & Numpad Arsenal)
+## Current State (v0.8 — Phase 6 Molecular Tree & Numpad Arsenal)
 
 - Three sectors (petri dish / blood agar / MacConkey); Boss: Super Bacterium (3-phase, flagella)
+- **Gaps are a damage hazard**: stepping into a chasm on the ground (walking in or landing short)
+  deals fall damage and bounces you back to the nearer lip; jumping clear is safe (`_updateGaps()`)
 - **10 attacks** — H, O, C, N + 6 molecules, each restyled to its atom color
 - **Molecular tree**: every atom pickup is a branching choice; compounds use real stoichiometry
   (H₂O = 2H+1O, etc.); level = complete recipe copies. Sectors ramp the atom supply (4 → 6 → 9)

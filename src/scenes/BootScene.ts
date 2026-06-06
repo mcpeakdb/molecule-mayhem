@@ -173,28 +173,28 @@ export default class BootScene extends Phaser.Scene {
     g.fillCircle(11, 10, 4.5);
     g.fillCircle(29, 10, 4.5);
 
-    // Goggle outer frame — wide, covering eye area
+    // Goggle outer frame — covering eye area
     g.fillStyle(0x333344);
-    g.fillRect(8, 12, 24, 11);
+    g.fillRect(10, 13, 20, 9);
 
     // Goggle lenses — pale teal glass (neutral so element tinting reads clearly)
     g.fillStyle(0xb8dde8, 0.88);
-    g.fillRect(9, 13, 9, 8);
-    g.fillRect(21, 13, 9, 8);
+    g.fillRect(11, 14, 8, 6);
+    g.fillRect(21, 14, 8, 6);
 
     // Goggle bridge
     g.fillStyle(0x3a3a50);
-    g.fillRect(18, 15, 4, 5);
+    g.fillRect(18, 15, 4, 4);
 
     // Lens speculars
     g.fillStyle(0xffffff, 0.55);
-    g.fillRect(10, 13, 3, 2);
-    g.fillRect(22, 13, 3, 2);
+    g.fillRect(12, 14, 2, 2);
+    g.fillRect(22, 14, 2, 2);
 
     // Side straps
     g.fillStyle(0x2a2a40);
-    g.fillRect(6, 15, 3, 4);
-    g.fillRect(31, 15, 3, 4);
+    g.fillRect(8, 15, 3, 3);
+    g.fillRect(29, 15, 3, 3);
 
     g._done(key, 40, 74);
   }

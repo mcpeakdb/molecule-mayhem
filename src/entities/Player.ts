@@ -84,6 +84,11 @@ export default class Player {
     return this.isJumping;
   }
 
+  /** True while the post-hit invincibility window is active (no further damage will land). */
+  get isInvincible(): boolean {
+    return this.invincibleTimer > 0;
+  }
+
   update(time: number, delta: number, keys: InputKeys): void {
     if (!this.alive) return;
 

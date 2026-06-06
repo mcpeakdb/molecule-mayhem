@@ -1,5 +1,25 @@
 # Patch Notes
 
+## v0.8.0 — 2026-06-05
+
+### Gaps now hurt
+
+- Chasms are a **damage hazard**, not an invisible wall. Step into one on the ground — by walking
+  in *or* landing short on a jump — and you take fall damage (`GAP_FALL_DAMAGE = 15`), a thud +
+  camera shake fire, and you're hauled back out to the nearer lip. Jumping clear still costs nothing.
+- Repeats are throttled by the post-hit invincibility window (new `Player.isInvincible` getter), so
+  holding into a gap pulses damage rather than draining you instantly. Replaces the old edge-block
+  behavior in `GameScene._updateGaps()`.
+
+### Death screen polish
+
+- The bawling scientist now **buries his face in his hands** — a gloved hand pressed over each eye
+  with lab-coat sleeves angling out to the elbows, grouped with the sprite so they rock and heave
+  with every sob. (The in-world player draws arms as a separate overlay, so the close-up needed its
+  own.) (`GameScene._spawnCryingScientist()`)
+- **Smaller goggles** on the scientist sprite for a slightly less bug-eyed look (shared `player_*`
+  texture, so it reads everywhere). (`BootScene._makePlayerFrame()`)
+
 ## v0.7.0 — 2026-06-04
 
 ### Tutorial level with M.E.G., the Main Element Guide

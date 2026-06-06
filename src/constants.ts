@@ -71,6 +71,7 @@ export const PLAYER_JUMP_VELOCITY = 540; // px/s initial upward velocity (peak â
 export const PLAYER_DOUBLE_JUMP_VELOCITY = 470; // px/s for the airborne second jump
 export const PLAYER_JUMP_GRAVITY = 1600; // px/sÂ²
 export const PLAYER_MAX_JUMPS = 2;
+export const GAP_FALL_DAMAGE = 15; // taken when the player lands inside a chasm instead of clearing it
 
 export const MAX_ELEMENT_LEVEL = 3;
 

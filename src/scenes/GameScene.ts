@@ -8,6 +8,7 @@ import {
   FLOOR_MIN_Y,
   GAME_HEIGHT,
   GAME_WIDTH,
+  GAP_FALL_DAMAGE,
   WORLD_WIDTH,
 } from '../constants';
 import Atom from '../entities/Atom';
@@ -110,7 +111,6 @@ export default class GameScene extends Phaser.Scene {
   private _activeTip?: string;
   private _tutAtom?: AtomSprite;
   private _tutEnemy?: Enemy;
-  private _gapBumped = false;
   private _tutDone = false;
   private _gaps: { x1: number; x2: number }[] = [];
   private readonly _tutAtomX = 900;
@@ -136,7 +136,6 @@ export default class GameScene extends Phaser.Scene {
     this.isPaused = false;
     this.stageCleared = false;
     this._gaps = [];
-    this._gapBumped = false;
     this._tutDone = false;
     this._dlgBlocking = false;
     this._dlgQueue = [];
@@ -550,7 +549,10 @@ export default class GameScene extends Phaser.Scene {
     for (let yy = FLOOR_MIN_Y + 14; yy < GAME_HEIGHT; yy += 22) g.fillRect(x1 + 4, yy, w - 8, 3);
   }
 
-  /** Block the player at a gap's near edge unless they're airborne (so gaps must be jumped). */
+  /**
+   * Gaps must be jumped. Step into one on the ground — whether by walking in or landing short —
+   * and you plunge: take fall damage and get hauled back out to the nearer edge.
+   */
   private _updateGaps(): void {
     if (this._gaps.length === 0) return;
     const p = this.player;
@@ -558,13 +560,13 @@ export default class GameScene extends Phaser.Scene {
     const px = p.sprite.x;
     for (const gap of this._gaps) {
       if (px > gap.x1 && px < gap.x2) {
-        p.sprite.x = gap.x1;
-        if (!this._gapBumped) {
-          this._gapBumped = true;
-          this.cameras.main.shake(120, 0.004);
-          this.time.delayedCall(450, () => {
-            this._gapBumped = false;
-          });
+        // Haul them back to whichever lip is closer.
+        p.sprite.x = px - gap.x1 < gap.x2 - px ? gap.x1 : gap.x2;
+        // Feedback fires only when the hit actually lands (invincibility frames throttle repeats).
+        if (!p.isInvincible) {
+          p.takeDamage(GAP_FALL_DAMAGE);
+          SoundSystem.play(this.audioCtx, 'punch');
+          this.cameras.main.shake(260, 0.012);
         }
         break;
       }
@@ -1398,7 +1400,27 @@ export default class GameScene extends Phaser.Scene {
   /** A close-up of the scientist sobbing on the death screen — trembling, tears streaming into a puddle. */
   private _spawnCryingScientist(x: number, y: number): void {
     const S = 3.4;
-    const guy = this.add.sprite(x, y, 'player_0').setScrollFactor(0).setDepth(501).setScale(S);
+    // The in-world player draws its arms as a separate Graphics overlay (Player._armsGraphic),
+    // so the bare 'player_0' texture has none. Here he's buried his face in his hands sobbing:
+    // gloves cover the goggles (local face is ~y -24..-14) with sleeves angling out to the elbows.
+    // Group everything in a container so every sob tween moves it together.
+    const sprite = this.add.sprite(0, 0, 'player_0');
+    const arms = this.add.graphics();
+    // Forearms — white lab-coat sleeves, elbow out at the side, wrist up at the face
+    arms.fillStyle(0xe8e8f2);
+    arms.fillTriangle(-12.4, 4.6, -17.6, 1.4, -9.6, -14.6); // left sleeve
+    arms.fillTriangle(-12.4, 4.6, -9.6, -14.6, -4.4, -11.4);
+    arms.fillTriangle(12.4, 4.6, 17.6, 1.4, 9.6, -14.6); // right sleeve
+    arms.fillTriangle(12.4, 4.6, 9.6, -14.6, 4.4, -11.4);
+    // Gloves — a hand pressed over each eye
+    arms.fillStyle(0x88ccdd);
+    arms.fillCircle(-7, -13, 6);
+    arms.fillCircle(7, -13, 6);
+    // Knuckle highlights
+    arms.fillStyle(0xffffff, 0.4);
+    arms.fillCircle(-9, -15, 2);
+    arms.fillCircle(5, -15, 2);
+    const guy = this.add.container(x, y, [sprite, arms]).setScrollFactor(0).setDepth(501).setScale(S);
 
     // pop in
     guy.setScale(S * 0.4);
