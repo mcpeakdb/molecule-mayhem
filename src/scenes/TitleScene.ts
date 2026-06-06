@@ -10,6 +10,8 @@ export default class TitleScene extends Phaser.Scene {
   private itemTexts: Phaser.GameObjects.Text[] = [];
   private cursorText!: Phaser.GameObjects.Text;
   private electrons: Phaser.GameObjects.Arc[] = [];
+  // Drifting background flair: germs and atoms floating around behind the menu.
+  private decor: { go: Phaser.GameObjects.Sprite; vx: number; vy: number; spin: number }[] = [];
 
   private upKey!: Phaser.Input.Keyboard.Key;
   private downKey!: Phaser.Input.Keyboard.Key;
@@ -25,8 +27,14 @@ export default class TitleScene extends Phaser.Scene {
     this.cursor = 0;
     this.itemTexts = [];
     this.electrons = [];
+    this.decor = [];
 
-    this.add.rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x05090f).setScrollFactor(0);
+    this.add
+      .rectangle(cx, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x05090f)
+      .setScrollFactor(0)
+      .setDepth(-10);
+
+    this._spawnDecor();
 
     // Decorative orbiting atom behind the title
     const atomY = 132;
@@ -101,7 +109,48 @@ export default class TitleScene extends Phaser.Scene {
     this.confirmKey2 = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
   }
 
-  update(): void {
+  /** Scatter germs + atoms that slowly drift across the screen behind the menu. */
+  private _spawnDecor(): void {
+    const germs = ['bacterium', 'virus', 'dustbunny', 'pollen', 'amoeba', 'spore', 'mite'];
+    const atoms = ['atom_hydrogen', 'atom_oxygen', 'atom_carbon', 'atom_nitrogen', 'atom_gold'];
+    const between = Phaser.Math.Between;
+    const float = Phaser.Math.FloatBetween;
+
+    const make = (keys: string[], count: number, spinny: boolean) => {
+      for (let i = 0; i < count; i++) {
+        const key = keys[between(0, keys.length - 1)];
+        const go = this.add
+          .sprite(between(40, GAME_WIDTH - 40), between(40, GAME_HEIGHT - 40), key)
+          .setDepth(-5)
+          .setScale(float(0.7, 1.15))
+          .setAlpha(float(0.35, 0.7));
+        const ang = float(0, Math.PI * 2);
+        const speed = float(12, 30);
+        this.decor.push({
+          go,
+          vx: Math.cos(ang) * speed,
+          vy: Math.sin(ang) * speed,
+          spin: spinny ? float(-0.6, 0.6) : float(-0.15, 0.15),
+        });
+      }
+    };
+    make(germs, 6, false);
+    make(atoms, 7, true);
+  }
+
+  update(_time: number, delta: number): void {
+    const dt = delta / 1000;
+    const m = 40; // wrap margin past the edges
+    for (const d of this.decor) {
+      d.go.x += d.vx * dt;
+      d.go.y += d.vy * dt;
+      d.go.rotation += d.spin * dt;
+      if (d.go.x < -m) d.go.x = GAME_WIDTH + m;
+      else if (d.go.x > GAME_WIDTH + m) d.go.x = -m;
+      if (d.go.y < -m) d.go.y = GAME_HEIGHT + m;
+      else if (d.go.y > GAME_HEIGHT + m) d.go.y = -m;
+    }
+
     if (Phaser.Input.Keyboard.JustDown(this.upKey)) this._move(-1);
     if (Phaser.Input.Keyboard.JustDown(this.downKey)) this._move(1);
     if (Phaser.Input.Keyboard.JustDown(this.confirmKey) || Phaser.Input.Keyboard.JustDown(this.confirmKey2)) {
