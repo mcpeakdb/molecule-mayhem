@@ -34,10 +34,11 @@ src/
   main.ts                  # Phaser game config + scene list
   constants.ts             # ELEMENTS, colors, names, damage values, game constants
   types.ts                 # Shared TypeScript types
+  stages.ts                # STAGES[9] — data-driven config for all 9 stages (3 sectors × 3)
   entities/
     Player.ts              # Player movement, attack, specials, combo, death
-    Enemy.ts               # Enemy AI, takeDamage, bleed DOT, death
-    Boss.ts                # Boss phases, flagella projectiles, activation
+    Enemy.ts               # Enemy AI, takeDamage, bleed DOT, death (7 types incl. amoeba/spore/mite)
+    Boss.ts                # Boss variants (bacterium/amoeba/phage), phases, projectiles, activation
     Atom.ts                # Collectible atom sprite
   scenes/
     BootScene.ts           # Procedural texture generation for all sprites
@@ -96,11 +97,27 @@ and the numpad slot ordering from it. There is no longer a `_resolve()` combo ta
 
 ### Adding a new enemy
 
-1. Add config entry in `CONFIGS` in [src/entities/Enemy.ts](src/entities/Enemy.ts)
-2. Add texture generation in [src/scenes/BootScene.ts](src/scenes/BootScene.ts) `_makeEnemyTextures()`
-3. Add to `GameScene._spawnStage()` `enemyDefs` array in [src/scenes/GameScene.ts](src/scenes/GameScene.ts)
+1. Add the type to `EnemyType` and a config entry to `CONFIGS` in
+   [src/entities/Enemy.ts](src/entities/Enemy.ts) (wire any hover/hop/idle flair there too)
+2. Add a procedural texture method in [src/scenes/BootScene.ts](src/scenes/BootScene.ts) and call it in
+   `create()`
+3. Reference the type from any stage's `enemies` list in [src/stages.ts](src/stages.ts); optionally add a
+   score in `GameScene.onEnemyDeath()`
 
-### Adding a new stage
+### Adding a new boss
 
-- Copy `GameScene._spawnStage()` pattern into a `StageData` config file (array of stages)
-- `GameScene` reads the active stage index and loads the appropriate config
+1. Add the variant to `BossVariant` + `VARIANTS` in [src/entities/Boss.ts](src/entities/Boss.ts)
+   (texture, name, stats, scale/body, projectile volley, tints)
+2. Add its procedural texture in [src/scenes/BootScene.ts](src/scenes/BootScene.ts)
+3. Set it as a stage finale via `boss: { variant, x }` in [src/stages.ts](src/stages.ts)
+
+### Sectors & stages
+
+- The game is **9 stages = 3 sectors × 3 stages**. `currentStage` (1–9) is the unit of play; the
+  sector (biome/theme) is derived as `ceil(stage/3)` (`sectorOf` in
+  [src/constants.ts](src/constants.ts)). The 3rd stage of each sector is a boss finale.
+- All stage content lives in [src/stages.ts](src/stages.ts) as `STAGES[9]` (`StageDef`): per-stage
+  `name`, `width`, `atoms`, `enemies`, `gaps`, and either `boss` (finale) or `exitX` (reach-the-exit
+  clear). `GameScene` reads `STAGES[currentStage - 1]` — to add/retune a stage, edit that array.
+- Theme/art is keyed by sector: `SECTOR_THEMES` in `GameScene` and `bg_tile_${sector}` /
+  `ground_tile_${sector}` textures in `BootScene`.

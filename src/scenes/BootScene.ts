@@ -12,7 +12,12 @@ export default class BootScene extends Phaser.Scene {
     this._makeVirus();
     this._makeDustBunny();
     this._makePollen();
+    this._makeAmoeba();
+    this._makeSpore();
+    this._makeMite();
     this._makeBossBacterium();
+    this._makeBossAmoeba();
+    this._makeBossPhage();
     this._makeAtoms();
     this._makeEffects();
     this._makeParticle();
@@ -353,6 +358,118 @@ export default class BootScene extends Phaser.Scene {
     g._done('pollen', 44, 58);
   }
 
+  // Amoeba — a big, slow gelatinous blob with pseudopod lobes and a dark nucleus
+  private _makeAmoeba(): void {
+    const g = this._g();
+    // Shadow
+    g.fillStyle(0x000000, 0.16);
+    g.fillEllipse(28, 56, 42, 9);
+    // Outer translucent halo
+    g.fillStyle(0x55cc88, 0.14);
+    g.fillEllipse(28, 30, 52, 46);
+    // Pseudopod lobes — irregular bulges around a core
+    const lobes: [number, number, number][] = [
+      [28, 30, 20],
+      [13, 26, 11],
+      [44, 28, 12],
+      [20, 44, 10],
+      [38, 44, 9],
+      [30, 13, 10],
+    ];
+    g.fillStyle(0x3fae6e, 0.8);
+    lobes.forEach(([x, y, r]) => {
+      g.fillCircle(x, y, r);
+    });
+    // Lighter cytoplasm sheen
+    g.fillStyle(0x7fe0a8, 0.3);
+    g.fillEllipse(24, 24, 26, 22);
+    // Membrane outline
+    g.lineStyle(1.5, 0x9ff0c0, 0.5);
+    g.strokeCircle(28, 30, 20);
+    // Vacuoles — small bubbles
+    g.fillStyle(0xbff5d5, 0.4);
+    g.fillCircle(18, 34, 3.5);
+    g.fillCircle(37, 22, 2.5);
+    g.fillCircle(34, 38, 2);
+    // Nucleus — dense dark core
+    g.fillStyle(0x14502f, 0.92);
+    g.fillCircle(28, 31, 8);
+    g.fillStyle(0x2f8a55, 0.5);
+    g.fillCircle(26, 29, 4);
+    // Specular highlight
+    g.fillStyle(0xffffff, 0.22);
+    g.fillEllipse(20, 18, 11, 5);
+    g._done('amoeba', 56, 64);
+  }
+
+  // Spore — small fast capsule with a spiky coat and a bright core
+  private _makeSpore(): void {
+    const g = this._g();
+    // Spiky coat — short barbs all around
+    g.fillStyle(0xcc66dd);
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2;
+      const tipX = 18 + Math.cos(a) * 17;
+      const tipY = 18 + Math.sin(a) * 17;
+      const b1x = 18 + Math.cos(a - 0.25) * 9;
+      const b1y = 18 + Math.sin(a - 0.25) * 9;
+      const b2x = 18 + Math.cos(a + 0.25) * 9;
+      const b2y = 18 + Math.sin(a + 0.25) * 9;
+      g.fillTriangle(b1x, b1y, tipX, tipY, b2x, b2y);
+    }
+    // Outer glow
+    g.fillStyle(0xdd88ee, 0.2);
+    g.fillCircle(18, 18, 11);
+    // Shell
+    g.fillStyle(0x9933bb);
+    g.fillCircle(18, 18, 9);
+    // Inner translucent body
+    g.fillStyle(0xcc66dd, 0.7);
+    g.fillCircle(18, 18, 7);
+    // Bright core
+    g.fillStyle(0xffccff, 0.85);
+    g.fillCircle(18, 18, 3.5);
+    // Specular
+    g.fillStyle(0xffffff, 0.6);
+    g.fillCircle(15, 15, 1.8);
+    g._done('spore', 36, 36);
+  }
+
+  // Mite — a squat armored crawler with legs and beady eyes
+  private _makeMite(): void {
+    const g = this._g();
+    // Shadow
+    g.fillStyle(0x000000, 0.18);
+    g.fillEllipse(22, 40, 28, 7);
+    // Legs — four per side, dark chitin
+    g.lineStyle(2, 0x6b4a2a, 0.9);
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 3; i++) {
+        const hx = 22 + side * 8;
+        const hy = 22 + i * 6 - 4;
+        g.lineBetween(hx, hy, hx + side * 12, hy + 5);
+      }
+    }
+    // Body — rounded carapace
+    g.fillStyle(0x8a5a2c);
+    g.fillEllipse(22, 22, 30, 26);
+    // Carapace sheen
+    g.fillStyle(0xb37d44, 0.55);
+    g.fillEllipse(20, 18, 18, 13);
+    // Segmentation ridges
+    g.lineStyle(1, 0x5f3d1c, 0.6);
+    g.strokeEllipse(22, 22, 30, 26);
+    g.lineBetween(10, 22, 34, 22);
+    // Beady eyes
+    g.fillStyle(0x1a0e04);
+    g.fillCircle(17, 17, 2.4);
+    g.fillCircle(27, 17, 2.4);
+    g.fillStyle(0xffffff, 0.7);
+    g.fillCircle(16, 16, 0.9);
+    g.fillCircle(26, 16, 0.9);
+    g._done('mite', 48, 46);
+  }
+
   private _makeBossBacterium(): void {
     const g = this._g();
     // Shadow
@@ -401,6 +518,140 @@ export default class BootScene extends Phaser.Scene {
     this._cubicBezier(g, 42, 108, 22, 120, 56, 130, 38, 152);
     this._cubicBezier(g, 54, 108, 74, 118, 46, 132, 62, 150);
     g._done('boss_bacterium', 96, 160);
+  }
+
+  // Sector 2 finale — Amoeba Titan: a colossal sloshing blob with many nuclei and oozing tendrils
+  private _makeBossAmoeba(): void {
+    const g = this._g();
+    // Shadow
+    g.fillStyle(0x000000, 0.22);
+    g.fillEllipse(48, 118, 86, 18);
+    // Outer translucent halo
+    g.fillStyle(0x3fae6e, 0.16);
+    g.fillCircle(48, 58, 50);
+    // Pseudopod lobes — many overlapping bulges
+    const lobes: [number, number, number][] = [
+      [48, 58, 40],
+      [18, 50, 20],
+      [78, 54, 22],
+      [30, 86, 18],
+      [66, 86, 17],
+      [50, 22, 20],
+      [22, 26, 13],
+      [74, 28, 13],
+    ];
+    g.fillStyle(0x2f9a5e, 0.85);
+    lobes.forEach(([x, y, r]) => {
+      g.fillCircle(x, y, r);
+    });
+    // Lighter cytoplasm sheen
+    g.fillStyle(0x7fe0a8, 0.28);
+    g.fillEllipse(40, 44, 50, 42);
+    // Membrane outline
+    g.lineStyle(2.5, 0x9ff0c0, 0.45);
+    g.strokeCircle(48, 58, 40);
+    // Vacuole bubbles
+    g.fillStyle(0xbff5d5, 0.4);
+    g.fillCircle(30, 66, 6);
+    g.fillCircle(68, 44, 4.5);
+    g.fillCircle(58, 78, 3.5);
+    // Multiple dark nuclei
+    const nuclei: [number, number, number][] = [
+      [44, 56, 13],
+      [66, 64, 8],
+      [32, 40, 7],
+    ];
+    nuclei.forEach(([x, y, r]) => {
+      g.fillStyle(0x12482a, 0.92);
+      g.fillCircle(x, y, r);
+      g.fillStyle(0x2f8a55, 0.5);
+      g.fillCircle(x - r * 0.3, y - r * 0.3, r * 0.45);
+    });
+    // Specular highlight
+    g.fillStyle(0xffffff, 0.2);
+    g.fillEllipse(32, 30, 22, 9);
+    // Oozing tendrils dripping below
+    g.lineStyle(3, 0x2f9a5e, 0.6);
+    this._cubicBezier(g, 34, 96, 24, 116, 40, 132, 30, 150);
+    this._cubicBezier(g, 50, 100, 58, 120, 44, 134, 52, 152);
+    this._cubicBezier(g, 64, 96, 74, 114, 58, 130, 68, 148);
+    g._done('boss_amoeba', 96, 160);
+  }
+
+  // Sector 3 finale — Phage Lord: a bacteriophage with an icosahedral head, tail sheath, and leg fibers
+  private _makeBossPhage(): void {
+    const g = this._g();
+    const cx = 48;
+    // Shadow
+    g.fillStyle(0x000000, 0.22);
+    g.fillEllipse(cx, 150, 70, 14);
+    // Tail fibers splaying onto the ground
+    g.lineStyle(2.5, 0x88aacc, 0.7);
+    for (const off of [-22, -11, 0, 11, 22]) {
+      g.lineBetween(cx, 112, cx + off, 132);
+      g.lineBetween(cx + off, 132, cx + off * 1.4, 146);
+    }
+    // Tail sheath — segmented column
+    g.fillStyle(0x3a4a66);
+    g.fillRect(cx - 9, 60, 18, 54);
+    g.lineStyle(1.5, 0x223047, 0.8);
+    for (let yy = 66; yy < 114; yy += 9) g.lineBetween(cx - 9, yy, cx + 9, yy);
+    // Inner tail core (DNA tube)
+    g.fillStyle(0x6fd0e0, 0.5);
+    g.fillRect(cx - 3, 60, 6, 54);
+    // Baseplate
+    g.fillStyle(0x2a3850);
+    g.fillRect(cx - 16, 110, 32, 8);
+    g.fillStyle(0x4a5e80);
+    g.fillRect(cx - 16, 110, 32, 3);
+    // Collar
+    g.fillStyle(0x4a5e80);
+    g.fillRect(cx - 13, 54, 26, 8);
+    // Icosahedral head — hexagon outline with facet shading
+    const R = 34;
+    const hx: number[] = [];
+    const hy: number[] = [];
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+      hx.push(cx + Math.cos(a) * R);
+      hy.push(34 + Math.sin(a) * R);
+    }
+    // Halo
+    g.fillStyle(0x6fd0e0, 0.16);
+    g.fillCircle(cx, 34, R + 6);
+    // Head fill
+    g.fillStyle(0x2d6e7a);
+    g.beginPath();
+    g.moveTo(hx[0], hy[0]);
+    for (let i = 1; i < 6; i++) g.lineTo(hx[i], hy[i]);
+    g.closePath();
+    g.fillPath();
+    // Facets — triangles from center to each edge, alternating shade
+    for (let i = 0; i < 6; i++) {
+      const j = (i + 1) % 6;
+      g.fillStyle(i % 2 === 0 ? 0x3d8b98 : 0x255b66, 0.9);
+      g.fillTriangle(cx, 34, hx[i], hy[i], hx[j], hy[j]);
+    }
+    // Capsid edge
+    g.lineStyle(2.5, 0x8fe6f4, 0.7);
+    g.beginPath();
+    g.moveTo(hx[0], hy[0]);
+    for (let i = 1; i < 6; i++) g.lineTo(hx[i], hy[i]);
+    g.closePath();
+    g.strokePath();
+    // Glowing DNA core inside head
+    g.fillStyle(0xaff0ff, 0.35);
+    g.fillCircle(cx, 32, 12);
+    g.fillStyle(0xe6ffff, 0.7);
+    g.fillCircle(cx - 4, 28, 4);
+    // Menacing red eye-glints on the head
+    g.fillStyle(0xff3344, 0.9);
+    g.fillCircle(cx - 10, 38, 3);
+    g.fillCircle(cx + 10, 38, 3);
+    g.fillStyle(0xffaaaa, 0.8);
+    g.fillCircle(cx - 11, 37, 1);
+    g.fillCircle(cx + 9, 37, 1);
+    g._done('boss_phage', 96, 160);
   }
 
   private _makeAtoms(): void {

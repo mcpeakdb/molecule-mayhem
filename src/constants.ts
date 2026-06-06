@@ -7,7 +7,25 @@ export const DIFFICULTY_SCALE: Record<Difficulty, { enemyHp: number; enemySpeed:
 
 export const GAME_WIDTH = 960;
 export const GAME_HEIGHT = 540;
-export const WORLD_WIDTH = 5500;
+export const WORLD_WIDTH = 5500; // default / widest stage span; individual stages may be shorter
+
+// ── Sectors & stages ─────────────────────────────────────────────────────────
+// The game is 9 stages grouped into 3 sectors of 3 stages each. A "sector" is the
+// biome/theme (art, music-color, boss); a "stage" is one playable level within it.
+// stage 1-9 → sector = ceil(stage/3); the 3rd stage of each sector is the boss finale.
+export const STAGE_COUNT = 9;
+export type SectorId = 1 | 2 | 3;
+
+export const sectorOf = (stage: number): SectorId => Math.min(3, Math.floor((stage - 1) / 3) + 1) as SectorId;
+/** Position of a stage within its sector: 1, 2, or 3 (3 = boss finale). */
+export const substageOf = (stage: number): number => ((stage - 1) % 3) + 1;
+export const isFinaleStage = (stage: number): boolean => substageOf(stage) === 3;
+
+export const SECTORS: Record<SectorId, { name: string }> = {
+  1: { name: 'PETRI DISH' },
+  2: { name: 'BLOOD AGAR' },
+  3: { name: 'MACCONKEY' },
+};
 
 // Walkable band — characters move freely within this Y range
 export const FLOOR_MIN_Y = 310;
@@ -74,10 +92,6 @@ export const PLAYER_MAX_JUMPS = 2;
 export const GAP_FALL_DAMAGE = 15; // taken when the player lands inside a chasm instead of clearing it
 
 export const MAX_ELEMENT_LEVEL = 3;
-
-// Stage layout
-export const BOSS_X = 4600;
-export const STAGE_END_X = 5200;
 
 // ── Attack registry (Phase 6: molecular tree + numpad arsenal) ──────────────
 // The four collectable base atoms.

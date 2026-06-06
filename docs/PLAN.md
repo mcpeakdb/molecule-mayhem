@@ -1,8 +1,14 @@
 # Molecule Mayhem — Development Plan
 
-## Current State (v0.8 — Phase 6 Molecular Tree & Numpad Arsenal)
+## Current State (v0.9 — Phase 3 Sector Content: 9 stages)
 
-- Three sectors (petri dish / blood agar / MacConkey); Boss: Super Bacterium (3-phase, flagella)
+- **9 stages across 3 sectors** (Petri Dish / Blood Agar / MacConkey), 3 stages each, plus the
+  tutorial. Sector = `ceil(stage/3)` drives biome/theme; all level content is data-driven in
+  [../src/stages.ts](../src/stages.ts) (`STAGES[9]`), consumed by `GameScene`.
+- **Sector finales** (stages 3/6/9) are boss fights; the other six clear by reaching an **exit
+  portal** that opens once all enemies are defeated. Banners: STAGE / SECTOR / EXPERIMENT COMPLETE.
+- **7 enemy types**: bacterium, virus, dustbunny, pollen + new amoeba (tank), spore (fast hover),
+  mite (crawler). **3 bosses**: Super Bacterium, Amoeba Titan, Phage Lord — one per sector.
 - **Gaps are a damage hazard**: stepping into a chasm on the ground (walking in or landing short)
   deals fall damage and bounces you back to the nearer lip; jumping clear is safe (`_updateGaps()`)
 - **10 attacks** — H, O, C, N + 6 molecules, each restyled to its atom color

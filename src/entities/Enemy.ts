@@ -12,7 +12,7 @@ const STATES = {
 } as const;
 type EnemyState = (typeof STATES)[keyof typeof STATES];
 
-export type EnemyType = 'bacterium' | 'virus' | 'dustbunny' | 'pollen';
+export type EnemyType = 'bacterium' | 'virus' | 'dustbunny' | 'pollen' | 'amoeba' | 'spore' | 'mite';
 
 interface EnemyConfig {
   hp: number;
@@ -28,6 +28,10 @@ const CONFIGS: Record<EnemyType, EnemyConfig> = {
   virus: { hp: 22, speed: 130, damage: 8, attackRate: 1200, texture: 'virus', scale: 1.0 },
   dustbunny: { hp: 50, speed: 60, damage: 14, attackRate: 2000, texture: 'dustbunny', scale: 1.0 },
   pollen: { hp: 18, speed: 160, damage: 6, attackRate: 900, texture: 'pollen', scale: 1.0 },
+  // Sector 2+ newcomers
+  amoeba: { hp: 80, speed: 48, damage: 16, attackRate: 2200, texture: 'amoeba', scale: 1.15 }, // slow tank
+  spore: { hp: 14, speed: 180, damage: 7, attackRate: 800, texture: 'spore', scale: 0.9 }, // fast, hovers
+  mite: { hp: 30, speed: 115, damage: 11, attackRate: 1300, texture: 'mite', scale: 0.9 }, // erratic crawler, hops
 };
 
 const DETECT_RANGE = 320;
@@ -77,8 +81,8 @@ export default class Enemy {
     base.body.setCollideWorldBounds(true);
     this.sprite = base as EnemySprite;
     this.sprite.enemyRef = this;
-    if (type === 'dustbunny') this.hopTimer = Phaser.Math.Between(300, 700);
-    if (type === 'virus') this.hoverTime = Math.random() * Math.PI * 2;
+    if (type === 'dustbunny' || type === 'mite') this.hopTimer = Phaser.Math.Between(300, 700);
+    if (type === 'virus' || type === 'spore') this.hoverTime = Math.random() * Math.PI * 2;
   }
 
   update(time: number, delta: number, playerSprite: Phaser.Physics.Arcade.Sprite): void {
@@ -134,8 +138,8 @@ export default class Enemy {
         break;
     }
 
-    if (this.type === 'dustbunny') this._applyHop(delta);
-    if (this.type === 'virus') this._applyHover(delta);
+    if (this.type === 'dustbunny' || this.type === 'mite') this._applyHop(delta);
+    if (this.type === 'virus' || this.type === 'spore') this._applyHover(delta);
     this._applyIdleAnim(time, delta);
 
     if (this.state === STATES.CHASE && dist < ATTACK_RANGE) this.state = STATES.ATTACK;
@@ -235,6 +239,23 @@ export default class Enemy {
         if (this.hopPhase === 'idle') {
           const s = Math.sin(time * 0.003) * 0.04;
           this.sprite.setScale(1 + s, 1 - s);
+        }
+        break;
+      case 'amoeba': {
+        // Slow gelatinous wobble — wide, sloshing pseudopod blob
+        const w = Math.sin(time * 0.0016 + this.sprite.x * 0.004) * 0.09;
+        this.sprite.setScale(1.15 * (1 + w), 1.15 * (1 - w));
+        break;
+      }
+      case 'spore':
+        // Quick jittery spin
+        this.sprite.rotation += delta * 0.0016;
+        break;
+      case 'mite':
+        // Squash/stretch breathing between hops (lighter than dustbunny)
+        if (this.hopPhase === 'idle') {
+          const s = Math.sin(time * 0.004) * 0.05;
+          this.sprite.setScale(0.9 * (1 + s), 0.9 * (1 - s));
         }
         break;
     }

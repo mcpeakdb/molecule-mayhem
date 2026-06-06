@@ -12,14 +12,90 @@ const PHASES = {
 } as const;
 type BossPhase = (typeof PHASES)[keyof typeof PHASES];
 
+export type BossVariant = 'bacterium' | 'amoeba' | 'phage';
+
+interface BossVariantCfg {
+  texture: string;
+  name: string;
+  hp: number;
+  speed: number;
+  damage: number;
+  scale: number;
+  bodySize: [number, number];
+  bodyOffset: [number, number];
+  projectileCount: number; // shots per ranged volley
+  projectileSpread: number; // radians between adjacent shots
+  labelColor: string;
+  activateTint: number;
+  fireTint: number;
+}
+
+const VARIANTS: Record<BossVariant, BossVariantCfg> = {
+  // Sector 1 — the original Super Bacterium: balanced charger with a 3-shot flagella volley
+  bacterium: {
+    texture: 'boss_bacterium',
+    name: 'SUPER BACTERIUM',
+    hp: 500,
+    speed: 140,
+    damage: 22,
+    scale: 1.5,
+    bodySize: [60, 90],
+    bodyOffset: [18, 10],
+    projectileCount: 3,
+    projectileSpread: 0.3,
+    labelColor: '#ffaaaa',
+    activateTint: 0xff0000,
+    fireTint: 0xff8800,
+  },
+  // Sector 2 — Amoeba Titan: slower and beefier, lobs a wide 5-shot pseudopod spray
+  amoeba: {
+    texture: 'boss_amoeba',
+    name: 'AMOEBA TITAN',
+    hp: 850,
+    speed: 120,
+    damage: 26,
+    scale: 1.7,
+    bodySize: [64, 88],
+    bodyOffset: [16, 16],
+    projectileCount: 5,
+    projectileSpread: 0.26,
+    labelColor: '#aaffcc',
+    activateTint: 0x33ff88,
+    fireTint: 0x66ffaa,
+  },
+  // Sector 3 — Phage Lord: fast, hard-hitting finale boss with a dense 7-shot radial burst
+  phage: {
+    texture: 'boss_phage',
+    name: 'PHAGE LORD',
+    hp: 1300,
+    speed: 175,
+    damage: 32,
+    scale: 1.6,
+    bodySize: [50, 100],
+    bodyOffset: [23, 6],
+    projectileCount: 7,
+    projectileSpread: 0.22,
+    labelColor: '#aaddff',
+    activateTint: 0x44aaff,
+    fireTint: 0x88ccff,
+  },
+};
+
 export default class Boss {
   scene: GameScene;
-  maxHp = 500;
-  hp = 500;
-  damage = 22;
-  speed = 140;
+  variant: BossVariant;
+  maxHp: number;
+  hp: number;
+  damage: number;
+  speed: number;
   alive = true;
   isBoss = true;
+
+  private readonly scale: number;
+  private readonly projectileCount: number;
+  private readonly projectileSpread: number;
+  private readonly fireTint: number;
+  private readonly activateTint: number;
 
   sprite: EnemySprite;
   phase: BossPhase = PHASES.IDLE;
@@ -31,14 +107,25 @@ export default class Boss {
   private hpBar: Phaser.GameObjects.Rectangle;
   private hpLabel: Phaser.GameObjects.Text;
 
-  constructor(scene: GameScene, x: number, y: number) {
+  constructor(scene: GameScene, x: number, y: number, variant: BossVariant = 'bacterium') {
     this.scene = scene;
+    this.variant = variant;
+    const cfg = VARIANTS[variant];
+    this.maxHp = cfg.hp;
+    this.hp = cfg.hp;
+    this.damage = cfg.damage;
+    this.speed = cfg.speed;
+    this.scale = cfg.scale;
+    this.projectileCount = cfg.projectileCount;
+    this.projectileSpread = cfg.projectileSpread;
+    this.fireTint = cfg.fireTint;
+    this.activateTint = cfg.activateTint;
 
-    const base = scene.physics.add.sprite(x, y, 'boss_bacterium') as Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
-    base.setScale(1.5);
+    const base = scene.physics.add.sprite(x, y, cfg.texture) as Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+    base.setScale(cfg.scale);
     base.setDepth(y + 10);
-    base.body.setSize(60, 90);
-    base.body.setOffset(18, 10);
+    base.body.setSize(cfg.bodySize[0], cfg.bodySize[1]);
+    base.body.setOffset(cfg.bodyOffset[0], cfg.bodyOffset[1]);
     base.body.setCollideWorldBounds(true);
     this.sprite = base as EnemySprite;
     this.sprite.enemyRef = this;
@@ -46,9 +133,9 @@ export default class Boss {
     this.hpBarBg = scene.add.rectangle(0, 0, 300, 18, 0x330000).setDepth(200).setVisible(false);
     this.hpBar = scene.add.rectangle(0, 0, 300, 18, 0xff2222).setDepth(201).setVisible(false);
     this.hpLabel = scene.add
-      .text(0, 0, 'SUPER BACTERIUM', {
+      .text(0, 0, cfg.name, {
         fontSize: '15px',
-        color: '#ffaaaa',
+        color: cfg.labelColor,
         fontStyle: 'bold',
       })
       .setDepth(202)
@@ -63,7 +150,7 @@ export default class Boss {
     this.hpLabel.setVisible(true);
     SoundSystem.play(this.scene.audioCtx, 'boss_roar');
     this.scene.cameras.main.shake(600, 0.018);
-    this.sprite.setTint(0xff0000);
+    this.sprite.setTint(this.activateTint);
     this.scene.time.delayedCall(500, () => this.sprite.clearTint());
     this.scene.events.emit('boss-activated');
   }
@@ -109,8 +196,8 @@ export default class Boss {
       }
     }
 
-    // Slow breathing pulse centred on base scale 1.5
-    this.sprite.setScale(1.5 + Math.sin(time * 0.0007) * 0.05);
+    // Slow breathing pulse centred on the variant's base scale
+    this.sprite.setScale(this.scale + Math.sin(time * 0.0007) * 0.05);
 
     this.sprite.setFlipX(dx < 0);
     this.sprite.setDepth(this.sprite.y + 10);
@@ -147,10 +234,13 @@ export default class Boss {
   private _fireFlagella(): void {
     const player = this.scene.player.sprite;
     const baseAngle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, player.x, player.y);
-    for (let i = -1; i <= 1; i++) {
-      this.scene.spawnEnemyProjectile(this.sprite.x, this.sprite.y, baseAngle + i * 0.3, this.damage * 0.6);
+    // Symmetric volley centred on the player; count/spread vary per boss variant.
+    const half = (this.projectileCount - 1) / 2;
+    for (let i = 0; i < this.projectileCount; i++) {
+      const angle = baseAngle + (i - half) * this.projectileSpread;
+      this.scene.spawnEnemyProjectile(this.sprite.x, this.sprite.y, angle, this.damage * 0.6);
     }
-    this.sprite.setTint(0xff8800);
+    this.sprite.setTint(this.fireTint);
     this.scene.time.delayedCall(200, () => this.sprite.clearTint());
   }
 
@@ -182,13 +272,13 @@ export default class Boss {
     this.scene.tweens.killTweensOf(this.sprite);
     this.scene.tweens.add({
       targets: this.sprite,
-      scaleX: 2.1,
-      scaleY: 0.975,
+      scaleX: this.scale * 1.4,
+      scaleY: this.scale * 0.65,
       duration: 80,
       ease: 'Power2',
       yoyo: true,
       onComplete: () => {
-        if (this.sprite.active) this.sprite.setScale(1.5);
+        if (this.sprite.active) this.sprite.setScale(this.scale);
       },
     });
 

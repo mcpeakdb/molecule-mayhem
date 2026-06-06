@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../constants';
 
 const MONO = 'monospace';
-const OPTIONS = ['RESUME', 'RESTART SECTOR', 'DIFFICULTY SELECT', 'RESTART GAME'] as const;
+const OPTIONS = ['RESUME', 'RESTART STAGE', 'DIFFICULTY SELECT', 'RESTART GAME'] as const;
 
 export default class PauseScene extends Phaser.Scene {
   private cursor = 0;

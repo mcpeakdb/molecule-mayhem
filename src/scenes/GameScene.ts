@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
-import type { BaseAtom, Difficulty } from '../constants';
+import type { BaseAtom, Difficulty, SectorId } from '../constants';
 import {
-  BOSS_X,
   DIFFICULTY_SCALE,
   FLOOR_CENTER_Y,
   FLOOR_MAX_Y,
@@ -9,12 +8,17 @@ import {
   GAME_HEIGHT,
   GAME_WIDTH,
   GAP_FALL_DAMAGE,
+  isFinaleStage,
+  SECTORS,
+  STAGE_COUNT,
+  sectorOf,
   WORLD_WIDTH,
 } from '../constants';
 import Atom from '../entities/Atom';
 import Boss from '../entities/Boss';
-import Enemy, { type EnemyType } from '../entities/Enemy';
+import Enemy from '../entities/Enemy';
 import Player from '../entities/Player';
+import { STAGES, type StageDef } from '../stages';
 import SoundSystem from '../systems/SoundSystem';
 import type { AtomSprite, EnemySprite, WasdKeys } from '../types';
 
@@ -86,6 +90,19 @@ export default class GameScene extends Phaser.Scene {
 
   currentStage = 1;
   difficulty: Difficulty = 'normal';
+  private stageDef!: StageDef;
+  private worldWidth = WORLD_WIDTH;
+
+  /** Biome/theme group this stage belongs to (1–3). */
+  get sector(): SectorId {
+    return sectorOf(this.currentStage);
+  }
+
+  // ── Exit portal (non-boss stages clear by reaching it once enemies are down) ──
+  private _exitX = 0;
+  private _exitOpen = false;
+  private _exitPortal?: Phaser.GameObjects.Container;
+  private _exitHint?: Phaser.GameObjects.Text;
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: WasdKeys;
@@ -126,7 +143,9 @@ export default class GameScene extends Phaser.Scene {
   init(data?: { stage?: number; difficulty?: Difficulty; tutorial?: boolean }): void {
     this.isTutorial = data?.tutorial ?? false;
     // Tutorial reuses Sector 1 art/theme but runs its own content + flow
-    this.currentStage = this.isTutorial ? 1 : (data?.stage ?? 1);
+    this.currentStage = this.isTutorial ? 1 : Phaser.Math.Clamp(data?.stage ?? 1, 1, STAGE_COUNT);
+    this.stageDef = STAGES[this.currentStage - 1];
+    this.worldWidth = this.isTutorial ? WORLD_WIDTH : this.stageDef.width;
     this.score = 0;
     this.difficulty = this.isTutorial
       ? 'easy'
@@ -137,6 +156,9 @@ export default class GameScene extends Phaser.Scene {
     this.stageCleared = false;
     this._gaps = [];
     this._tutDone = false;
+    this._exitOpen = false;
+    this._exitPortal = undefined;
+    this._exitHint = undefined;
     this._dlgBlocking = false;
     this._dlgQueue = [];
     this._firedTips.clear();
@@ -144,8 +166,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.physics.world.setBounds(0, 0, WORLD_WIDTH, GAME_HEIGHT);
-    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, GAME_HEIGHT);
+    this.physics.world.setBounds(0, 0, this.worldWidth, GAME_HEIGHT);
+    this.cameras.main.setBounds(0, 0, this.worldWidth, GAME_HEIGHT);
     this.audioCtx = (this.sound as Phaser.Sound.WebAudioSoundManager).context;
 
     this._buildWorld();
@@ -221,7 +243,7 @@ export default class GameScene extends Phaser.Scene {
       .setDepth(400);
 
     const subText = this.add
-      .text(w / 2, h / 2 - 38, `Stage ${this.currentStage}`, {
+      .text(w / 2, h / 2 - 38, `${SECTORS[this.sector].name}  ·  Stage ${this.currentStage} of ${STAGE_COUNT}`, {
         fontSize: '22px',
         color: '#aaaacc',
       })
@@ -231,7 +253,7 @@ export default class GameScene extends Phaser.Scene {
       .setAlpha(0);
 
     const titleText = this.add
-      .text(w / 2, h / 2 + 5, `PETRI DISH SECTOR ${this.currentStage}`, {
+      .text(w / 2, h / 2 + 5, this.stageDef.name, {
         fontSize: '42px',
         color: '#ffffff',
         fontStyle: 'bold',
@@ -283,32 +305,30 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private _buildWorld(): void {
-    const theme = SECTOR_THEMES[this.currentStage];
+    const sector = this.sector;
+    const theme = SECTOR_THEMES[sector];
+    const w = this.worldWidth;
 
+    this.add.tileSprite(0, 0, w, GAME_HEIGHT, `bg_tile_${sector}`).setOrigin(0, 0).setScrollFactor(0.3).setDepth(-10);
     this.add
-      .tileSprite(0, 0, WORLD_WIDTH, GAME_HEIGHT, `bg_tile_${this.currentStage}`)
-      .setOrigin(0, 0)
-      .setScrollFactor(0.3)
-      .setDepth(-10);
-    this.add
-      .tileSprite(0, FLOOR_MIN_Y, WORLD_WIDTH, GAME_HEIGHT - FLOOR_MIN_Y, `ground_tile_${this.currentStage}`)
+      .tileSprite(0, FLOOR_MIN_Y, w, GAME_HEIGHT - FLOOR_MIN_Y, `ground_tile_${sector}`)
       .setOrigin(0, 0)
       .setDepth(-5);
 
     const gLine = this.add.graphics().setDepth(-4);
     gLine.lineStyle(3, theme.floorLine, 0.65);
-    gLine.lineBetween(0, FLOOR_MIN_Y, WORLD_WIDTH, FLOOR_MIN_Y);
+    gLine.lineBetween(0, FLOOR_MIN_Y, w, FLOOR_MIN_Y);
     gLine.lineStyle(1, theme.tick, 0.5);
-    for (let tx = 0; tx <= WORLD_WIDTH; tx += 100) {
+    for (let tx = 0; tx <= w; tx += 100) {
       gLine.lineBetween(tx, FLOOR_MIN_Y, tx, FLOOR_MIN_Y - (tx % 500 === 0 ? 14 : 7));
     }
 
-    this.add.rectangle(WORLD_WIDTH / 2, FLOOR_MIN_Y - 30, WORLD_WIDTH, 60, theme.shadow, 0.9).setDepth(-6);
+    this.add.rectangle(w / 2, FLOOR_MIN_Y - 30, w, 60, theme.shadow, 0.9).setDepth(-6);
 
     for (let i = 0; i < 80; i++) {
       const g = this.add.graphics().setDepth(-3);
       const color = theme.particles[i % theme.particles.length];
-      const x = Phaser.Math.Between(0, WORLD_WIDTH);
+      const x = Phaser.Math.Between(0, w);
       const y = Phaser.Math.Between(50, FLOOR_MIN_Y - 20);
       if (i % 3 === 0) {
         // Cell debris ring
@@ -321,198 +341,119 @@ export default class GameScene extends Phaser.Scene {
       }
     }
 
+    const label = this.isTutorial ? '— TRAINING SECTOR —' : `— ${SECTORS[sector].name} · ${this.stageDef.name} —`;
     this.add
-      .text(
-        300,
-        FLOOR_MIN_Y - 50,
-        this.isTutorial ? '— TRAINING SECTOR —' : `— PETRI DISH SECTOR ${this.currentStage} —`,
-        {
-          fontSize: '18px',
-          color: theme.label,
-          fontStyle: 'italic',
-        },
-      )
+      .text(300, FLOOR_MIN_Y - 50, label, {
+        fontSize: '18px',
+        color: theme.label,
+        fontStyle: 'italic',
+      })
       .setDepth(5)
       .setAlpha(0.65);
   }
 
   private _spawnStage(): void {
+    const def = this.stageDef;
     const rY = () => Phaser.Math.Between(FLOOR_MIN_Y + 40, FLOOR_MAX_Y - 15);
+    const scale = DIFFICULTY_SCALE[this.difficulty];
 
-    // Every atom is a choice node. With real stoichiometry, compounds cost several atoms
-    // (e.g. CH₄ = 1C+4H), so sectors ramp up: Sector 1 is small and simple (base attacks /
-    // Water at most), later sectors add nodes and richer choices for complex molecules.
-    const atomDefs: { x: number; choices: BaseAtom[] }[] =
-      this.currentStage === 1
-        ? [
-            // Sector 1 — only 4 atoms, just H/O/C. Enough for a base attack or a little Water.
-            { x: 700, choices: ['hydrogen', 'oxygen'] },
-            { x: 1700, choices: ['hydrogen', 'oxygen'] },
-            { x: 2700, choices: ['hydrogen', 'carbon'] },
-            { x: 3700, choices: ['oxygen', 'hydrogen'] },
-          ]
-        : this.currentStage === 2
-          ? [
-              // Sector 2 — 6 atoms, introduces Nitrogen (CO₂, Nitric Oxide, Ammonia, Water)
-              { x: 500, choices: ['oxygen', 'carbon'] },
-              { x: 1100, choices: ['hydrogen', 'nitrogen'] },
-              { x: 1700, choices: ['oxygen', 'carbon'] },
-              { x: 2400, choices: ['carbon', 'nitrogen'] },
-              { x: 3100, choices: ['hydrogen', 'oxygen'] },
-              { x: 3800, choices: ['oxygen', 'carbon', 'nitrogen'] },
-            ]
-          : [
-              // Sector 3 — 9 atoms, all four; enough to assemble Methane / Carbonic Acid
-              { x: 360, choices: ['nitrogen', 'carbon'] },
-              { x: 760, choices: ['hydrogen', 'oxygen'] },
-              { x: 1150, choices: ['oxygen', 'carbon'] },
-              { x: 1600, choices: ['hydrogen', 'oxygen'] },
-              { x: 2050, choices: ['oxygen', 'nitrogen'] },
-              { x: 2500, choices: ['hydrogen', 'carbon'] },
-              { x: 2950, choices: ['oxygen', 'hydrogen'] },
-              { x: 3450, choices: ['carbon', 'oxygen'] },
-              { x: 3950, choices: ['hydrogen', 'oxygen', 'nitrogen'] },
-            ];
-
-    atomDefs.forEach((def) => {
-      const atom = new Atom(this, def.x, FLOOR_CENTER_Y - 80, def.choices);
+    // Atoms — branching choice nodes (see src/stages.ts for the per-stage ramp)
+    def.atoms.forEach((a) => {
+      const atom = new Atom(this, a.x, FLOOR_CENTER_Y - 80, a.choices);
       this.atomGroup.add(atom.sprite);
     });
 
-    const enemyDefs: { x: number; y: number; type: EnemyType }[] =
-      this.currentStage === 1
-        ? [
-            { x: 600, y: rY(), type: 'bacterium' },
-            { x: 720, y: rY(), type: 'virus' },
-            { x: 1100, y: rY(), type: 'bacterium' },
-            { x: 1180, y: rY(), type: 'bacterium' },
-            { x: 1600, y: rY(), type: 'virus' },
-            { x: 1680, y: rY(), type: 'dustbunny' },
-            { x: 2100, y: rY(), type: 'bacterium' },
-            { x: 2200, y: rY(), type: 'pollen' },
-            { x: 2300, y: rY(), type: 'virus' },
-            { x: 2700, y: rY(), type: 'dustbunny' },
-            { x: 2800, y: rY(), type: 'pollen' },
-            { x: 2900, y: rY(), type: 'virus' },
-            { x: 3300, y: rY(), type: 'bacterium' },
-            { x: 3400, y: rY(), type: 'virus' },
-            { x: 3500, y: rY(), type: 'bacterium' },
-            { x: 4200, y: rY(), type: 'virus' },
-            { x: 4280, y: rY(), type: 'pollen' },
-            { x: 4350, y: rY(), type: 'dustbunny' },
-          ]
-        : this.currentStage === 2
-          ? [
-              { x: 500, y: rY(), type: 'virus' },
-              { x: 620, y: rY(), type: 'bacterium' },
-              { x: 740, y: rY(), type: 'virus' },
-              { x: 1000, y: rY(), type: 'dustbunny' },
-              { x: 1120, y: rY(), type: 'pollen' },
-              { x: 1260, y: rY(), type: 'virus' },
-              { x: 1380, y: rY(), type: 'bacterium' },
-              { x: 1600, y: rY(), type: 'virus' },
-              { x: 1720, y: rY(), type: 'dustbunny' },
-              { x: 1840, y: rY(), type: 'pollen' },
-              { x: 2100, y: rY(), type: 'bacterium' },
-              { x: 2220, y: rY(), type: 'virus' },
-              { x: 2340, y: rY(), type: 'virus' },
-              { x: 2480, y: rY(), type: 'pollen' },
-              { x: 2700, y: rY(), type: 'dustbunny' },
-              { x: 2820, y: rY(), type: 'virus' },
-              { x: 2940, y: rY(), type: 'bacterium' },
-              { x: 3080, y: rY(), type: 'virus' },
-              { x: 3300, y: rY(), type: 'pollen' },
-              { x: 3420, y: rY(), type: 'dustbunny' },
-              { x: 3540, y: rY(), type: 'virus' },
-              { x: 3660, y: rY(), type: 'bacterium' },
-              { x: 3900, y: rY(), type: 'virus' },
-              { x: 4020, y: rY(), type: 'dustbunny' },
-              { x: 4140, y: rY(), type: 'pollen' },
-              { x: 4280, y: rY(), type: 'virus' },
-            ]
-          : [
-              { x: 420, y: rY(), type: 'virus' },
-              { x: 530, y: rY(), type: 'bacterium' },
-              { x: 640, y: rY(), type: 'virus' },
-              { x: 760, y: rY(), type: 'pollen' },
-              { x: 880, y: rY(), type: 'dustbunny' },
-              { x: 1000, y: rY(), type: 'virus' },
-              { x: 1120, y: rY(), type: 'bacterium' },
-              { x: 1240, y: rY(), type: 'virus' },
-              { x: 1360, y: rY(), type: 'dustbunny' },
-              { x: 1480, y: rY(), type: 'pollen' },
-              { x: 1600, y: rY(), type: 'virus' },
-              { x: 1720, y: rY(), type: 'bacterium' },
-              { x: 1840, y: rY(), type: 'virus' },
-              { x: 1960, y: rY(), type: 'pollen' },
-              { x: 2080, y: rY(), type: 'dustbunny' },
-              { x: 2200, y: rY(), type: 'bacterium' },
-              { x: 2320, y: rY(), type: 'virus' },
-              { x: 2440, y: rY(), type: 'virus' },
-              { x: 2560, y: rY(), type: 'dustbunny' },
-              { x: 2680, y: rY(), type: 'pollen' },
-              { x: 2800, y: rY(), type: 'bacterium' },
-              { x: 2920, y: rY(), type: 'virus' },
-              { x: 3050, y: rY(), type: 'virus' },
-              { x: 3170, y: rY(), type: 'pollen' },
-              { x: 3290, y: rY(), type: 'dustbunny' },
-              { x: 3410, y: rY(), type: 'bacterium' },
-              { x: 3530, y: rY(), type: 'virus' },
-              { x: 3660, y: rY(), type: 'virus' },
-              { x: 3780, y: rY(), type: 'pollen' },
-              { x: 3900, y: rY(), type: 'dustbunny' },
-              { x: 4080, y: rY(), type: 'bacterium' },
-              { x: 4220, y: rY(), type: 'virus' },
-              { x: 4360, y: rY(), type: 'virus' },
-            ];
-
-    // Gaps to jump — placed in clearings; enemies that would spawn on a gap are skipped
-    const gapDefs: [number, number][] =
-      this.currentStage === 1
-        ? [
-            [1900, 2030],
-            [3000, 3130],
-          ]
-        : this.currentStage === 2
-          ? [
-              [1450, 1580],
-              [3150, 3280],
-            ]
-          : [
-              [1300, 1430],
-              [2650, 2780],
-            ];
-    gapDefs.forEach(([a, b]) => {
+    // Gaps first so an enemy overlapping a chasm can be skipped
+    def.gaps.forEach(([a, b]) => {
       this._addGap(a, b);
     });
     const inGap = (x: number) => this._gaps.some((g) => x > g.x1 - 30 && x < g.x2 + 30);
 
-    const scale = DIFFICULTY_SCALE[this.difficulty];
-
-    enemyDefs.forEach((def) => {
-      if (inGap(def.x)) return;
-      const e = new Enemy(this, def.x, def.y, def.type);
+    def.enemies.forEach((en) => {
+      if (inGap(en.x)) return;
+      const e = new Enemy(this, en.x, rY(), en.type);
       e.hp = Math.round(e.hp * scale.enemyHp);
       e.maxHp = Math.round(e.maxHp * scale.enemyHp);
       e.speed *= scale.enemySpeed;
       this.enemyGroup.add(e.sprite);
     });
 
-    this.boss = new Boss(this, BOSS_X, FLOOR_CENTER_Y);
-    if (this.currentStage === 2) {
-      this.boss.maxHp = 750;
-      this.boss.hp = 750;
-      this.boss.speed = 160;
-    } else if (this.currentStage === 3) {
-      this.boss.maxHp = 1100;
-      this.boss.hp = 1100;
-      this.boss.speed = 180;
-      this.boss.damage = 30;
+    if (def.boss) {
+      // Sector finale — the boss closes out the level
+      const boss = new Boss(this, def.boss.x, FLOOR_CENTER_Y, def.boss.variant);
+      boss.hp = Math.round(boss.hp * scale.enemyHp);
+      boss.maxHp = Math.round(boss.maxHp * scale.enemyHp);
+      boss.speed *= scale.enemySpeed;
+      this.boss = boss;
+      this.enemyGroup.add(boss.sprite);
+    } else if (def.exitX !== undefined) {
+      // Regular stage — clear it by reaching the exit once the area is cleared
+      this._exitX = def.exitX;
+      this._spawnExitPortal(def.exitX);
     }
-    this.boss.hp = Math.round(this.boss.hp * scale.enemyHp);
-    this.boss.maxHp = Math.round(this.boss.maxHp * scale.enemyHp);
-    this.boss.speed *= scale.enemySpeed;
-    this.enemyGroup.add(this.boss.sprite);
+  }
+
+  // ── Exit portal (non-boss stage clear) ───────────────────────────────────────
+
+  /** A membrane gateway at the stage end; it stays sealed until every germ is gone. */
+  private _spawnExitPortal(x: number): void {
+    const theme = SECTOR_THEMES[this.sector];
+    const cy = FLOOR_CENTER_Y - 6;
+    const ring = this.add.graphics();
+    const glow = this.add.graphics();
+    const portal = this.add.container(x, cy, [glow, ring]).setDepth(cy - 2);
+    portal.setData('ring', ring);
+    portal.setData('glow', glow);
+    this._exitPortal = portal;
+
+    this._exitHint = this.add
+      .text(x, FLOOR_MIN_Y - 24, 'SEALED — clear the area', {
+        fontSize: '13px',
+        color: theme.label,
+        fontStyle: 'italic',
+        stroke: '#000000',
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setDepth(cy + 60)
+      .setAlpha(0.85);
+
+    this._drawExitPortal(false);
+    // Gentle idle bob/pulse
+    this.tweens.add({
+      targets: portal,
+      scaleX: 1.06,
+      scaleY: 0.94,
+      duration: 900,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
+  }
+
+  /** Redraw the portal in either its sealed (red) or open (green, inviting) state. */
+  private _drawExitPortal(open: boolean): void {
+    const portal = this._exitPortal;
+    if (!portal) return;
+    const ring = portal.getData('ring') as Phaser.GameObjects.Graphics;
+    const glow = portal.getData('glow') as Phaser.GameObjects.Graphics;
+    const color = open ? 0x55ff99 : 0xff5544;
+    ring.clear();
+    glow.clear();
+    // Outer aura
+    glow.fillStyle(color, open ? 0.22 : 0.12);
+    glow.fillEllipse(0, 0, 96, 150);
+    // Membrane oval rings
+    ring.lineStyle(4, color, 0.9);
+    ring.strokeEllipse(0, 0, 64, 132);
+    ring.lineStyle(2, color, 0.5);
+    ring.strokeEllipse(0, 0, 44, 110);
+    // Swirling motes inside
+    ring.fillStyle(open ? 0xccffdd : 0xffcccc, 0.7);
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      ring.fillCircle(Math.cos(a) * 14, Math.sin(a) * 40, 2.5);
+    }
   }
 
   // ── Tutorial ────────────────────────────────────────────────────────────────
@@ -843,7 +784,7 @@ export default class GameScene extends Phaser.Scene {
       slotKeys: this.slotKeys,
     });
 
-    this.player.sprite.x = Phaser.Math.Clamp(this.player.sprite.x, 40, WORLD_WIDTH - 40);
+    this.player.sprite.x = Phaser.Math.Clamp(this.player.sprite.x, 40, this.worldWidth - 40);
 
     this.enemyGroup.getChildren().forEach((go) => {
       const s = go as EnemySprite;
@@ -855,15 +796,16 @@ export default class GameScene extends Phaser.Scene {
 
     this.projectileGroup.getChildren().forEach((go) => {
       const p = go as Phaser.Physics.Arcade.Sprite;
-      if (p.active && (p.x < 0 || p.x > WORLD_WIDTH)) p.destroy();
+      if (p.active && (p.x < 0 || p.x > this.worldWidth)) p.destroy();
     });
     this.enemyProjectileGroup.getChildren().forEach((go) => {
       const p = go as Phaser.Physics.Arcade.Sprite;
-      if (p.active && (p.x < 0 || p.x > WORLD_WIDTH || p.y < 0 || p.y > GAME_HEIGHT)) p.destroy();
+      if (p.active && (p.x < 0 || p.x > this.worldWidth || p.y < 0 || p.y > GAME_HEIGHT)) p.destroy();
     });
 
     this._updateGaps();
     if (this.isTutorial) this._tutorialUpdate(_time);
+    else if (this._exitPortal) this._updateExit();
 
     this.events.emit('hud-update', { hp: this.player.hp, element: this.player.elementSystem });
   }
@@ -1327,6 +1269,9 @@ export default class GameScene extends Phaser.Scene {
       virus: 80,
       dustbunny: 150,
       pollen: 60,
+      amoeba: 200,
+      spore: 70,
+      mite: 120,
     };
     this.score += enemy.isBoss ? 1000 : (SCORES[(enemy as Enemy).type] ?? 100);
     this.events.emit('score-update', this.score);
@@ -1468,65 +1413,100 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
+  // ── Stage completion ─────────────────────────────────────────────────────────
+
+  /** Reached the exit on a non-boss stage, or no enemies remain — open / advance. */
+  private _updateExit(): void {
+    if (this.stageCleared || !this._exitPortal) return;
+    if (!this._exitOpen) {
+      if (this.enemyGroup.countActive(true) === 0) this._openExit();
+      return;
+    }
+    if (this.player.sprite.x >= this._exitX - 20) this._completeStage();
+  }
+
+  private _openExit(): void {
+    this._exitOpen = true;
+    this._drawExitPortal(true);
+    this._exitHint?.setText('EXIT OPEN  →').setColor('#bfffd0').setAlpha(1);
+    SoundSystem.play(this.audioCtx, 'element_upgrade');
+    this.cameras.main.flash(250, 80, 255, 150);
+  }
+
+  private _completeStage(): void {
+    if (this.stageCleared) return;
+    this.stageCleared = true;
+    const theme = SECTOR_THEMES[this.sector];
+    this.cameras.main.flash(500, theme.flashR, theme.flashG, theme.flashB);
+    SoundSystem.play(this.audioCtx, 'element_upgrade');
+    this.time.delayedCall(550, () => this._showClearBanner());
+  }
+
+  /** Called by the Boss on a finale stage once it dies. */
   onBossDefeated(): void {
     this.stageCleared = true;
-    const theme = SECTOR_THEMES[this.currentStage];
+    const theme = SECTOR_THEMES[this.sector];
     this.cameras.main.flash(600, theme.flashR, theme.flashG, theme.flashB);
-    this.time.delayedCall(700, () => {
-      const w = GAME_WIDTH,
-        h = GAME_HEIGHT;
-      this.add
-        .rectangle(w / 2, h / 2, w, h, 0x000000, 0.55)
-        .setScrollFactor(0)
-        .setDepth(300);
+    this.time.delayedCall(700, () => this._showClearBanner());
+  }
 
-      const isLast = this.currentStage >= 3;
+  /** Shared victory overlay: STAGE / SECTOR / EXPERIMENT-COMPLETE depending on where we are. */
+  private _showClearBanner(): void {
+    const w = GAME_WIDTH,
+      h = GAME_HEIGHT;
+    const theme = SECTOR_THEMES[this.sector];
+    this.add
+      .rectangle(w / 2, h / 2, w, h, 0x000000, 0.55)
+      .setScrollFactor(0)
+      .setDepth(300);
+
+    const isFinal = this.currentStage >= STAGE_COUNT;
+    const isSectorFinale = isFinaleStage(this.currentStage);
+    const title = isFinal ? 'EXPERIMENT COMPLETE!' : isSectorFinale ? 'SECTOR CLEAR!' : 'STAGE CLEAR!';
+    this.add
+      .text(w / 2, h / 2 - 40, title, {
+        fontSize: isFinal ? '40px' : isSectorFinale ? '48px' : '44px',
+        color: theme.clearColor,
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 6,
+      })
+      .setScrollFactor(0)
+      .setOrigin(0.5)
+      .setDepth(301);
+
+    if (isFinal) {
       this.add
-        .text(w / 2, h / 2 - 40, isLast ? 'EXPERIMENT COMPLETE!' : 'SECTOR CLEAR!', {
-          fontSize: isLast ? '40px' : '48px',
-          color: theme.clearColor,
-          fontStyle: 'bold',
-          stroke: '#000000',
-          strokeThickness: 6,
+        .text(w / 2, h / 2 + 10, `Final Score: ${this.score.toLocaleString()}`, {
+          fontSize: '26px',
+          color: '#ffffff',
         })
         .setScrollFactor(0)
         .setOrigin(0.5)
         .setDepth(301);
+    }
 
-      if (isLast) {
-        this.add
-          .text(w / 2, h / 2 + 10, `Final Score: ${this.score.toLocaleString()}`, {
-            fontSize: '26px',
-            color: '#ffffff',
-          })
-          .setScrollFactor(0)
-          .setOrigin(0.5)
-          .setDepth(301);
-      }
+    const next = this.currentStage + 1;
+    const entersNewSector = !isFinal && sectorOf(next) !== this.sector;
+    const promptText = isFinal
+      ? 'Press Z to play again'
+      : entersNewSector
+        ? `Press Z to enter ${SECTORS[sectorOf(next)].name}`
+        : 'Press Z for the next stage';
+    const prompt = this.add
+      .text(w / 2, h / 2 + (isFinal ? 55 : 30), promptText, {
+        fontSize: '26px',
+        color: '#ffeeaa',
+      })
+      .setScrollFactor(0)
+      .setOrigin(0.5)
+      .setDepth(301);
+    this.tweens.add({ targets: prompt, alpha: 0.3, duration: 600, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
 
-      const prompt = this.add
-        .text(
-          w / 2,
-          h / 2 + (isLast ? 55 : 30),
-          isLast ? 'Press Z to play again' : `Press Z to enter Sector ${this.currentStage + 1}`,
-          {
-            fontSize: '26px',
-            color: '#ffeeaa',
-          },
-        )
-        .setScrollFactor(0)
-        .setOrigin(0.5)
-        .setDepth(301);
-      this.tweens.add({ targets: prompt, alpha: 0.3, duration: 600, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
-
-      this.input.keyboard?.once('keydown-Z', () => {
-        this.scene.stop('HUDScene');
-        if (isLast) {
-          this.scene.start('DifficultyScene');
-        } else {
-          this.scene.start('GameScene', { stage: this.currentStage + 1 });
-        }
-      });
+    this.input.keyboard?.once('keydown-Z', () => {
+      this.scene.stop('HUDScene');
+      if (isFinal) this.scene.start('DifficultyScene');
+      else this.scene.start('GameScene', { stage: next });
     });
   }
 }

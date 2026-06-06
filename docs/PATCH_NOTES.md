@@ -1,5 +1,29 @@
 # Patch Notes
 
+## v0.9.0 — 2026-06-06
+
+### Phase 3 — Nine stages across three sectors
+
+The campaign is now **9 stages** (plus the tutorial), grouped into **3 sectors of 3 stages** each.
+A *sector* is the biome/theme; a *stage* is one level within it. `currentStage` (1–9) drives
+everything; the sector is derived as `ceil(stage/3)`.
+
+- **Data-driven stages** — all level content (atoms, enemy mix, gaps, width, finale/exit) now lives
+  in [src/stages.ts](../src/stages.ts) as `STAGES[9]`, replacing the old `currentStage` branching in
+  `GameScene`. Each stage has its own length and a flavor name (e.g. *Inoculation Zone*, *Plasma
+  Currents*, *Crystal Violet Throne*).
+- **Sector finales** — the 3rd stage of each sector (stages 3/6/9) ends in a boss fight. The other
+  six stages clear by reaching an **exit portal** that stays sealed until every germ is defeated,
+  then opens and warps you onward.
+- **Clear flow** — STAGE CLEAR (1/2 of a sector) · SECTOR CLEAR (boss finales) · EXPERIMENT
+  COMPLETE (stage 9). Difficulty persists across all transitions.
+- **New enemies** — **amoeba** (slow gelatinous tank), **spore** (fast hovering swarm), and **mite**
+  (erratic armored crawler), introduced through Sectors 2 and 3.
+- **New bosses** — each sector has its own finale boss with distinct art, stats, and ranged volley:
+  **Super Bacterium** (S1), **Amoeba Titan** (S2), and the **Phage Lord** (S3, final boss).
+- Stage intro now reads `SECTOR · Stage N of 9` + the stage's flavor name; the in-world banner and
+  the pause menu's restart option ("RESTART STAGE") were updated for the multi-stage structure.
+
 ## v0.8.0 — 2026-06-05
 
 ### Gaps now hurt
