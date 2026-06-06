@@ -904,7 +904,7 @@ export default class GameScene extends Phaser.Scene {
 
   /** Camera shake that honors the screen-shake setting. Entities call this.scene.shake(...). */
   shake(duration: number, intensity: number): void {
-    if (Settings.get().screenShake) this.shake(duration, intensity);
+    if (Settings.get().screenShake) this.cameras.main.shake(duration, intensity);
   }
 
   spawnHitFlash(x: number, y: number, color = 0xffffff, size = 32): void {

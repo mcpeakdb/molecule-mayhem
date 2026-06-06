@@ -150,6 +150,77 @@ progress hints toward locked compounds.
 
 ---
 
+## Phase 7 — Difficulty Rework, Gold Wildcard & Element Facts 🚧 PLANNED (target v0.12.0)
+
+A QOL + content pass with four independent features. Work breakdown in
+[tasks/PHASE7_TASKS.md](tasks/PHASE7_TASKS.md).
+
+### 1. Element facts on the choice screen
+
+Each card in `ElementChoiceScene` shows one randomly-chosen fact about its element at the bottom of
+the button. Facts come from a new authored pool keyed by element.
+
+- New `ELEMENT_FACTS: Partial<Record<ElementType, string[]>>` data (in `src/constants.ts` or a new
+  `src/facts.ts`); several facts per base atom **and** per compound, plus Gold.
+- `ElementChoiceScene._buildCard()` picks one fact at random and renders it in a dedicated footer
+  zone (small, dim, word-wrapped). Card height / internal layout adjusted so the fact never collides
+  with the "UNLOCKS / LEVELS" list.
+- Picked per card build (i.e. fresh each time the overlay opens), not per frame.
+
+### 2. Easy-mode simplification — single strongest weapon
+
+On the easiest tier the player no longer carries the whole numpad arsenal. Instead they wield **only
+the single most-advanced available attack**, bound to key `1`. This keeps the easiest mode a
+one-button experience.
+
+- Drive it from data, not a hardcoded difficulty string: add `simplifiedArsenal: boolean` to the
+  `DIFFICULTY_SCALE` entries (true only on the easiest tier).
+- `ElementSystem.getAvailableAttacks()` (or a new `getSimplifiedArsenal()`) returns just
+  `[getPrimary()]` numbered as key `1` when the flag is set. `Player._fireSlot` / HUD already render
+  whatever the arsenal reports, so the numpad bar collapses to one slot automatically.
+- The molecular tree still grows normally underneath (atom counts accumulate); only what's *bound and
+  shown* is reduced to the strongest attack.
+
+### 3. Difficulty rename — Normal / Hard / Extreme
+
+Drop the "Easy" label. The three existing tiers shift up one notch: the current Easy tuning becomes
+**Normal** (and gains the single-weapon simplification above), current Normal becomes **Hard**, and
+current Hard becomes **Extreme**.
+
+- Rename the `Difficulty` union to `'normal' | 'hard' | 'extreme'` and re-key `DIFFICULTY_SCALE`,
+  carrying the existing numbers forward: normal = old easy (×0.70 / ×0.75 / 1.4s, `simplifiedArsenal`),
+  hard = old normal (×1.00 / ×1.00 / 0.8s), extreme = old hard (×1.40 / ×1.25 / 0.5s).
+- Update every consumer: `DifficultyScene` (labels/colors/descriptions), `SaveSystem`
+  (`DIFFICULTIES`, `emptySave`), `LeaderboardScene` (`DIFFS`, `DIFF_COLOR`), `StageSelectScene`,
+  `TitleScene` default, `GameScene` tutorial default (`'easy'` → `'normal'`).
+- **Save migration:** records are keyed by difficulty string in `localStorage` (`mm.save.v1`). Bump
+  to `mm.save.v2` and migrate old `easy/normal/hard` slots into `normal/hard/extreme` on load (best
+  effort; tolerate absence), so existing unlocks/leaderboards survive the relabel.
+
+### 4. Gold — the 1% wildcard atom
+
+A new rare collectible. Gold is **not** an attack and not a base atom; it's a wildcard that lets the
+player pick any base element and grants it **+2** (worth two level-ups toward that element).
+
+- Add `GOLD` to `ELEMENTS`, `ELEMENT_COLORS` (`0xffd700`), `ELEMENT_NAMES`. It stays out of `ATTACKS`
+  / `BaseAtom` / `ATTACK_ORDER` (it has no special of its own).
+- Spawn: when `GameScene._spawnStage()` creates an atom node, a **1% roll** makes it a Gold node
+  instead. `Atom` gains a `gold` flag; `BootScene` gets a distinct shimmering gold `atom_gold` texture.
+- Collect: opens a Gold variant of the choice overlay — pick one of the four base atoms; on confirm,
+  `ElementSystem.collectAtom(chosen)` is applied **twice** (+2 count). Distinct fanfare + gold
+  particle burst.
+- The Gold overlay shows the +2 framing and each base atom's fact; reuse `ElementChoiceScene` with a
+  `gold: true` / `grant: 2` mode rather than a second scene.
+
+> **Locked decisions:**
+> - **Gold scope:** the player chooses among the **four base atoms** and receives **+2** to that
+>   atom's count. Compounds are excluded (their levels are derived from atom counts, so a base-atom
+>   +2 is the clean, representable fit).
+> - **Difficulty:** rename the internal `Difficulty` keys to `normal/hard/extreme` and migrate the
+>   save (`mm.save.v1` → `mm.save.v2`), rather than keeping the old keys and only relabeling the UI.
+
+---
+
 ## Architecture Notes for Future Work
 
 **Adding a new enemy type:**

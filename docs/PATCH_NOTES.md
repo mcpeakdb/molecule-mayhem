@@ -1,5 +1,14 @@
 # Patch Notes
 
+## v0.11.1 — 2026-06-06
+
+### Fixed
+
+- **Game froze when collecting an atom / on any screen shake.** The Phase 5 screen-shake helper
+  (`GameScene.shake`) was accidentally calling itself instead of the camera, causing infinite
+  recursion (stack overflow) the first time anything shook the screen — which made the element-choice
+  flow appear to lock up. It now calls `this.cameras.main.shake` as intended.
+
 ## v0.11.0 — 2026-06-06
 
 ### Renamed: Molecule Mayhem → **Molecular Meltdown**
