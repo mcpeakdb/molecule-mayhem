@@ -148,6 +148,15 @@ export default class Enemy {
     this.sprite.setFlipX(this.sprite.body.velocity.x < 0);
     this.sprite.setDepth(this.sprite.y);
     this.sprite.y = Phaser.Math.Clamp(this.sprite.y, FLOOR_MIN_Y, FLOOR_MAX_Y);
+
+    // Once an enemy has joined the fight, confine it to the visible arena. Without this a
+    // patrolling germ can drift off to an unreachable corner, leaving the exit sealed with
+    // "no enemies in view" and the player unable to progress.
+    if (this.hasEnteredView) {
+      const view = this.scene.cameras.main.worldView;
+      this.sprite.x = Phaser.Math.Clamp(this.sprite.x, view.x + 24, view.right - 24);
+    }
+
     this.sprite.setTint(this.slowTimer > 0 ? 0x44ffaa : 0xffffff);
     if (this.slowTimer <= 0) this.sprite.clearTint();
   }

@@ -86,7 +86,12 @@ export default class Player {
 
   /** True while the post-hit invincibility window is active (no further damage will land). */
   get isInvincible(): boolean {
-    return this.invincibleTimer > 0;
+    return this.invincibleTimer > 0 || this._speedBoostTimer > 0;
+  }
+
+  /** True while the Nitric Oxide radical buff is active — the player is immune and rams enemies. */
+  get isRadicalActive(): boolean {
+    return this._speedBoostTimer > 0;
   }
 
   update(time: number, delta: number, keys: InputKeys): void {
@@ -745,6 +750,8 @@ export default class Player {
     const boosts = [1.5, 1.8, 2.0];
     const durations = [3000, 5000, 8000];
     this._speedBoost = boosts[level - 1];
+    // Setting the boost timer also flips `isRadicalActive`/`isInvincible` on (see those getters):
+    // for the whole duration the player takes no damage and rams enemies for contact damage.
     this._speedBoostTimer = durations[level - 1];
 
     // Reactive flare as the radical buff kicks in
@@ -766,13 +773,15 @@ export default class Player {
       repeat: -1,
     });
 
-    // Aura damage tick
+    // Contact damage — while rushing around (and immune) the player chips anything they run into.
+    // Ticks quickly so it reads as a ramming melee rather than a slow aura.
+    const tick = 200;
     this.scene.time.addEvent({
-      delay: 500,
-      repeat: Math.floor(durations[level - 1] / 500) - 1,
+      delay: tick,
+      repeat: Math.floor(durations[level - 1] / tick) - 1,
       callback: () => {
-        if (!this.alive) return;
-        this._damageRadius(this.sprite.x, this._groundY, auraR, PLAYER_MELEE_DAMAGE * 0.5);
+        if (!this.alive || !this.isRadicalActive) return;
+        this._damageRadius(this.sprite.x, this._groundY, auraR, PLAYER_MELEE_DAMAGE * 0.35);
       },
     });
   }
@@ -895,7 +904,7 @@ export default class Player {
   }
 
   takeDamage(amount: number): void {
-    if (!this.alive || this.invincibleTimer > 0) return;
+    if (!this.alive || this.isInvincible) return;
     this.comboCount = 0;
     this.comboMultiplier = 1;
     this.scene.events.emit('combo-update', 0, 1);

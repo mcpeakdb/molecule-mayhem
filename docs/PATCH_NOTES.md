@@ -1,5 +1,22 @@
 # Patch Notes
 
+## v0.12.1 — 2026-06-06
+
+### Changed
+
+- **Normal now arms your two strongest weapons.** Instead of a single button, Normal binds your two
+  most-advanced attacks to keys `1` and `2` — still a simplified arsenal, but with a primary and a
+  backup. Hard and Extreme keep the full numpad.
+- **Radical Rush (Nitric Oxide) has a point now.** For the buff's full duration the player is
+  **immune to all damage** and **rams enemies for contact damage** — a fast, invulnerable battering
+  charge rather than just a speed boost. Reactive Aura (Lv2) and Overclock (Lv3) scale the same way.
+
+### Fixed
+
+- **Enemies could wander off-screen and seal the exit.** A patrolling germ could drift to an
+  unreachable corner, leaving the area "clear" of visible enemies but the exit still sealed and the
+  player stuck. Enemies that have joined the fight are now confined to the visible arena.
+
 ## v0.12.0 — 2026-06-06
 
 ### Phase 7 — Difficulty Rework, Gold Wildcard & Element Facts

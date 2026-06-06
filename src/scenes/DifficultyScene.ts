@@ -8,8 +8,8 @@ const OPTIONS: { key: Difficulty; label: string; color: number; desc: string; st
     key: 'normal',
     label: 'NORMAL',
     color: 0x44cc66,
-    desc: 'ONE-BUTTON\nFIELD KIT',
-    stats: 'ENEMY HP     ×0.70\nENEMY SPEED  ×0.75\nINVINCIBILITY 1.4s\nARSENAL      1 WEAPON',
+    desc: 'TWO-BUTTON\nFIELD KIT',
+    stats: 'ENEMY HP     ×0.70\nENEMY SPEED  ×0.75\nINVINCIBILITY 1.4s\nARSENAL      2 WEAPONS',
   },
   {
     key: 'hard',
