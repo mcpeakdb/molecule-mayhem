@@ -7,6 +7,12 @@
 - **Quip list** - 9 randomized quips
 - **Hooked up** - Called whenever an element or compound reaches level 3
 
+### Fixed
+
+- **Gold-atom choice cards ran off the screen.** A Gold pick offers all 4 base atoms, but the card
+  layout was sized for 2-3 cards and clipped the outer ones. Card width now shrinks to fit when there
+  are more cards (2-/3-card picks look the same as before).
+
 ## v0.17.0 — 2026-06-07
 
 ### Molecule Tree + easier exits to the title

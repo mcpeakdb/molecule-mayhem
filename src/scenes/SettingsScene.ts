@@ -42,6 +42,11 @@ export default class SettingsScene extends Phaser.Scene {
       .text(cx, 70, 'SETTINGS', { fontSize: '30px', color: '#88cc88', fontFamily: MONO, fontStyle: 'bold' })
       .setOrigin(0.5);
 
+    // Version — sourced from package.json at build time (see vite.config.js / vite-env.d.ts).
+    this.add
+      .text(cx, 94, `v${__APP_VERSION__}`, { fontSize: '12px', color: '#557755', fontFamily: MONO })
+      .setOrigin(0.5);
+
     const g = this.add.graphics();
     g.lineStyle(1, 0x1a3a1a, 0.7);
     g.lineBetween(cx - 220, 110, cx + 220, 110);

@@ -130,10 +130,15 @@ export default class ElementChoiceScene extends Phaser.Scene {
   private _buildCard(element: BaseAtom, index: number): Card {
     const col = this.gold ? 0xffd700 : ELEMENT_COLORS[element];
     const hex = `#${col.toString(16).padStart(6, '0')}`;
-    const cardW = 240,
-      cardH = 336;
-    const totalW = this.choices.length * (cardW + 28) - 28;
-    const startX = (GAME_WIDTH - totalW) / 2 + index * (cardW + 28) + cardW / 2;
+    // Responsive width: cap at 240 (the 2-/3-card look is unchanged), but shrink to fit when there
+    // are more cards — a Gold pick offers all 4 base atoms, which overflowed the screen at 240.
+    const n = this.choices.length;
+    const GAP = 28;
+    const MARGIN = 24; // min breathing room on each side
+    const cardW = Math.min(240, Math.floor((GAME_WIDTH - MARGIN * 2 - GAP * (n - 1)) / n));
+    const cardH = 336;
+    const totalW = n * cardW + GAP * (n - 1);
+    const startX = (GAME_WIDTH - totalW) / 2 + index * (cardW + GAP) + cardW / 2;
     const cardY = GAME_HEIGHT / 2 + 36;
 
     const bg = this.add
