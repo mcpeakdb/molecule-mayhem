@@ -168,6 +168,11 @@ Shipped 2026-06-06. Makes the game fully playable by touch alongside the keyboar
   (+ ‹ BACK / LEADERBOARD ›), Leaderboard, Settings, Help, Pause + Compound Selection, and the
   element picker. Card menus use tap-to-select → tap-again-to-confirm.
 - **`index.html`** viewport hardened for mobile (no pinch/double-tap zoom, `touch-action: none`).
+- **Scaling/centering**: the canvas (Phaser `Scale.FIT` + `CENTER_BOTH`) now centers correctly on
+  every aspect ratio — the body no longer also flex-centers it (that double-offset letterboxed
+  builds). Uses `100dvh` so the mobile address bar doesn't shrink the game, plus a CSS-only
+  `#rotate-hint` overlay (`@media (orientation: portrait) and (pointer: coarse)`) prompting phones
+  to rotate to landscape.
 
 ## Phase 9 — Stationary Boss Duels ✅ COMPLETE (v0.14.0)
 

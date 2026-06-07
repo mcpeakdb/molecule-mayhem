@@ -15,13 +15,19 @@
       box-sizing: border-box;
     }
 
+    /* Fill the viewport. Phaser (Scale.FIT + CENTER_BOTH) sizes & centers the canvas inside the body,
+       so the body must NOT also center it — a flexbox here double-offsets the letterboxed canvas. */
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+    }
+
     body {
       background: #0a0010;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
       overflow: hidden;
+      /* Dynamic viewport height so the mobile address bar showing/hiding doesn't shrink the game. */
+      height: 100dvh;
       /* Stop the page itself from scrolling/bouncing when dragging the on-screen stick on mobile. */
       overscroll-behavior: none;
     }
@@ -32,10 +38,58 @@
       /* Touch input is handled by the game, not the browser — kill pan/zoom gestures on the canvas. */
       touch-action: none;
     }
+
+    /* A landscape (16:9) game is tiny on an upright phone — ask touch users to rotate. Desktop and
+       tablets with a mouse are unaffected (pointer: coarse targets touchscreens). */
+    #rotate-hint {
+      display: none;
+    }
+
+    @media (orientation: portrait) and (pointer: coarse) {
+      #rotate-hint {
+        display: flex;
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.4rem;
+        background: #0a0010;
+        color: #aaccdd;
+        font-family: monospace;
+        text-align: center;
+        padding: 2rem;
+      }
+
+      #rotate-hint .icon {
+        font-size: 20vw;
+        line-height: 1;
+        color: #88ddff;
+        animation: rotate-nudge 2.4s ease-in-out infinite;
+      }
+
+      #rotate-hint .msg {
+        font-size: 5vw;
+      }
+    }
+
+    @keyframes rotate-nudge {
+      0%, 100% {
+        transform: rotate(-90deg);
+      }
+      55%, 75% {
+        transform: rotate(0deg);
+      }
+    }
   </style>
 </head>
 
 <body>
+  <div id="rotate-hint">
+    <div class="icon">⟳</div>
+    <div class="msg">Rotate your device to landscape</div>
+  </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 

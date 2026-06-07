@@ -15,6 +15,12 @@
   tap-again-to-confirm.
 - **Mobile viewport.** Pinch/double-tap zoom is disabled and the canvas swallows pan gestures, so
   dragging the stick won't scroll the page. The game still scales to fit any screen.
+- **Properly centered & maximized on every screen.** Fixed a bug where a letterboxed canvas was
+  pushed off-center (the page's flexbox and Phaser's centering were fighting each other) — it now
+  sits dead-centre and fills as much of the viewport as the 16:9 ratio allows, on any aspect ratio.
+  Uses dynamic viewport height (`100dvh`) so a phone's address bar no longer shrinks the game, and
+  shows a **"rotate to landscape"** prompt on phones held in portrait (where a landscape game would
+  otherwise be tiny).
 
 ## v0.14.0 — 2026-06-06
 
