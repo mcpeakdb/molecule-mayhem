@@ -22,7 +22,7 @@ export interface StageDef {
   width: number;
   /** Atom pickups — each a branching choice node. */
   atoms: { x: number; choices: BaseAtom[] }[];
-  /** Enemy placements (y is randomised within the floor band at spawn). */
+  /** Enemy placements (y is randomized within the floor band at spawn). */
   enemies: StageEnemy[];
   /** Chasms to jump; an enemy that would spawn inside one is skipped. */
   gaps: [number, number][];

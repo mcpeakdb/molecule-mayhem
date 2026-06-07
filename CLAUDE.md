@@ -10,7 +10,7 @@ A molecular-scale beat 'em up browser game built with **Phaser 4.1.0** and **Typ
 |------|---------|
 | Phaser 4.1.0 | Game framework |
 | TypeScript 6 | Language |
-| Vite 5 | Dev server & bundler |
+| Vite 8 | Dev server & bundler (rolldown-powered) |
 | Biome | Linting + formatting |
 | Husky | Pre-commit hooks |
 
