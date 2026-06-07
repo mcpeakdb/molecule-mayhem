@@ -5,6 +5,8 @@ import { attachTap } from '../systems/touchMenu';
 
 const MONO = 'monospace';
 const ITEMS = ['START', 'STAGE SELECT', 'MOLECULE TREE', 'LEADERBOARD', 'CONTROLS', 'SETTINGS'] as const;
+const MENU_TOP = 286; // y of the first menu item
+const MENU_DY = 38; // vertical spacing between menu items
 
 export default class TitleScene extends Phaser.Scene {
   private cursor = 0;
@@ -38,7 +40,7 @@ export default class TitleScene extends Phaser.Scene {
     this._spawnDecor();
 
     // Decorative orbiting atom behind the title
-    const atomY = 132;
+    const atomY = 110;
     this.add.circle(cx, atomY, 16, 0x44bbf0).setAlpha(0.9);
     this.add.circle(cx, atomY, 9, 0x88ddff);
     for (let i = 0; i < 3; i++) {
@@ -64,7 +66,7 @@ export default class TitleScene extends Phaser.Scene {
     }
 
     this.add
-      .text(cx, 224, 'MOLECULAR MELTDOWN', {
+      .text(cx, 202, 'MOLECULAR MELTDOWN', {
         fontSize: '46px',
         color: '#aaf0ff',
         fontFamily: MONO,
@@ -74,7 +76,7 @@ export default class TitleScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.add
-      .text(cx, 262, 'a molecular-scale beat ’em up', {
+      .text(cx, 240, 'a molecular-scale beat ’em up', {
         fontSize: '15px',
         color: '#6699aa',
         fontFamily: MONO,
@@ -83,12 +85,12 @@ export default class TitleScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.cursorText = this.add
-      .text(cx - 130, 320, '›', { fontSize: '20px', color: '#aaffaa', fontFamily: MONO })
+      .text(cx - 130, MENU_TOP, '›', { fontSize: '20px', color: '#aaffaa', fontFamily: MONO })
       .setOrigin(0, 0.5);
 
     this.itemTexts = ITEMS.map((label, i) => {
       const t = this.add
-        .text(cx - 104, 320 + i * 34, label, { fontSize: '19px', color: '#88bb88', fontFamily: MONO })
+        .text(cx - 104, MENU_TOP + i * MENU_DY, label, { fontSize: '19px', color: '#88bb88', fontFamily: MONO })
         .setOrigin(0, 0.5);
       attachTap(
         t,
@@ -181,7 +183,7 @@ export default class TitleScene extends Phaser.Scene {
     this.itemTexts.forEach((t, i) => {
       t.setColor(i === this.cursor ? '#ccffcc' : '#88bb88');
     });
-    this.cursorText.setY(320 + this.cursor * 34);
+    this.cursorText.setY(MENU_TOP + this.cursor * MENU_DY);
   }
 
   private _confirm(): void {
