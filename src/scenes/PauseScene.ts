@@ -240,7 +240,7 @@ export default class PauseScene extends Phaser.Scene {
     const slot = this.compoundCursor;
     const cands = this._candidates(slot);
     const cur = es.getBindings()[slot];
-    let idx = cands.findIndex((c) => c === cur);
+    let idx = cands.indexOf(cur);
     if (idx < 0) idx = 0;
     idx = (idx + dir + cands.length) % cands.length;
     es.setBinding(slot, cands[idx]);

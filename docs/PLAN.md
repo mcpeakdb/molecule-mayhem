@@ -1,6 +1,6 @@
 # Molecular Meltdown — Development Plan
 
-## Current State (v0.11 — Phase 5 Content & QOL)
+## Current State (v0.16 — latest shipped: Phase 11 Stage Passcodes; see per-phase sections below)
 
 - **Front-end & QOL** (Phase 5): boots to a `TitleScene` main menu (Start / Stage Select /
   Leaderboard / Controls / Settings); `SettingsScene` + `Settings` system persist volume, mute, SFX,
@@ -149,6 +149,22 @@ Deferred follow-ups (also folded into Phase 4): atom persistence across sectors;
 progress hints toward locked compounds.
 
 ---
+
+## Phase 11 — Stage Passcodes ✅ COMPLETE (v0.16.0)
+
+Shipped 2026-06-07. Adds classic arcade unlock codes so progress can be resumed without replaying.
+
+- **`Passcode` system** ([../src/systems/Passcode.ts](../src/systems/Passcode.ts)): codes are derived,
+  not stored — `passcodeFor(stage, difficulty)` is an FNV-1a hash of `difficulty|stage|salt` reduced to
+  a 6-digit string; `resolvePasscode(code, difficulty)` scans stages 2..`STAGE_COUNT` for a match.
+  Codes are per-difficulty; stage 1 has none (always unlocked). All 24 codes verified collision-free.
+- **`SaveSystem.unlockUpToStage(difficulty, stage)`** sets `unlockedStage = max(current, stage)`,
+  mirroring `markStageCleared`; unlocks persist through the existing `localStorage` save.
+- **Stage Select entry** ([../src/scenes/StageSelectScene.ts](../src/scenes/StageSelectScene.ts)):
+  the **P** key or a tappable **⌨ ENTER CODE** button opens an in-scene numpad modal (no new scene,
+  no DOM input). It accepts taps and physical keys (digits, Backspace, Enter=submit, Esc=cancel),
+  flashes/shakes on an invalid code, and `scene.restart()`s on success to refresh the grid.
+  Every unlocked stage past the first shows its `Code ######` on the card.
 
 ## Phase 10 — Mobile / Touch Support ✅ COMPLETE (v0.15.0)
 

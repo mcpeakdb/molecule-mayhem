@@ -261,6 +261,13 @@ export default class HUDScene extends Phaser.Scene {
     }
   }
 
+  /** Called by GameScene when a stage is cleared: clear the weapon chips + on-screen controls so the
+   *  clear banner reads cleanly. The HUD is relaunched fresh on the next stage, so the chips return. */
+  onStageCleared(): void {
+    for (const chip of this.chips) chip.container.setVisible(false);
+    this.touch?.setEnabled(false);
+  }
+
   private _onUpdate({ hp }: { hp: number }): void {
     const pct = hp / PLAYER_MAX_HP;
     this.hpBarFill.width = Math.max(0, 204 * pct);

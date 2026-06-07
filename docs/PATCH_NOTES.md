@@ -1,5 +1,21 @@
 # Patch Notes
 
+## v0.16.0 — 2026-06-07
+
+### Stage passcodes
+
+- **Unlock stages with a passcode.** Each stage past the first has a 6-digit code; entering it on
+  the Stage Select screen unlocks every stage up to and including that one. Lets you resume progress
+  on a fresh device (or after clearing browser data) without replaying everything.
+- **Per-difficulty codes.** Codes are distinct for Normal / Hard / Extreme and only unlock on the
+  difficulty that's currently selected — a Normal code won't open Hard.
+- **Codes are shown as you earn them.** Every unlocked stage card now displays its `Code ######`, so
+  you can jot it down for later. The codes are derived (hashed from the stage + difficulty), not
+  stored in a table.
+- **Entry UI.** Press **P** or tap **⌨ ENTER CODE** on the Stage Select screen to open a numpad
+  modal (works by tap or physical keyboard: digits, Backspace, Enter to submit, Esc to cancel).
+  Invalid codes flash an error; valid ones unlock immediately and the stage grid refreshes.
+
 ## v0.15.0 — 2026-06-06
 
 ### Mobile / touch support
@@ -19,6 +35,12 @@
   buttons), Leaderboard, Settings, Controls, Pause + Compound Selection, and the level-up element
   picker all respond to taps as well as the keyboard. Card menus use tap-to-select then
   tap-again-to-confirm.
+- **Fullscreen (hides the mobile URL bar).** Touch devices auto-enter fullscreen on the first tap
+  (best-effort via the Fullscreen API); a new **Fullscreen** row in Settings toggles it on any
+  device, and `apple-mobile-web-app-capable` meta tags let iPhone users run chromeless from the
+  home screen (where in-page fullscreen isn't supported).
+- **Cleaner stage-clear screen.** On clearing a stage the weapon chips and on-screen controls hide,
+  and you can **tap (not just press Z)** to continue to the next stage.
 - **Mobile viewport.** Pinch/double-tap zoom is disabled and the canvas swallows pan gestures, so
   dragging the stick won't scroll the page. The game still scales to fit any screen.
 - **Properly centered & maximized on every screen.** Fixed a bug where a letterboxed canvas was
@@ -27,6 +49,13 @@
   Uses dynamic viewport height (`100dvh`) so a phone's address bar no longer shrinks the game, and
   shows a **"rotate to landscape"** prompt on phones held in portrait (where a landscape game would
   otherwise be tiny).
+
+### Fixed
+
+- **Restarting a boss stage stranded you near the exit.** The boss-arena camera/movement lock
+  (v0.14.0) wasn't reset when the reused scene restarted, so after dying you spawned clamped to the
+  old arena with no way to walk back. The lock and its activation listener are now cleared on every
+  stage `init`.
 
 ## v0.14.0 — 2026-06-06
 

@@ -114,6 +114,13 @@ export default class SaveSystem {
     SaveSystem._save(data);
   }
 
+  /** Unlock everything up to `stage` (e.g. via a passcode). No-op if already past it. */
+  static unlockUpToStage(difficulty: Difficulty, stage: number): void {
+    const data = SaveSystem.load();
+    data[difficulty].unlockedStage = Math.max(data[difficulty].unlockedStage, clampStage(stage));
+    SaveSystem._save(data);
+  }
+
   static getBestScore(difficulty: Difficulty, stage: number): number {
     return SaveSystem.load()[difficulty].bestScores[stage] ?? 0;
   }

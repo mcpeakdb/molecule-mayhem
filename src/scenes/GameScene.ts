@@ -120,6 +120,7 @@ export default class GameScene extends Phaser.Scene {
 
   // ── Boss arena (camera locks to one screen once the boss activates) ──
   private _bossArena: { left: number; right: number } | null = null;
+  private _bossArenaHandler?: (anchorX: number) => void;
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: WasdKeys;
@@ -181,6 +182,14 @@ export default class GameScene extends Phaser.Scene {
     this._exitOpen = false;
     this._exitPortal = undefined;
     this._exitHint = undefined;
+    // Clear any boss-arena lock from a previous run, or restarting a boss stage would clamp the
+    // player to the (now stale) arena near the level's end with no way to walk back. Also drop a
+    // lingering activation listener (from a run where the player died before the boss woke up).
+    this._bossArena = null;
+    if (this._bossArenaHandler) {
+      this.events.off('boss-activated', this._bossArenaHandler);
+      this._bossArenaHandler = undefined;
+    }
     this._dlgBlocking = false;
     this._dlgQueue = [];
     this._firedTips.clear();
@@ -495,7 +504,8 @@ export default class GameScene extends Phaser.Scene {
       boss.speed *= scale.enemySpeed;
       this.boss = boss;
       this.enemyGroup.add(boss.sprite);
-      this.events.once('boss-activated', (anchorX: number) => this._lockBossArena(anchorX));
+      this._bossArenaHandler = (anchorX: number) => this._lockBossArena(anchorX);
+      this.events.once('boss-activated', this._bossArenaHandler);
     } else if (def.exitX !== undefined) {
       // Regular stage — clear it by reaching the exit once the area is cleared
       this._exitX = def.exitX;
@@ -1686,6 +1696,9 @@ export default class GameScene extends Phaser.Scene {
     const w = GAME_WIDTH,
       h = GAME_HEIGHT;
     const theme = SECTOR_THEMES[this.sector];
+    // Clear the playfield UI (weapon chips + touch buttons) so the banner reads cleanly. Direct
+    // call (not an event) so it leaves no listener behind on the reused scene emitter.
+    (this.scene.get('HUDScene') as HUDScene | undefined)?.onStageCleared();
     this.add
       .rectangle(w / 2, h / 2, w, h, 0x000000, 0.55)
       .setScrollFactor(0)
@@ -1745,13 +1758,13 @@ export default class GameScene extends Phaser.Scene {
 
     const next = this.currentStage + 1;
     const entersNewSector = !isFinal && sectorOf(next) !== this.sector;
-    const promptText = isFinal
-      ? 'Press Z to return to stage select'
+    const dest = isFinal
+      ? 'return to stage select'
       : entersNewSector
-        ? `Press Z to enter ${SECTORS[sectorOf(next)].name}`
-        : 'Press Z for the next stage';
+        ? `enter ${SECTORS[sectorOf(next)].name}`
+        : 'continue';
     const prompt = this.add
-      .text(w / 2, h - 60, promptText, {
+      .text(w / 2, h - 60, `Tap or press Z to ${dest}`, {
         fontSize: '24px',
         color: '#ffeeaa',
       })
@@ -1760,7 +1773,11 @@ export default class GameScene extends Phaser.Scene {
       .setDepth(301);
     this.tweens.add({ targets: prompt, alpha: 0.3, duration: 600, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
 
-    this.input.keyboard?.once('keydown-Z', () => {
+    // Advance on a tap as well as Z, so touch players can move on (guarded against double-firing).
+    let advanced = false;
+    const advance = () => {
+      if (advanced) return;
+      advanced = true;
       this.scene.stop('HUDScene');
       if (isFinal) {
         this.registry.set('runScore', 0); // run finished — next run starts fresh
@@ -1769,6 +1786,8 @@ export default class GameScene extends Phaser.Scene {
         this.registry.set('runScore', this.score); // carry the cumulative score into the next stage
         this.scene.start('GameScene', { stage: next });
       }
-    });
+    };
+    this.input.keyboard?.once('keydown-Z', advance);
+    this.input.once('pointerdown', advance);
   }
 }
