@@ -86,6 +86,7 @@ export default class PauseScene extends Phaser.Scene {
       'RESTART STAGE',
       'DIFFICULTY SELECT',
       'RESTART GAME',
+      'QUIT TO TITLE',
     ];
 
     const lastY = cy - 30 + (this.options.length - 1) * 34;
@@ -164,6 +165,12 @@ export default class PauseScene extends Phaser.Scene {
         this.scene.stop('HUDScene');
         this.scene.stop('PauseScene');
         this.scene.start('GameScene', { tutorial: true });
+        break;
+      case 'QUIT TO TITLE':
+        this.scene.stop('HUDScene');
+        this.scene.stop('GameScene');
+        this.scene.start('TitleScene');
+        this.scene.stop('PauseScene');
         break;
     }
   }

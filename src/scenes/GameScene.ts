@@ -1446,6 +1446,8 @@ export default class GameScene extends Phaser.Scene {
 
   private _showDeathScreen(): void {
     this.isPaused = true;
+    // Clear the weapon chips + on-screen controls so the death overlay reads cleanly.
+    (this.scene.get('HUDScene') as HUDScene | undefined)?.hideArsenal();
     const w = GAME_WIDTH,
       h = GAME_HEIGHT;
     const textX = w * 0.34; // text shifted left to make room for the crying scientist
@@ -1509,7 +1511,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     const retryText = this.add
-      .text(textX, h - 46, 'Press Z to retry', {
+      .text(textX, h - 52, 'Press Z to retry', {
         fontSize: '24px',
         color: '#ffeeaa',
       })
@@ -1524,10 +1526,22 @@ export default class GameScene extends Phaser.Scene {
       yoyo: true,
       repeat: -1,
     });
+    this.add
+      .text(textX, h - 24, 'ESC for title', {
+        fontSize: '15px',
+        color: '#aa8888',
+      })
+      .setScrollFactor(0)
+      .setOrigin(0.5)
+      .setDepth(501);
 
     this.input.keyboard?.once('keydown-Z', () => {
       this.scene.stop('HUDScene');
       this.scene.start('GameScene', this.isTutorial ? { tutorial: true } : { stage: this.currentStage });
+    });
+    this.input.keyboard?.once('keydown-ESC', () => {
+      this.scene.stop('HUDScene');
+      this.scene.start('TitleScene');
     });
   }
 
@@ -1698,7 +1712,7 @@ export default class GameScene extends Phaser.Scene {
     const theme = SECTOR_THEMES[this.sector];
     // Clear the playfield UI (weapon chips + touch buttons) so the banner reads cleanly. Direct
     // call (not an event) so it leaves no listener behind on the reused scene emitter.
-    (this.scene.get('HUDScene') as HUDScene | undefined)?.onStageCleared();
+    (this.scene.get('HUDScene') as HUDScene | undefined)?.hideArsenal();
     this.add
       .rectangle(w / 2, h / 2, w, h, 0x000000, 0.55)
       .setScrollFactor(0)

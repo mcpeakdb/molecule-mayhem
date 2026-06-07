@@ -7,6 +7,7 @@ import GameScene from './scenes/GameScene.js';
 import HelpScene from './scenes/HelpScene.js';
 import HUDScene from './scenes/HUDScene.js';
 import LeaderboardScene from './scenes/LeaderboardScene.js';
+import MoleculeTreeScene from './scenes/MoleculeTreeScene.js';
 import PauseScene from './scenes/PauseScene.js';
 import SettingsScene from './scenes/SettingsScene.js';
 import StageSelectScene from './scenes/StageSelectScene.js';
@@ -30,6 +31,7 @@ const game = new Phaser.Game({
     LeaderboardScene,
     SettingsScene,
     HelpScene,
+    MoleculeTreeScene,
     GameScene,
     HUDScene,
     ElementChoiceScene,

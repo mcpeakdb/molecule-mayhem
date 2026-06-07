@@ -261,9 +261,9 @@ export default class HUDScene extends Phaser.Scene {
     }
   }
 
-  /** Called by GameScene when a stage is cleared: clear the weapon chips + on-screen controls so the
-   *  clear banner reads cleanly. The HUD is relaunched fresh on the next stage, so the chips return. */
-  onStageCleared(): void {
+  /** Hide the weapon chips + on-screen controls so a full-screen overlay (stage-clear banner or
+   *  death screen) reads cleanly. The HUD is relaunched fresh on the next stage, so the chips return. */
+  hideArsenal(): void {
     for (const chip of this.chips) chip.container.setVisible(false);
     this.touch?.setEnabled(false);
   }

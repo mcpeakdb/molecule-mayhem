@@ -1,5 +1,19 @@
 # Patch Notes
 
+## v0.17.0 — 2026-06-07
+
+### Molecule Tree + easier exits to the title
+
+- **New MOLECULE TREE screen.** A reference page reachable from the title menu shows the four base
+  atoms (H / O / C / N) and the compounds they assemble into, with connector lines tracing each
+  recipe (e.g. Water = 2 H + 1 O) and the three tier attack names every element unlocks. Fully
+  data-driven from the `ATTACKS` registry, so it stays in sync as elements are added.
+- **More ways back to the title.** The Difficulty screen now accepts **ESC** (and shows a ‹ BACK
+  button) to return to the title — previously it was a dead end. The pause menu gains a **QUIT TO
+  TITLE** option, and the death screen now offers **ESC for title** alongside Z to retry.
+- **Cleaner death screen.** The weapon chips and on-screen touch controls are now hidden while the
+  death overlay is up, matching the stage-clear banner.
+
 ## v0.16.0 — 2026-06-07
 
 ### Stage passcodes

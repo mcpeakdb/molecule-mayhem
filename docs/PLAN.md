@@ -1,13 +1,15 @@
 # Molecular Meltdown — Development Plan
 
-## Current State (v0.16 — latest shipped: Phase 11 Stage Passcodes; see per-phase sections below)
+## Current State (v0.17 — latest shipped: Phase 11 Stage Passcodes; see per-phase sections below)
 
-- **Front-end & QOL** (Phase 5): boots to a `TitleScene` main menu (Start / Stage Select /
-  Leaderboard / Controls / Settings); `SettingsScene` + `Settings` system persist volume, mute, SFX,
-  and screen-shake to `localStorage` (sound routes through a master gain, shakes honor the toggle);
-  `LeaderboardScene` browses top-5 runs per difficulty; `HelpScene` shows controls. Procedural art
-  pass adds per-sector decorative scenery, parallax props, and a vignette (still no external assets).
-  Renamed **Molecule Mayhem → Molecular Meltdown**.
+- **Front-end & QOL** (Phase 5): boots to a `TitleScene` main menu (Start / Stage Select / Molecule
+  Tree / Leaderboard / Controls / Settings); `SettingsScene` + `Settings` system persist volume,
+  mute, SFX, and screen-shake to `localStorage` (sound routes through a master gain, shakes honor the
+  toggle); `LeaderboardScene` browses top-5 runs per difficulty; `HelpScene` shows controls;
+  `MoleculeTreeScene` is a data-driven reference of every atom/compound recipe and its tier attacks.
+  Procedural art pass adds per-sector decorative scenery, parallax props, and a vignette (still no
+  external assets). Renamed **Molecule Mayhem → Molecular Meltdown**. Every menu/end screen has an
+  exit back to the title (Difficulty ESC, Pause → QUIT TO TITLE, death screen ESC).
 
 
 - **9 stages across 3 sectors** (Petri Dish / Blood Agar / MacConkey), 3 stages each, plus the

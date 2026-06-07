@@ -4,7 +4,7 @@ import Settings from '../systems/Settings';
 import { attachTap } from '../systems/touchMenu';
 
 const MONO = 'monospace';
-const ITEMS = ['START', 'STAGE SELECT', 'LEADERBOARD', 'CONTROLS', 'SETTINGS'] as const;
+const ITEMS = ['START', 'STAGE SELECT', 'MOLECULE TREE', 'LEADERBOARD', 'CONTROLS', 'SETTINGS'] as const;
 
 export default class TitleScene extends Phaser.Scene {
   private cursor = 0;
@@ -195,13 +195,16 @@ export default class TitleScene extends Phaser.Scene {
         if (!this.registry.get('difficulty')) this.registry.set('difficulty', 'normal' as Difficulty);
         this.scene.start('StageSelectScene');
         break;
-      case 2: // LEADERBOARD
+      case 2: // MOLECULE TREE
+        this.scene.start('MoleculeTreeScene', { from: 'TitleScene' });
+        break;
+      case 3: // LEADERBOARD
         this.scene.start('LeaderboardScene', { from: 'TitleScene' });
         break;
-      case 3: // CONTROLS
+      case 4: // CONTROLS
         this.scene.start('HelpScene', { from: 'TitleScene' });
         break;
-      case 4: // SETTINGS
+      case 5: // SETTINGS
         this.scene.start('SettingsScene', { from: 'TitleScene' });
         break;
     }

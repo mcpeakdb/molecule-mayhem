@@ -41,6 +41,7 @@ export default class DifficultyScene extends Phaser.Scene {
   private rightKey!: Phaser.Input.Keyboard.Key;
   private confirmKey!: Phaser.Input.Keyboard.Key;
   private confirmKey2!: Phaser.Input.Keyboard.Key;
+  private backKey!: Phaser.Input.Keyboard.Key;
 
   constructor() {
     super('DifficultyScene');
@@ -139,12 +140,23 @@ export default class DifficultyScene extends Phaser.Scene {
 
     // Instructions
     this.add
-      .text(cx, 474, '← → to navigate     Z or Enter to confirm', {
+      .text(cx, 474, '← → to navigate     Z or Enter to confirm     ESC back to title', {
         fontSize: '13px',
         color: '#668866',
         fontFamily: MONO,
       })
       .setOrigin(0.5);
+
+    // Tappable back button (mirrors the ESC shortcut) for touch.
+    const back = this.add
+      .text(20, 30, '‹ BACK', { fontSize: '15px', color: '#88bb88', fontFamily: MONO })
+      .setOrigin(0, 0.5);
+    attachTap(
+      back,
+      () => this.scene.start('TitleScene'),
+      () => back.setColor('#ccffcc'),
+    );
+    back.on('pointerout', () => back.setColor('#88bb88'));
 
     this._refreshCards();
 
@@ -154,6 +166,7 @@ export default class DifficultyScene extends Phaser.Scene {
     this.rightKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
     this.confirmKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
     this.confirmKey2 = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+    this.backKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
   }
 
   update(): void {
@@ -162,6 +175,7 @@ export default class DifficultyScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.confirmKey) || Phaser.Input.Keyboard.JustDown(this.confirmKey2)) {
       this._confirm();
     }
+    if (Phaser.Input.Keyboard.JustDown(this.backKey)) this.scene.start('TitleScene');
   }
 
   private _move(dir: number): void {
