@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import type { BaseAtom, Difficulty, SectorId } from '../constants';
+import type { AttackId, BaseAtom, Difficulty, SectorId } from '../constants';
 import {
+  ATTACK_ORDER,
   BASE_ATOMS,
   DIFFICULTY_SCALE,
   ELEMENT_NAMES,
@@ -11,6 +12,8 @@ import {
   GAME_WIDTH,
   GAP_FALL_DAMAGE,
   isFinaleStage,
+  MAX_ELEMENT_LEVEL,
+  MEG_MAX_LEVEL_QUIPS,
   PLAYER_MAX_HP,
   SECTORS,
   SLOT_KEY_LABELS,
@@ -822,6 +825,30 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
+  /** A short, non-blocking M.E.G. one-liner (e.g. celebrating a max-level element). Reuses the
+   *  dialogue box but never pauses and isn't deduped, so it fires every time. Skipped while blocking
+   *  story dialogue is up. */
+  private _megQuip(text: string): void {
+    if (this._dlgBlocking) return;
+    if (!this._dlgBg) this._buildDialogue(); // dialogue UI is built lazily outside the tutorial
+    const id = '__quip__';
+    this._activeTip = id;
+    this._showDlg();
+    this._dlgHint?.setVisible(false);
+    this._dlgText?.setText(text);
+    this._popPortrait();
+    this.time.delayedCall(4000, () => {
+      if (!this._dlgBlocking && this._activeTip === id) this._hideDlg();
+    });
+  }
+
+  /** Pick a random max-level quip and substitute the element/compound's name (sans formula). */
+  private _maxLevelQuip(id: AttackId): string {
+    const name = ELEMENT_NAMES[id].replace(/\s*\(.*\)/, '');
+    const line = MEG_MAX_LEVEL_QUIPS[Math.floor(Math.random() * MEG_MAX_LEVEL_QUIPS.length)];
+    return line.replace(/\{el\}/g, name);
+  }
+
   private _tutorialUpdate(time: number): void {
     const p = this.player;
     if (!p.alive) return;
@@ -1403,15 +1430,22 @@ export default class GameScene extends Phaser.Scene {
       callback: (chosen: BaseAtom) => {
         this.isPaused = false;
         this.physics.resume();
+        const es = this.player.elementSystem;
+        // Snapshot every attack's level before the pick so we can spot any that hit max (Lv3).
+        const levelsBefore = new Map<AttackId, number>(ATTACK_ORDER.map((id) => [id, es.getAttackLevel(id)]));
         let upgraded = false;
         for (let i = 0; i < grant; i++) {
-          if (this.player.elementSystem.collectAtom(chosen)) upgraded = true;
+          if (es.collectAtom(chosen)) upgraded = true;
         }
         // Auto-bind newly-unlocked weapons to free slots; `overflow` means the loadout is full.
-        const { overflow } = this.player.elementSystem.reconcileBindings();
+        const { overflow } = es.reconcileBindings();
         if (upgraded) SoundSystem.play(this.audioCtx, 'element_upgrade');
         this.events.emit('arsenal-update', this.player.getArsenalUpdate());
         this.scene.stop('ElementChoiceScene');
+        // Any element/compound that just reached its top tier this pick.
+        const maxed = ATTACK_ORDER.find(
+          (id) => (levelsBefore.get(id) ?? 0) < MAX_ELEMENT_LEVEL && es.getAttackLevel(id) === MAX_ELEMENT_LEVEL,
+        );
         if (this.isTutorial) {
           this._tip('armed', 'Armed! Press Z (or tap the Z button) to unleash your attack. Go smash that germ ahead!');
         } else if (overflow.length > 0 && !Settings.get().compoundIntroSeen) {
@@ -1419,6 +1453,9 @@ export default class GameScene extends Phaser.Scene {
           // the Compound Selection menu so they know how to choose their loadout.
           Settings.set({ compoundIntroSeen: true });
           this._say(this._compoundIntroLines());
+        } else if (maxed) {
+          // M.E.G. pops in to celebrate maxing out an element/compound.
+          this._megQuip(this._maxLevelQuip(maxed));
         }
       },
     });

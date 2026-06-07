@@ -1,5 +1,12 @@
 # Patch Notes
 
+## v0.18.0 - 2026-06-07
+
+### M.E.G. Quips on Level 3 Elements
+
+- **Quip list** - 9 randomized quips
+- **Hooked up** - Called whenever an element or compound reaches level 3
+
 ## v0.17.0 — 2026-06-07
 
 ### Molecule Tree + easier exits to the title

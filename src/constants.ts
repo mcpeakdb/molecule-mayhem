@@ -280,3 +280,18 @@ export const ELEMENT_FACTS: Partial<Record<ElementType, string[]>> = {
     'Forged in the collisions of neutron stars.',
   ],
 };
+
+// ── M.E.G. max-level quips ──────────────────────────────────────────────────
+// Celebratory one-liners M.E.G. blurts out the first time you push an element or compound to its
+// top tier (Lv3). One is picked at random; `{el}` is replaced with the element/compound name.
+export const MEG_MAX_LEVEL_QUIPS: string[] = [
+  "Level 3! You're really in your element now!",
+  'Whoa, {el} at full power! That is some peak reactivity!',
+  'Max-level {el}! The periodic table salutes you.',
+  '{el} at Lv3 — you have got chemistry, kid!',
+  'Now THAT is a stable configuration — {el} maxed!',
+  'Peak {el}! Even the noble gases are impressed.',
+  '{el} at Lv3 — periodic perfection achieved!',
+  'Triple-strength {el}! Unbreakable, just like our friendship.',
+  '{el} at full tilt — you have reached critical mass!',
+];
