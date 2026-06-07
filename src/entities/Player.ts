@@ -207,7 +207,7 @@ export default class Player {
       if (!pressed) continue;
       const id = i < bindings.length ? bindings[i] : null;
       if (id) this._fireAttack(id);
-      else if (i === 0 && this.attackCooldown === 0) this._doMeleeAttack(); // "1" = punch while slot 1 is empty
+      else if (i === 0 && this.attackCooldown === 0) this._doMeleeAttack(); // slot 1 (Z) = punch while empty
     }
 
     this.scene.events.emit('arsenal-update', this.getArsenalUpdate());

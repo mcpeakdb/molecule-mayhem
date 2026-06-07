@@ -7,8 +7,8 @@ const MONO = 'monospace';
 const ENTRIES: [string, string][] = [
   ['Move', 'WASD / Arrow Keys  ·  or the on-screen stick'],
   ['Jump', 'Space / ⤒ button  (again in the air to double-jump)'],
-  ['Attack', 'Keys 1, 2, 3  ·  or tap a weapon on the HUD bar'],
-  ['', 'Slot 1 is a punch until you arm a compound'],
+  ['Attack', 'Z, X, C  ·  or the on-screen attack buttons'],
+  ['', 'Z is a punch until you arm a compound'],
   ['Collect', 'Walk into a glowing atom, then pick an element'],
   ['Loadout', 'Pause → COMPOUND SELECTION to bind your weapons'],
   ['Pause', 'ESC / Enter  ·  or the ❚❚ button'],

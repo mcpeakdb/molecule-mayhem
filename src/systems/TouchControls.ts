@@ -1,19 +1,32 @@
-import type Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH } from '../constants';
+import Phaser from 'phaser';
+import { GAME_HEIGHT, GAME_WIDTH, SLOT_KEY_LABELS } from '../constants';
 import type { TouchInputState } from '../types';
 
 // Layout (in the 960×540 design space — the HUD camera never scrolls, so these are screen coords).
 const STICK_RADIUS = 58; // max knob travel from the touch origin
 const STICK_DEADZONE = 0.16; // ignore tiny drifts so a still thumb reads as idle
 const MOVE_ZONE_W = GAME_WIDTH * 0.55; // left portion that summons the floating stick
-const JUMP = { x: GAME_WIDTH - 84, y: GAME_HEIGHT - 84, r: 50 };
-const PAUSE = { x: GAME_WIDTH - 84, y: GAME_HEIGHT - 190, r: 26 };
 const DEPTH = 240;
 
+// Right-thumb cluster: a big JUMP at the corner, the 3 attack buttons (Z/X/C) arcing up-left of it,
+// and the pause button parked higher up so it can't be hit while mashing attacks.
+const JUMP = { x: GAME_WIDTH - 70, y: GAME_HEIGHT - 62, r: 44 };
+const PAUSE = { x: GAME_WIDTH - 55, y: 165, r: 22 };
+const ATTACK_R = 33;
+const ATTACK_ARC_RADIUS = 118;
+const ATTACK_ANGLES_DEG = [196, 232, 268]; // measured from JUMP, sweeping up-left
+
+interface AttackButton {
+  circle: Phaser.GameObjects.Arc;
+  label: Phaser.GameObjects.Text;
+  wantVisible: boolean;
+}
+
 /**
- * On-screen controls for touch devices: a floating thumbstick on the left half for movement,
- * a jump button and a pause button on the right. Weapon-slot taps are fed in from the HUD chips
- * via {@link queueSlot}. State is polled once per frame by GameScene and merged into the player's
+ * On-screen controls for touch devices: a floating thumbstick on the left half for movement, and a
+ * right-thumb cluster of attack buttons (Z/X/C), a jump button and a pause button. The attack
+ * buttons mirror the HUD weapon chips — the HUD keeps their colour/cooldown in sync via
+ * {@link setAttackSlot}. State is polled once per frame by GameScene and merged into the player's
  * keyboard input, so the rest of the game stays input-source agnostic.
  */
 export default class TouchControls {
@@ -35,11 +48,14 @@ export default class TouchControls {
   private readonly stickKnob: Phaser.GameObjects.Arc;
   private readonly stickRing: Phaser.GameObjects.Arc;
 
-  private readonly buttons: (Phaser.GameObjects.Arc | Phaser.GameObjects.Text)[] = [];
+  // Jump + pause: shown/hidden purely by `enabled`.
+  private readonly fixedButtons: (Phaser.GameObjects.Arc | Phaser.GameObjects.Text)[] = [];
+  // Attack buttons: shown only while enabled AND the slot is active (set by the HUD).
+  private readonly attackButtons: AttackButton[] = [];
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    // Allow several simultaneous touches (move + jump + a slot tap) — the default is one pointer.
+    // Allow several simultaneous touches (move + jump + an attack) — the default is one pointer.
     scene.input.addPointer(2);
 
     // Movement zone: the lower-left region summons the stick wherever the thumb lands.
@@ -72,14 +88,22 @@ export default class TouchControls {
       .setDepth(DEPTH + 1)
       .setVisible(false);
 
-    this._makeButton(JUMP.x, JUMP.y, JUMP.r, 0x2a5a2a, 0x88ffaa, '⤒', () => {
+    this._makeFixedButton(JUMP.x, JUMP.y, JUMP.r, 0x2a5a2a, 0x88ffaa, '⤒', () => {
       this.jumpQueued = true;
     });
-    this._makeButton(PAUSE.x, PAUSE.y, PAUSE.r, 0x33405a, 0xaaccff, '❚❚', () => this.onPause?.());
+    this._makeFixedButton(PAUSE.x, PAUSE.y, PAUSE.r, 0x33405a, 0xaaccff, '❚❚', () => this.onPause?.());
+
+    // 3 attack buttons arcing up-left of the jump button, labelled Z / X / C.
+    for (let i = 0; i < SLOT_KEY_LABELS.length; i++) {
+      const a = Phaser.Math.DegToRad(ATTACK_ANGLES_DEG[i]);
+      const x = JUMP.x + Math.cos(a) * ATTACK_ARC_RADIUS;
+      const y = JUMP.y + Math.sin(a) * ATTACK_ARC_RADIUS;
+      this._makeAttackButton(i, x, y, SLOT_KEY_LABELS[i]);
+    }
   }
 
-  /** Build a round, semi-transparent action button with a glyph and a quick press-flash. */
-  private _makeButton(
+  /** Jump / pause: a round, semi-transparent button with a glyph and a quick press-flash. */
+  private _makeFixedButton(
     x: number,
     y: number,
     r: number,
@@ -108,7 +132,55 @@ export default class TouchControls {
         this.scene.tweens.add({ targets: [circle, label], scale: 0.85, duration: 70, yoyo: true });
       },
     );
-    this.buttons.push(circle, label);
+    this.fixedButtons.push(circle, label);
+  }
+
+  /** An attack button that fires weapon slot `index`; colour/cooldown are driven by the HUD. */
+  private _makeAttackButton(index: number, x: number, y: number, glyph: string): void {
+    const circle = this.scene.add
+      .circle(x, y, ATTACK_R, 0x444444, 0.4)
+      .setStrokeStyle(3, 0xaaaaaa, 0.8)
+      .setScrollFactor(0)
+      .setDepth(DEPTH)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+    const label = this.scene.add
+      .text(x, y, glyph, {
+        fontSize: `${Math.round(ATTACK_R * 0.9)}px`,
+        color: '#ffffff',
+        fontFamily: 'monospace',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(DEPTH + 1)
+      .setVisible(false);
+    const btn: AttackButton = { circle, label, wantVisible: false };
+    circle.on(
+      'pointerdown',
+      (_p: Phaser.Input.Pointer, _lx: number, _ly: number, ev?: Phaser.Types.Input.EventData) => {
+        if (!this.enabled || !btn.wantVisible) return;
+        ev?.stopPropagation();
+        this.slotQueue.push(index);
+        this.scene.tweens.add({ targets: [circle, label], scale: 0.85, duration: 70, yoyo: true });
+      },
+    );
+    this.attackButtons.push(btn);
+  }
+
+  /** Sync an attack button to its weapon slot (called by the HUD each arsenal update). */
+  setAttackSlot(index: number, opts: { visible: boolean; color: number; cooldownFrac: number }): void {
+    const btn = this.attackButtons[index];
+    if (!btn) return;
+    btn.wantVisible = opts.visible;
+    const cooling = opts.cooldownFrac > 0;
+    btn.circle.setStrokeStyle(3, opts.color, 0.85).setFillStyle(opts.color, 0.28);
+    const alpha = cooling ? 0.45 : 1;
+    btn.circle.setAlpha(alpha);
+    btn.label.setAlpha(alpha);
+    const show = this.enabled && opts.visible;
+    btn.circle.setVisible(show);
+    btn.label.setVisible(show);
   }
 
   private _claimStick(pointer: Phaser.Input.Pointer): void {
@@ -184,7 +256,12 @@ export default class TouchControls {
   setEnabled(on: boolean): void {
     if (this.enabled === on) return;
     this.enabled = on;
-    for (const b of this.buttons) b.setVisible(on);
+    for (const b of this.fixedButtons) b.setVisible(on);
+    for (const b of this.attackButtons) {
+      const show = on && b.wantVisible;
+      b.circle.setVisible(show);
+      b.label.setVisible(show);
+    }
     if (!on) {
       this._releaseStick();
       this.jumpQueued = false;

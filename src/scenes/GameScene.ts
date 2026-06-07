@@ -13,6 +13,7 @@ import {
   isFinaleStage,
   PLAYER_MAX_HP,
   SECTORS,
+  SLOT_KEY_LABELS,
   STAGE_COUNT,
   sectorOf,
   WORLD_WIDTH,
@@ -747,7 +748,7 @@ export default class GameScene extends Phaser.Scene {
     const n = this.player.elementSystem.getSlotCount();
     return [
       `Nice work — that's more compounds than your harness can hold! You've only got ${n} weapon key${n === 1 ? '' : 's'}.`,
-      `Pause anytime (Esc) and open COMPOUND SELECTION to choose which compounds ride on keys 1–${n}.`,
+      `Pause anytime (Esc) and open COMPOUND SELECTION to choose which compounds ride on ${SLOT_KEY_LABELS.slice(0, n).join(' / ')}.`,
       'Swap your loadout whenever you like — bring the right reactions to each fight!',
     ];
   }
@@ -827,7 +828,7 @@ export default class GameScene extends Phaser.Scene {
       this._tip('element', 'See that glowing atom? Walk into it, then pick an element to ARM an attack.');
     }
     if (this._tutEnemy?.sprite.active && Math.abs(px - this._tutEnemyX) < 300) {
-      this._tip('enemy', 'A germ ahead! Press [1] to attack — a punch, or your element once it is armed.');
+      this._tip('enemy', 'A germ ahead! Press [Z] to attack — a punch, or your element once it is armed.');
     }
     if (px > this._gapX1 - 240 && px < this._gapX1) {
       this._tip(
@@ -863,23 +864,11 @@ export default class GameScene extends Phaser.Scene {
     const kb = this.input.keyboard!;
     this.cursors = kb.createCursorKeys();
     this.wasd = kb.addKeys('W,A,S,D') as WasdKeys;
-    // All offense on the numpad: 1-9 then 0 = attack slots. Slot 1 doubles as basic punch
-    // until you unlock an attack. Number-row digits are mirrored as a laptop fallback.
+    // Offense on Z / X / C = weapon slots 1-3 (the most you can ever have). Slot 1 (Z) doubles as
+    // the basic punch until you arm a compound. Mirrors the on-screen attack buttons on touch.
     const KC = Phaser.Input.Keyboard.KeyCodes;
-    const numpad = [
-      KC.NUMPAD_ONE,
-      KC.NUMPAD_TWO,
-      KC.NUMPAD_THREE,
-      KC.NUMPAD_FOUR,
-      KC.NUMPAD_FIVE,
-      KC.NUMPAD_SIX,
-      KC.NUMPAD_SEVEN,
-      KC.NUMPAD_EIGHT,
-      KC.NUMPAD_NINE,
-      KC.NUMPAD_ZERO, // 10th slot
-    ];
-    const numRow = [KC.ONE, KC.TWO, KC.THREE, KC.FOUR, KC.FIVE, KC.SIX, KC.SEVEN, KC.EIGHT, KC.NINE, KC.ZERO];
-    this.slotKeys = numpad.map((np, i) => [kb.addKey(np), kb.addKey(numRow[i])]);
+    const attackKeys = [KC.Z, KC.X, KC.C];
+    this.slotKeys = attackKeys.map((k) => [kb.addKey(k)]);
     this.pauseKey = kb.addKey(KC.ESC);
     this.pauseKeyAlt = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
   }
@@ -1408,7 +1397,7 @@ export default class GameScene extends Phaser.Scene {
         this.events.emit('arsenal-update', this.player.getArsenalUpdate());
         this.scene.stop('ElementChoiceScene');
         if (this.isTutorial) {
-          this._tip('armed', 'Armed! Press [1] to unleash your attack. Go smash that germ ahead!');
+          this._tip('armed', 'Armed! Press [Z] to unleash your attack. Go smash that germ ahead!');
         } else if (overflow.length > 0 && !Settings.get().compoundIntroSeen) {
           // First time the player synthesizes more compounds than they have slots — M.E.G. explains
           // the Compound Selection menu so they know how to choose their loadout.

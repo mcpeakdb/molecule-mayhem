@@ -8,6 +8,7 @@ import {
   GAME_WIDTH,
   MAX_ELEMENT_LEVEL,
   PLAYER_MAX_HP,
+  SLOT_KEY_LABELS,
 } from '../constants';
 import Settings from '../systems/Settings';
 import TouchControls from '../systems/TouchControls';
@@ -143,10 +144,10 @@ export default class HUDScene extends Phaser.Scene {
       const container = this.add.container(x, barY).setScrollFactor(0).setDepth(210).setVisible(false);
 
       const bg = this.add.rectangle(0, 0, CHIP_W, CHIP_H, 0x0a140a, 0.92).setStrokeStyle(2, 0x335533);
-      // key badge — numpad 1..9 then 0
-      const keyNum = i < 9 ? i + 1 : 0;
+      // key badge — Z / X / C for the (up to 3) weapon slots
+      const keyLabel = SLOT_KEY_LABELS[i] ?? `${i + 1}`;
       const keyText = this.add
-        .text(-CHIP_W / 2 + 6, -CHIP_H / 2 + 4, `${keyNum}`, {
+        .text(-CHIP_W / 2 + 6, -CHIP_H / 2 + 4, keyLabel, {
           fontSize: '13px',
           color: '#ffffff',
           fontFamily: MONO,
@@ -334,7 +335,7 @@ export default class HUDScene extends Phaser.Scene {
         chip.id = entry.id;
         chip.bg.setStrokeStyle(2, entry.color);
         chip.symbolText.setText(entry.symbol).setColor(hex);
-        chip.keyText.setText(`${entry.key}`);
+        chip.keyText.setText(SLOT_KEY_LABELS[i] ?? `${entry.key}`);
       }
       chip.nameText.setText(entry.name);
       chip.pips.forEach((pip, p) => {
@@ -345,6 +346,15 @@ export default class HUDScene extends Phaser.Scene {
       const frac = entry.cooldownMs > 0 ? Phaser.Math.Clamp(entry.cooldownRemaining / entry.cooldownMs, 0, 1) : 0;
       chip.cooldown.height = CHIP_H * frac;
       chip.container.setAlpha(entry.empty ? 0.45 : frac > 0 ? 0.62 : 1);
+    }
+
+    // Keep the on-screen attack buttons (Z/X/C) in sync with the weapon slots they fire.
+    if (this.touch) {
+      for (let i = 0; i < SLOT_KEY_LABELS.length; i++) {
+        const e = display[i];
+        const frac = e && e.cooldownMs > 0 ? Phaser.Math.Clamp(e.cooldownRemaining / e.cooldownMs, 0, 1) : 0;
+        this.touch.setAttackSlot(i, { visible: !!e, color: e?.color ?? 0x556655, cooldownFrac: frac });
+      }
     }
   }
 }

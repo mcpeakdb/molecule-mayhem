@@ -15,6 +15,9 @@ export const DIFFICULTY_SCALE: Record<Difficulty, DifficultyScale> = {
   extreme: { enemyHp: 1.4, enemySpeed: 1.25, invincMs: 500, weaponSlots: 2 },
 };
 
+/** Keyboard keys bound to weapon slots 1..N (and the labels shown on the HUD chips + touch buttons). */
+export const SLOT_KEY_LABELS = ['Z', 'X', 'C'] as const;
+
 export const GAME_WIDTH = 960;
 export const GAME_HEIGHT = 540;
 export const WORLD_WIDTH = 5500; // default / widest stage span; individual stages may be shorter
