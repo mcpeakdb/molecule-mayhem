@@ -26,7 +26,7 @@ const DEFAULTS: GameSettings = {
   sfx: true,
   screenShake: true,
   touchControls: 'auto',
-  fullscreen: true,
+  fullscreen: false,
   tutorialDone: false,
   compoundIntroSeen: false,
 };

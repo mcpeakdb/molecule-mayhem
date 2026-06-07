@@ -50,7 +50,7 @@ export default class SettingsScene extends Phaser.Scene {
     const g = this.add.graphics();
     g.lineStyle(1, 0x1a3a1a, 0.7);
     g.lineBetween(cx - 220, 110, cx + 220, 110);
-    g.lineBetween(cx - 220, 410, cx + 220, 410);
+    g.lineBetween(cx - 220, 440, cx + 220, 440);
 
     this.cursorText = this.add
       .text(cx - 200, ROW_TOP, '›', { fontSize: '22px', color: '#aaffaa', fontFamily: MONO })
