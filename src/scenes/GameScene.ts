@@ -649,7 +649,7 @@ export default class GameScene extends Phaser.Scene {
         "Whoa — the shrink-ray backfired! You've been shrunk to the molecular scale!",
         "I'm M.E.G., your Main Element Guide. Deep breaths — we'll get you home.",
         'To grow back to normal size you must gather elements and fight your way out.',
-        "Let's run a quick drill. Head right (D / →) and I'll explain as we go.",
+        "Let's run a quick drill. Head right (D / → or the stick) and I'll explain as we go.",
       ],
       () => {
         this.isPaused = false;
@@ -710,7 +710,7 @@ export default class GameScene extends Phaser.Scene {
       .setDepth(481)
       .setVisible(false);
     this._dlgHint = this.add
-      .text(cx + pw / 2 - 16, cy + ph / 2 - 14, '▸ Space', {
+      .text(cx + pw / 2 - 16, cy + ph / 2 - 14, '▸ Tap / Space', {
         fontSize: '12px',
         color: '#6699aa',
         fontFamily: 'monospace',
@@ -753,7 +753,7 @@ export default class GameScene extends Phaser.Scene {
     ];
   }
 
-  /** Blocking story dialogue — pauses the game, advanced with Space/Z. */
+  /** Blocking story dialogue — pauses the game, advanced with a tap, Space, or Z. */
   private _say(lines: string[], onDone?: () => void): void {
     if (!this._dlgBg) this._buildDialogue(); // dialogue UI is built lazily outside the tutorial
     this._dlgQueue = [...lines];
@@ -767,6 +767,8 @@ export default class GameScene extends Phaser.Scene {
     this._dlgAdvance = () => this._nextLine();
     this.input.keyboard?.on('keydown-SPACE', this._dlgAdvance);
     this.input.keyboard?.on('keydown-Z', this._dlgAdvance);
+    // Tap anywhere advances too — essential on touch devices, which have no Space/Z key.
+    this.input.on('pointerdown', this._dlgAdvance);
   }
 
   private _nextLine(): void {
@@ -783,6 +785,7 @@ export default class GameScene extends Phaser.Scene {
     if (this._dlgAdvance) {
       this.input.keyboard?.off('keydown-SPACE', this._dlgAdvance);
       this.input.keyboard?.off('keydown-Z', this._dlgAdvance);
+      this.input.off('pointerdown', this._dlgAdvance);
       this._dlgAdvance = undefined;
     }
     this._hideDlg();
@@ -828,7 +831,10 @@ export default class GameScene extends Phaser.Scene {
       this._tip('element', 'See that glowing atom? Walk into it, then pick an element to ARM an attack.');
     }
     if (this._tutEnemy?.sprite.active && Math.abs(px - this._tutEnemyX) < 300) {
-      this._tip('enemy', 'A germ ahead! Press [Z] to attack — a punch, or your element once it is armed.');
+      this._tip(
+        'enemy',
+        'A germ ahead! Press Z (or tap the Z button) to attack — a punch, or your element once armed.',
+      );
     }
     if (px > this._gapX1 - 240 && px < this._gapX1) {
       this._tip(
@@ -1397,7 +1403,7 @@ export default class GameScene extends Phaser.Scene {
         this.events.emit('arsenal-update', this.player.getArsenalUpdate());
         this.scene.stop('ElementChoiceScene');
         if (this.isTutorial) {
-          this._tip('armed', 'Armed! Press [Z] to unleash your attack. Go smash that germ ahead!');
+          this._tip('armed', 'Armed! Press Z (or tap the Z button) to unleash your attack. Go smash that germ ahead!');
         } else if (overflow.length > 0 && !Settings.get().compoundIntroSeen) {
           // First time the player synthesizes more compounds than they have slots — M.E.G. explains
           // the Compound Selection menu so they know how to choose their loadout.

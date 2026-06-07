@@ -41,6 +41,7 @@ export default class TouchControls {
   private slotQueue: number[] = [];
 
   // Floating stick — tracks whichever pointer first lands in the movement zone.
+  private readonly zone: Phaser.GameObjects.Zone;
   private stickPointerId: number | null = null;
   private stickOriginX = 0;
   private stickOriginY = 0;
@@ -59,13 +60,13 @@ export default class TouchControls {
     scene.input.addPointer(2);
 
     // Movement zone: the lower-left region summons the stick wherever the thumb lands.
-    const zone = scene.add
+    this.zone = scene.add
       .zone(0, 0, MOVE_ZONE_W, GAME_HEIGHT)
       .setOrigin(0, 0)
       .setScrollFactor(0)
       .setDepth(100)
       .setInteractive();
-    zone.on('pointerdown', (pointer: Phaser.Input.Pointer) => this._claimStick(pointer));
+    this.zone.on('pointerdown', (pointer: Phaser.Input.Pointer) => this._claimStick(pointer));
     scene.input.on('pointermove', this._onPointerMove, this);
     scene.input.on('pointerup', this._onPointerUp, this);
 
@@ -262,6 +263,9 @@ export default class TouchControls {
       b.circle.setVisible(show);
       b.label.setVisible(show);
     }
+    // Stop the movement zone from swallowing taps while disabled — otherwise tap-to-advance
+    // dialogue (handled by GameScene) never sees left-half taps during a paused tutorial.
+    if (this.zone.input) this.zone.input.enabled = on;
     if (!on) {
       this._releaseStick();
       this.jumpQueued = false;

@@ -154,13 +154,21 @@ progress hints toward locked compounds.
 
 Shipped 2026-06-06. Makes the game fully playable by touch alongside the keyboard.
 
+- **Attacks rebound to Z / X / C** (weapon slots 1-3) via `SLOT_KEY_LABELS` in
+  [../src/constants.ts](../src/constants.ts); `GameScene._setupInput` binds those keys, and the HUD
+  chips render the letters. Z is the basic punch when slot 1 is empty.
 - **`TouchControls` system** ([../src/systems/TouchControls.ts](../src/systems/TouchControls.ts)):
-  a floating left-half thumbstick (analog `moveX`/`moveY`), plus jump (⤒) and pause (❚❚) buttons.
-  Hosted by `HUDScene`; multi-touch enabled. Polled each frame by `GameScene.update` and merged into
-  the player via the new optional `InputKeys.touch` (`Player.update` reads stick + jump/slot edges).
+  a floating left-half thumbstick (analog `moveX`/`moveY`), a right-thumb cluster of **Z/X/C attack
+  buttons** (colour/cooldown synced from the HUD via `setAttackSlot`), a jump (⤒) button, and a pause
+  (❚❚) button parked clear of the attacks. Hosted by `HUDScene`; multi-touch enabled. Polled each
+  frame by `GameScene.update` and merged into the player via the optional `InputKeys.touch`
+  (`Player.update` reads stick + jump/slot edges).
 - **Tappable HUD weapon chips** queue a slot fire through the same path as a key press; the on-screen
   pause button routes through a `request-pause` event into the shared `GameScene._openPause()`.
-  Controls auto-hide during intros/pause via `TouchControls.setEnabled`.
+  Controls auto-hide during intros/pause via `TouchControls.setEnabled`, which also disables the
+  movement zone's hit-testing so it doesn't swallow taps meant for other handlers.
+- **Tap to advance dialogue**: `GameScene._say` listens for `pointerdown` (alongside Space/Z) so
+  M.E.G.'s blocking tutorial/story boxes advance by tap — essential on touch devices.
 - **`Settings.touchControls`** (`auto` | `on` | `off`, default `auto`) with `Settings.touchActive()`
   resolving `auto` against `isTouchDevice()`. New Touch Controls row in `SettingsScene`.
 - **All menus tappable** via the shared `attachTap` helper

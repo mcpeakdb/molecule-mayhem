@@ -4,9 +4,15 @@
 
 ### Mobile / touch support
 
-- **On-screen controls.** A floating thumbstick (touch the left half of the screen) drives
-  movement, with a **jump button (⤒)** and **pause button (❚❚)** on the right. Tapping a weapon
-  chip on the HUD bar fires that slot — no keyboard required.
+- **Attacks are now Z / X / C** (slots 1-3) instead of the number row / numpad — easier to reach
+  and a natural fit for the on-screen buttons. Z is still the basic punch until you arm a compound.
+- **On-screen controls.** A floating thumbstick (touch the left half of the screen) drives movement;
+  the right thumb gets dedicated **Z / X / C attack buttons** (coloured to their compound, dimming on
+  cooldown), a **jump button (⤒)**, and a **pause button (❚❚)**. Tapping a HUD weapon chip also fires
+  that slot. No keyboard required — the jump button covers the missing Space key.
+- **Tap to advance dialogue.** M.E.G.'s tutorial/story boxes now advance on a tap as well as
+  Space/Z, so the intro is no longer a dead end on phones (the hint reads "▸ Tap / Space"). Tutorial
+  prompts reference the on-screen stick/buttons too.
 - **Auto-detection + toggle.** Touch controls appear automatically on touch-capable devices. A new
   **Touch Controls** row in Settings (AUTO / ON / OFF) lets you force them on or off.
 - **Every menu is now tappable.** Title, Difficulty, Stage Select (with ‹ BACK / LEADERBOARD ›
