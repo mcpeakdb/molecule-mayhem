@@ -13,6 +13,7 @@ export interface GameSettings {
   sfx: boolean; // sound effects enabled
   screenShake: boolean;
   touchControls: TouchMode; // on-screen joystick + buttons for mobile
+  fullscreen: boolean; // auto-enter fullscreen on touch devices (hides the mobile URL bar)
   tutorialDone: boolean; // set once the M.E.G. tutorial has been completed/skipped
   compoundIntroSeen: boolean; // set once M.E.G. has explained the Compound Selection menu
 }
@@ -25,6 +26,7 @@ const DEFAULTS: GameSettings = {
   sfx: true,
   screenShake: true,
   touchControls: 'auto',
+  fullscreen: true,
   tutorialDone: false,
   compoundIntroSeen: false,
 };
@@ -91,6 +93,7 @@ export default class Settings {
         touchControls: TOUCH_MODES.includes(parsed.touchControls as TouchMode)
           ? (parsed.touchControls as TouchMode)
           : DEFAULTS.touchControls,
+        fullscreen: parsed.fullscreen ?? DEFAULTS.fullscreen,
         tutorialDone: parsed.tutorialDone ?? DEFAULTS.tutorialDone,
         compoundIntroSeen: parsed.compoundIntroSeen ?? DEFAULTS.compoundIntroSeen,
       };

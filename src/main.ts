@@ -11,8 +11,9 @@ import PauseScene from './scenes/PauseScene.js';
 import SettingsScene from './scenes/SettingsScene.js';
 import StageSelectScene from './scenes/StageSelectScene.js';
 import TitleScene from './scenes/TitleScene.js';
+import Settings from './systems/Settings.js';
 
-new Phaser.Game({
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
@@ -39,3 +40,18 @@ new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
 });
+
+// Mobile browsers keep showing the URL bar over a non-scrolling page. Going fullscreen on the
+// first user tap hides it. Fullscreen must be requested from a gesture, so we listen for one tap
+// (best-effort: iPhone Safari has no element fullscreen — there the home-screen web-app meta wins).
+if (Settings.get().fullscreen && Settings.isTouchDevice()) {
+  const enterFullscreen = () => {
+    window.removeEventListener('pointerdown', enterFullscreen);
+    try {
+      if (game.scale.fullscreen.available && !game.scale.isFullscreen) game.scale.startFullscreen();
+    } catch {
+      // Fullscreen not permitted on this device/browser — leave the page as-is.
+    }
+  };
+  window.addEventListener('pointerdown', enterFullscreen);
+}

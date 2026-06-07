@@ -5,7 +5,9 @@ import SoundSystem from '../systems/SoundSystem';
 import { attachTap } from '../systems/touchMenu';
 
 const MONO = 'monospace';
-const ROWS = ['Volume', 'Mute', 'Sound FX', 'Screen Shake', 'Touch Controls', 'BACK'] as const;
+const ROWS = ['Volume', 'Mute', 'Sound FX', 'Screen Shake', 'Touch Controls', 'Fullscreen', 'BACK'] as const;
+const ROW_TOP = 158;
+const ROW_DY = 40; // tightened so all rows fit between the panel rules
 
 export default class SettingsScene extends Phaser.Scene {
   private cursor = 0;
@@ -46,12 +48,12 @@ export default class SettingsScene extends Phaser.Scene {
     g.lineBetween(cx - 220, 410, cx + 220, 410);
 
     this.cursorText = this.add
-      .text(cx - 200, 160, '›', { fontSize: '22px', color: '#aaffaa', fontFamily: MONO })
+      .text(cx - 200, ROW_TOP, '›', { fontSize: '22px', color: '#aaffaa', fontFamily: MONO })
       .setOrigin(0, 0.5);
 
     this.rowTexts = ROWS.map((_, i) => {
       const t = this.add
-        .text(cx - 174, 160 + i * 48, '', { fontSize: '18px', color: '#88bb88', fontFamily: MONO })
+        .text(cx - 174, ROW_TOP + i * ROW_DY, '', { fontSize: '18px', color: '#88bb88', fontFamily: MONO })
         .setOrigin(0, 0.5);
       // Touch: tap a row to select it and apply it (toggle / cycle / BACK), like pressing Z on it.
       attachTap(
@@ -128,6 +130,10 @@ export default class SettingsScene extends Phaser.Scene {
       case 4:
         Settings.cycleTouchControls(dir);
         break;
+      case 5:
+        Settings.set({ fullscreen: dir > 0 });
+        this._applyFullscreen(dir > 0);
+        break;
     }
     this._refresh();
   }
@@ -158,8 +164,27 @@ export default class SettingsScene extends Phaser.Scene {
       case 4:
         Settings.cycleTouchControls(1);
         break;
+      case 5: {
+        const fs = !s.fullscreen;
+        Settings.set({ fullscreen: fs });
+        this._applyFullscreen(fs);
+        break;
+      }
     }
     this._refresh();
+  }
+
+  /** Enter/leave real fullscreen. No-op where unsupported (e.g. iPhone Safari) — the pref still sticks. */
+  private _applyFullscreen(on: boolean): void {
+    try {
+      if (on) {
+        if (this.scale.fullscreen.available && !this.scale.isFullscreen) this.scale.startFullscreen();
+      } else if (this.scale.isFullscreen) {
+        this.scale.stopFullscreen();
+      }
+    } catch {
+      // Fullscreen request rejected — ignore and keep the saved preference.
+    }
   }
 
   private _previewBlip(): void {
@@ -182,6 +207,7 @@ export default class SettingsScene extends Phaser.Scene {
       `Sound FX       ${onOff(s.sfx)}`,
       `Screen Shake   ${onOff(s.screenShake)}`,
       `Touch Controls ${touchLabel}`,
+      `Fullscreen     ${onOff(s.fullscreen)}`,
       'BACK',
     ];
     this.rowTexts.forEach((t, i) => {
@@ -189,6 +215,6 @@ export default class SettingsScene extends Phaser.Scene {
       t.setText(values[i]);
       t.setColor(selected ? '#ccffcc' : '#88bb88');
     });
-    this.cursorText.setY(160 + this.cursor * 48);
+    this.cursorText.setY(ROW_TOP + this.cursor * ROW_DY);
   }
 }
