@@ -10,6 +10,12 @@
   Procedural art pass adds per-sector decorative scenery, parallax props, and a vignette (still no
   external assets). Renamed **Molecule Mayhem → Molecular Meltdown**. Every menu/end screen has an
   exit back to the title (Difficulty ESC, Pause → QUIT TO TITLE, death screen ESC).
+- **Hand-drawn art migration** (in progress — see [GRAPHIC_MIGRATION_PLAN.md](GRAPHIC_MIGRATION_PLAN.md)):
+  Phase 1 pipeline is live. `BootScene` now has an `ASSET_SPECS` manifest + `preload()` that loads
+  hand-drawn PNGs from `public/assets/sprites/` and falls back to the existing procedural art for any
+  un-migrated key, so sprites can be replaced one-by-one (flip a `migrated` flag) with no code churn.
+  Stage maps, the vignette, and runtime vector FX stay procedural. A `?exportTextures` dev tool dumps
+  Strategy-A snapshot placeholders. No assets migrated yet — game is visually unchanged.
 
 
 - **9 stages across 3 sectors** (Petri Dish / Blood Agar / MacConkey), 3 stages each, plus the

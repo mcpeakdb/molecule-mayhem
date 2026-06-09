@@ -1,8 +1,60 @@
 import Phaser from 'phaser';
 
+// === Hand-drawn art manifest (see docs/GRAPHIC_MIGRATION_PLAN.md) ===
+// Every in-scope sprite texture and the PNG that may replace its procedural version. Paths are
+// relative to `public/assets/sprites/`. Flip `migrated: true` once a PNG (placeholder or final) is
+// dropped in at the canonical size — `preload()` then loads it and the procedural fallback for that
+// key is skipped automatically (`_done` won't overwrite an already-loaded texture). Stage maps,
+// the vignette, and runtime vector FX are intentionally absent — they stay procedural.
+type AssetSpec = { key: string; file: string; w: number; h: number; migrated: boolean };
+const ASSET_SPECS: AssetSpec[] = [
+  // Player (multi-frame → player_walk / player_idle / player_jump anims)
+  { key: 'player_0', file: 'player/player_0.png', w: 40, h: 74, migrated: false },
+  { key: 'player_1', file: 'player/player_1.png', w: 40, h: 74, migrated: false },
+  { key: 'player_2', file: 'player/player_2.png', w: 40, h: 74, migrated: false },
+  { key: 'player_jump', file: 'player/player_jump.png', w: 40, h: 74, migrated: false },
+  // NPC
+  { key: 'meg', file: 'npc/meg.png', w: 50, h: 54, migrated: false },
+  // Enemies
+  { key: 'bacterium', file: 'enemies/bacterium.png', w: 40, h: 82, migrated: false },
+  { key: 'virus', file: 'enemies/virus.png', w: 44, h: 54, migrated: false },
+  { key: 'dustbunny', file: 'enemies/dustbunny.png', w: 48, h: 62, migrated: false },
+  { key: 'pollen', file: 'enemies/pollen.png', w: 44, h: 58, migrated: false },
+  { key: 'amoeba', file: 'enemies/amoeba.png', w: 56, h: 64, migrated: false },
+  { key: 'spore', file: 'enemies/spore.png', w: 36, h: 36, migrated: false },
+  { key: 'mite', file: 'enemies/mite.png', w: 48, h: 46, migrated: false },
+  // Bosses
+  { key: 'boss_bacterium', file: 'bosses/boss_bacterium.png', w: 96, h: 160, migrated: false },
+  { key: 'boss_amoeba', file: 'bosses/boss_amoeba.png', w: 96, h: 160, migrated: false },
+  { key: 'boss_phage', file: 'bosses/boss_phage.png', w: 96, h: 160, migrated: false },
+  // Atoms
+  { key: 'atom_hydrogen', file: 'atoms/atom_hydrogen.png', w: 40, h: 40, migrated: false },
+  { key: 'atom_oxygen', file: 'atoms/atom_oxygen.png', w: 40, h: 40, migrated: false },
+  { key: 'atom_carbon', file: 'atoms/atom_carbon.png', w: 40, h: 40, migrated: false },
+  { key: 'atom_nitrogen', file: 'atoms/atom_nitrogen.png', w: 40, h: 40, migrated: false },
+  { key: 'atom_mystery', file: 'atoms/atom_mystery.png', w: 40, h: 40, migrated: false },
+  { key: 'atom_node', file: 'atoms/atom_node.png', w: 40, h: 40, migrated: false },
+  { key: 'atom_gold', file: 'atoms/atom_gold.png', w: 40, h: 40, migrated: false },
+  // Effects (projectile/particle are tinted at runtime — keep art near-neutral)
+  { key: 'fx_hit', file: 'fx/fx_hit.png', w: 40, h: 40, migrated: false },
+  { key: 'projectile', file: 'fx/projectile.png', w: 16, h: 16, migrated: false },
+  { key: 'particle', file: 'fx/particle.png', w: 6, h: 6, migrated: false },
+];
+
 export default class BootScene extends Phaser.Scene {
   constructor() {
     super('BootScene');
+  }
+
+  // Load any migrated hand-drawn PNGs before create() runs its procedural fallbacks. A missing/404
+  // file just logs a warning and falls back to the procedural texture for that key.
+  preload(): void {
+    this.load.on('loaderror', (file: Phaser.Loader.File) => {
+      console.warn(`[art] failed to load "${file.key}" — using procedural fallback`);
+    });
+    for (const a of ASSET_SPECS) {
+      if (a.migrated) this.load.image(a.key, `assets/sprites/${a.file}`);
+    }
   }
 
   create(): void {
@@ -23,7 +75,39 @@ export default class BootScene extends Phaser.Scene {
     this._makeParticle();
     this._makeBackground();
     this._makeVignette();
+
+    // Dev tool: `?exportTextures` downloads each in-scope texture as a canonical-size PNG (Strategy A
+    // snapshot placeholders). Run with an empty manifest to capture the pure procedural art, drop the
+    // files into public/assets/sprites/, then flip their `migrated` flags. See the migration plan.
+    if (this._exportMode()) {
+      this._exportTextures();
+      return;
+    }
     this.scene.start('TitleScene');
+  }
+
+  private _exportMode(): boolean {
+    return typeof location !== 'undefined' && /[?&]exportTextures(\b|=)/.test(location.search);
+  }
+
+  private _exportTextures(): void {
+    ASSET_SPECS.forEach((a, i) => {
+      if (!this.textures.exists(a.key)) return;
+      const src = this.textures.get(a.key).getSourceImage() as CanvasImageSource & {
+        width: number;
+        height: number;
+      };
+      const canvas = document.createElement('canvas');
+      canvas.width = src.width;
+      canvas.height = src.height;
+      canvas.getContext('2d')?.drawImage(src, 0, 0);
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = `${a.key}.png`;
+      // Stagger clicks — browsers throttle rapid multi-file downloads.
+      setTimeout(() => link.click(), i * 150);
+    });
+    console.info(`[art] exporting ${ASSET_SPECS.length} textures as PNG…`);
   }
 
   // M.E.G. — Main Element Guide: a friendly glowing atom-bot that narrates the tutorial
@@ -64,7 +148,8 @@ export default class BootScene extends Phaser.Scene {
   private _g(): Phaser.GameObjects.Graphics & { _done(key: string, w: number, h: number): void } {
     const g = this.add.graphics() as Phaser.GameObjects.Graphics & { _done(key: string, w: number, h: number): void };
     g._done = (key, w, h) => {
-      g.generateTexture(key, w, h);
+      // A migrated PNG of the same key is loaded in preload(); don't overwrite it with procedural art.
+      if (!this.textures.exists(key)) g.generateTexture(key, w, h);
       g.destroy();
     };
     return g;
