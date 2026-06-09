@@ -1,5 +1,18 @@
 # Patch Notes
 
+## v0.19.0 - 2026-06-09
+
+### Hand-drawn sprite art
+
+- **All in-scope sprites are now hand-drawn PNGs.** The player frames, M.E.G., every enemy, every
+  boss, all atoms, and the hit/projectile/particle effects load from `public/assets/sprites/`
+  instead of being drawn procedurally at runtime. Each PNG keeps the original texture key and
+  canonical size, so gameplay, hitboxes, and animations are unchanged.
+- **Removed the procedural sprite generators.** `BootScene` no longer carries the `_makeXxx()`
+  drawing code (or the `?exportTextures` placeholder tool / `migrated` flags) for migrated sprites;
+  it now just loads the PNGs and builds the player animations. Stage maps (`bg_tile` /
+  `ground_tile`), the vignette, and runtime vector FX remain procedural by design.
+
 ## v0.18.0 - 2026-06-07
 
 ### M.E.G. Quips on Level 3 Elements
